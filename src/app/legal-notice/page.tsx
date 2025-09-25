@@ -47,10 +47,10 @@ export default function LegalNotice() {
                 <span className="font-semibold">Host Name:</span> [Host name, e.g., Vercel Inc.]
               </li>
               <li>
-                <span className="font-semibold">Host Address:</span> [Host's registered office address]
+                <span className="font-semibold">Host Address:</span> [Host&apos;s registered office address]
               </li>
               <li>
-                <span className="font-semibold">Phone Number:</span> [Host's phone number, if applicable]
+                <span className="font-semibold">Phone Number:</span> [Host&apos;s phone number, if applicable]
               </li>
             </ul>
           </section>

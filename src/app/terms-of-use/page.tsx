@@ -20,7 +20,7 @@ export default function TermsOfUse() {
           <section className="mb-8">
             <h2 className="text-2xl font-bold text-white mb-4">1. Acceptance of Terms</h2>
             <p className="mb-2">
-              By accessing or using the Adapt2Life application ("the Service"), you agree to be bound by these Terms of Use ("Terms"). If you disagree with any part of the terms, then you may not access the Service.
+              By accessing or using the Adapt2Life application (&quot;the Service&quot;), you agree to be bound by these Terms of Use (&quot;Terms&quot;). If you disagree with any part of the terms, then you may not access the Service.
             </p>
           </section>
 
@@ -55,7 +55,7 @@ export default function TermsOfUse() {
           <section className="mb-8">
             <h2 className="text-2xl font-bold text-white mb-4">6. Disclaimer of Warranties</h2>
             <p className="mb-2">
-              The Service is provided on an "as is" and "as available" basis. Adapt2Life makes no warranties, expressed or implied, regarding the Service. We do not warrant that the Service will be uninterrupted, secure, or error-free.
+              The Service is provided on an &quot;as is&quot; and &quot;as available&quot; basis. Adapt2Life makes no warranties, expressed or implied, regarding the Service. We do not warrant that the Service will be uninterrupted, secure, or error-free.
             </p>
           </section>
 

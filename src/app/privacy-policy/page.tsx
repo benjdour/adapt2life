@@ -20,7 +20,7 @@ export default function PrivacyPolicy() {
           <section className="mb-8">
             <h2 className="text-2xl font-bold text-white mb-4">1. Introduction</h2>
             <p className="mb-4">
-              Welcome to Adapt2Life. We are committed to the most transparency regarding the protection of your personal information. This privacy policy explains in detail the nature, purpose, and legal basis for the processing of your personal data when you use our website and application (the "Service"), no matter where you are located. By accessing or using our Service, you acknowledge that you have read and agreed to the terms of this policy.
+              Welcome to Adapt2Life. We are committed to the most transparency regarding the protection of your personal information. This privacy policy explains in detail the nature, purpose, and legal basis for the processing of your personal data when you use our website and application (the &quot;Service&quot;), no matter where you are located. By accessing or using our Service, you acknowledge that you have read and agreed to the terms of this policy.
             </p>
           </section>
 
@@ -42,7 +42,7 @@ export default function PrivacyPolicy() {
                 <span className="font-semibold">Activity Data:</span> Activity type (running, cycling, walking, etc.), start/end date and time, duration, distance, pace, calories burned, heart rate, GPS data, and altitude.
               </li>
               <li className="mb-1">
-                <span className="font-semibold">Health and Wellness Data:</span> Sleep data (duration, sleep stages), stress score, heart rate variability (HRV), "Body Battery" score, and menstrual cycle tracking data if you have it enabled in your Garmin account.
+                <span className="font-semibold">Health and Wellness Data:</span> Sleep data (duration, sleep stages), stress score, heart rate variability (HRV), &quot;Body Battery&quot; score, and menstrual cycle tracking data if you have it enabled in your Garmin account.
               </li>
             </ul>
             <h3 className="text-xl font-semibold text-white mt-4 mb-2">2.3 Automatically Collected Data:</h3>
@@ -70,7 +70,7 @@ export default function PrivacyPolicy() {
                 <span className="font-semibold">For Security:</span> To protect our Service from fraudulent activity.
               </li>
               <li className="mb-1">
-                <span className="font-semibold">For Service Improvement:</span> We use anonymized data to improve the app's features.
+                <span className="font-semibold">For Service Improvement:</span> We use anonymized data to improve the app&apos;s features.
               </li>
             </ul>
           </section>
@@ -150,7 +150,7 @@ export default function PrivacyPolicy() {
 
           <section className="mb-8">
             <h2 className="text-2xl font-bold text-white mb-4">8. Cookies and Tracking Technologies</h2>
-            <p className="mb-2">We use cookies to maintain the site's proper functioning and to analyze usage anonymously. You can configure your browser to refuse cookies.</p>
+            <p className="mb-2">We use cookies to maintain the site&apos;s proper functioning and to analyze usage anonymously. You can configure your browser to refuse cookies.</p>
           </section>
           
           <section className="mb-8">
