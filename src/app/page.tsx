@@ -1,7 +1,12 @@
+'use client';
+
 import Image from 'next/image';
 import Link from 'next/link';
+import { useState } from 'react';
 
 export default function Home() {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
   return (
     <div className="flex min-h-screen flex-col bg-gray-900 text-white">
       {/* Header */}
@@ -10,33 +15,54 @@ export default function Home() {
           <Image src="/logo.png" alt="Adapt2Life Logo" width={40} height={40} className="mr-2" />
           <span className="text-xl font-bold">Adapt2Life</span>
         </div>
-        <nav className="flex items-center space-x-6">
+        
+        {/* Bouton Hamburger pour mobile */}
+        <button
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+          className="md:hidden text-white focus:outline-none"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7"></path>
+          </svg>
+        </button>
+
+        {/* Menu de navigation pour desktop */}
+        <nav className="hidden md:flex items-center space-x-6">
           <Link href="#" className="hover:text-green-400">Home</Link>
           <Link href="#" className="hover:text-green-400">Features</Link>
           <Link href="#" className="hover:text-green-400">How It Works</Link>
           <Link href="#" className="hover:text-green-400">Contact</Link>
-          {/* Language Selector - Discret */}
-          <span className="text-gray-400">English</span>
           <Link href="#" className="px-4 py-2 bg-gradient-to-r from-blue-500 to-green-500 text-white rounded-md hover:from-blue-600 hover:to-green-600">
             Sign Up
           </Link>
         </nav>
       </header>
+      
+      {/* Menu mobile qui apparaît quand le bouton est cliqué */}
+      {isMenuOpen && (
+        <nav className="md:hidden flex flex-col items-center w-full p-4 bg-gray-800 space-y-4">
+          <Link href="#" className="hover:text-green-400">Home</Link>
+          <Link href="#" className="hover:text-green-400">Features</Link>
+          <Link href="#" className="hover:text-green-400">How It Works</Link>
+          <Link href="#" className="hover:text-green-400">Contact</Link>
+          <Link href="#" className="px-4 py-2 bg-gradient-to-r from-blue-500 to-green-500 text-white rounded-md hover:from-blue-600 hover:to-green-600">
+            Sign Up
+          </Link>
+        </nav>
+      )}
 
       {/* Hero Section */}
       <main className="flex flex-grow items-center justify-center p-8 bg-gradient-to-br from-blue-700 to-green-700">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center">
-          {/* Image (left) */}
           <div className="md:w-1/2 flex justify-center p-4">
             <Image
-              src="/hero-woman.png" // Assurez-vous d'avoir cette image dans public/
+              src="/hero-woman.png"
               alt="Woman exercising"
               width={600}
               height={400}
               className="rounded-lg shadow-lg"
             />
           </div>
-          {/* Text Content (right) */}
           <div className="md:w-1/2 p-4 text-center md:text-left">
             <h1 className="text-5xl font-extrabold mb-4 leading-tight">
               Your AI Trainer <br className="hidden md:block"/> That Adapts To Your Life.
@@ -62,7 +88,6 @@ export default function Home() {
         </div>
 
         <div className="flex flex-col md:flex-row space-y-6 md:space-y-0 md:space-x-12 text-center md:text-left">
-          {/* Navigation */}
           <div>
             <h3 className="font-semibold text-white mb-2">Navigation</h3>
             <ul>
@@ -72,7 +97,6 @@ export default function Home() {
             </ul>
           </div>
 
-          {/* Legal Info */}
           <div>
             <h3 className="font-semibold text-white mb-2">Legal Info</h3>
             <ul>
@@ -82,11 +106,10 @@ export default function Home() {
             </ul>
           </div>
 
-          {/* Follow Us */}
           <div className="text-center md:text-left">
             <h3 className="font-semibold text-white mb-2">Follow Us</h3>
             <div className="flex space-x-4 justify-center md:justify-start">
-              <Link href="#" className="hover:text-green-400"><i className="fab fa-instagram"></i></Link> {/* Vous aurez besoin d'intégrer Font Awesome ou des icônes SVG */}
+              <Link href="#" className="hover:text-green-400"><i className="fab fa-instagram"></i></Link>
               <Link href="#" className="hover:text-green-400"><i className="fab fa-twitter"></i></Link>
               <Link href="#" className="hover:text-green-400"><i className="fab fa-linkedin"></i></Link>
             </div>
