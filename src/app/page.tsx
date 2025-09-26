@@ -56,7 +56,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center">
           <div className="md:w-1/2 flex justify-center p-4">
             <Image
-              src="/hero-woman.png"
+              src="/main-visual.jpeg"
               alt="Woman exercising"
               width={600}
               height={400}
