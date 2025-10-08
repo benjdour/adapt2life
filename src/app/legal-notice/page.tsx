@@ -21,36 +21,33 @@ export default function LegalNotice() {
             <h2 className="text-2xl font-bold text-white mb-4">Website Publisher Information</h2>
             <ul className="list-disc pl-5 space-y-2">
               <li>
-                <span className="font-semibold">Company Name:</span> [Your Company Name, e.g., Adapt2Life Inc.]
+                <span className="font-semibold">Company Name:</span> Adapt2Life Inc.
               </li>
               <li>
-                <span className="font-semibold">Legal Form:</span> [e.g., Corporation or your name if a sole proprietorship]
+                <span className="font-semibold">Legal Form:</span> Corporation
               </li>
               <li>
-                <span className="font-semibold">Registered Office Address:</span> [Your address, e.g., 123 Main Street, Montreal, QC H2Y 3Y4]
+                <span className="font-semibold">Registered Office Address:</span> 115 rue Jean Lefevre, La Malbaie, QC, G5A 1V3, Canada
               </li>
               <li>
-                <span className="font-semibold">Email Address:</span> [Your contact email address]
+                <span className="font-semibold">Email Address:</span> contact@adapt2life.app
               </li>
             </ul>
           </section>
 
           <section className="mb-8">
             <h2 className="text-2xl font-bold text-white mb-4">Publication Director</h2>
-            <p className="mb-2">[Your name or the name of the person responsible.]</p>
+            <p className="mb-2">Benjamin Dour</p>
           </section>
 
           <section className="mb-8">
             <h2 className="text-2xl font-bold text-white mb-4">Hosting Information</h2>
             <ul className="list-disc pl-5 space-y-2">
               <li>
-                <span className="font-semibold">Host Name:</span> [Host name, e.g., Vercel Inc.]
+                <span className="font-semibold">Host Name:</span> Vercel Inc.
               </li>
               <li>
-                <span className="font-semibold">Host Address:</span> [Host&apos;s registered office address]
-              </li>
-              <li>
-                <span className="font-semibold">Phone Number:</span> [Host&apos;s phone number, if applicable]
+                <span className="font-semibold">Host Address:</span> 440 N Barranca Ave #4133, Covina, CA, 91723, United States
               </li>
             </ul>
           </section>
@@ -58,7 +55,7 @@ export default function LegalNotice() {
           <section className="mb-8">
             <h2 className="text-2xl font-bold text-white mb-4">Intellectual Property</h2>
             <p className="mb-2">
-              All content on this website, including graphics, images, texts, videos, animations, sounds, logos, and icons, as well as their formatting, are the exclusive property of [Your Company Name], with the exception of trademarks, logos, or content belonging to other partner companies or authors.
+              All content on this website, including graphics, images, texts, videos, animations, sounds, logos, and icons, as well as their formatting, are the exclusive property of Adapt2Life Inc, with the exception of trademarks, logos, or content belonging to other partner companies or authors.
             </p>
           </section>
 

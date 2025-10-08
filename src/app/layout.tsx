@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Adapt2Life",
-  description: "Your AI Trainer that Adapts To Your Life.",
+  description: "Your AI trainer for a balanced life",
 };
 
 export default function RootLayout({

@@ -34,7 +34,7 @@ export default function TermsOfUse() {
           <section className="mb-8">
             <h2 className="text-2xl font-bold text-white mb-4">3. Intellectual Property</h2>
             <p className="mb-2">
-              The Service and its original content, features, and functionality are and will remain the exclusive property of [Your Company Name] and its licensors.
+              The Service and its original content, features, and functionality are and will remain the exclusive property of Adapt2Life Inc and its licensors.
             </p>
           </section>
 

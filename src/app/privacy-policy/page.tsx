@@ -162,10 +162,10 @@ export default function PrivacyPolicy() {
             <h2 className="text-2xl font-bold text-white mb-4">10. Contact Us</h2>
             <ul className="list-disc pl-5">
               <li className="mb-1">
-                <span className="font-semibold">Responsible for data protection:</span> [Name or job title].
+                <span className="font-semibold">Responsible for data protection:</span> Benjamin Dour.
               </li>
               <li className="mb-1">
-                <span className="font-semibold">Contact:</span> For questions or to exercise your rights, please contact us at: <span className="font-semibold">[Your Contact Email]</span>.
+                <span className="font-semibold">Contact:</span> For questions or to exercise your rights, please contact us at: <span className="font-semibold">contact@adapt2life.app</span>.
               </li>
             </ul>
           </section>
