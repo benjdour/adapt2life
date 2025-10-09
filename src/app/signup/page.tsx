@@ -1,15 +1,15 @@
-'use client';
+'use client'; // Important pour utiliser useState
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState } from 'react'; // Import de useState
 
-export default function Home() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+export default function FeaturesPage() {
+  const [isMenuOpen, setIsMenuOpen] = useState(false); // État pour gérer l'ouverture du menu mobile
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-900 text-white">
-      {/* Header */}
+      {/* Header (avec gestion du menu mobile) */}
       <header className="flex items-center justify-between p-4 bg-gray-800">
         <div className="flex items-center">
           <Image src="/logo.png" alt="Adapt2Life Logo" width={40} height={40} className="mr-2" />
@@ -26,7 +26,7 @@ export default function Home() {
           </svg>
         </button>
 
-       {/* Menu de navigation pour desktop */}
+        {/* Menu de navigation pour desktop */}
         <nav className="hidden md:flex items-center space-x-6">
           <Link href="/" className="hover:text-green-400">Home</Link>
           <Link href="/features" className="hover:text-green-400">Features</Link>
@@ -51,33 +51,35 @@ export default function Home() {
         </nav>
       )}
 
-      {/* Hero Section */}
-      <main className="flex flex-grow items-center justify-center p-8 bg-gradient-to-br from-blue-700 to-green-700">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center">
-          <div className="md:w-1/2 flex justify-center p-4">
-            <Image
-              src="/main-visual.jpeg"
-              alt="Woman exercising"
-              width={600}
-              height={400}
-              className="rounded-lg shadow-lg"
-            />
+ {/* Main Content - Coming Soon Message */}
+ <section className="bg-gradient-to-br from-blue-700 to-green-700 py-20 text-center">
+      <main className="flex flex-grow items-center justify-center p-8 text-center">
+        <div className="max-w-xl p-10 bg-gray-800 rounded-3xl shadow-2xl border border-green-500/30">
+          
+          <h1 className="text-6xl md:text-8xl font-extrabold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-green-400">
+            🚧
+          </h1>
+          
+          <h2 className="text-4xl font-bold mb-6 text-white">
+            Sign Up
+          </h2>
+          
+          <p className="text-xl text-gray-300 mb-8">
+            We are finalizing the Garmin connection and our AI models to provide you with the best personalized experience.
+          </p>
+
+          <div className="inline-block px-6 py-3 text-lg font-semibold bg-orange-500/20 text-orange-400 rounded-full border border-orange-500 transition duration-300">
+            🚀 Coming Soon!
           </div>
-          <div className="md:w-1/2 p-4 text-center md:text-left">
-            <h1 className="text-5xl font-extrabold mb-4 leading-tight">
-              Your AI Trainer <br className="hidden md:block"/> That Adapts To Your Life.
-            </h1>
-            <p className="text-xl text-gray-200 mb-8">
-              Personalized workouts, designed in real-time based on your fitness, goals, and daily constraints.
-            </p>
-            <Link href="/signup" className="px-8 py-4 bg-orange-500 text-white font-semibold rounded-md hover:bg-orange-600 transition duration-300">
-              Discover Your Potential
-            </Link>
-          </div>
+          
+          <p className="mt-8 text-sm text-gray-500">
+            Check back soon or follow us on social media for launch updates.
+          </p>
         </div>
       </main>
+</section>
 
-      {/* Footer */}
+      {/* Footer (Matches Homepage Footer) */}
       <footer className="bg-gray-800 p-8 text-gray-400 flex flex-col md:flex-row justify-between items-center md:items-start">
         <div className="mb-6 md:mb-0 text-center md:text-left">
           <div className="flex items-center justify-center md:justify-start mb-2">
@@ -91,9 +93,9 @@ export default function Home() {
           <div>
             <h3 className="font-semibold text-white mb-2">Navigation</h3>
             <ul>
-              <li><Link href="#" className="hover:text-green-400">Home</Link></li>
-              <li><Link href="#" className="hover:text-green-400">Features</Link></li>
-              <li><Link href="#" className="hover:text-green-400">Contact</Link></li>
+              <li><Link href="/" className="hover:text-green-400">Home</Link></li>
+              <li><Link href="/features" className="hover:text-green-400">Features</Link></li>
+              <li><Link href="/contact" className="hover:text-green-400">Contact</Link></li>
             </ul>
           </div>
 
