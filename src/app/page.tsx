@@ -91,9 +91,9 @@ export default function Home() {
           <div>
             <h3 className="font-semibold text-white mb-2">Navigation</h3>
             <ul>
-              <li><Link href="#" className="hover:text-green-400">Home</Link></li>
-              <li><Link href="#" className="hover:text-green-400">Features</Link></li>
-              <li><Link href="#" className="hover:text-green-400">Contact</Link></li>
+              <li><Link href="/" className="hover:text-green-400">Home</Link></li>
+              <li><Link href="/features" className="hover:text-green-400">Features</Link></li>
+              <li><Link href="/contact" className="hover:text-green-400">Contact</Link></li>
             </ul>
           </div>
 
