@@ -137,67 +137,65 @@ export function MarketingLayout({
 
       <main className="flex flex-grow flex-col">{children}</main>
 
-      <footer className="bg-gray-800 p-8 text-gray-400">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-center gap-8 md:flex-row md:items-start md:justify-evenly md:gap-12">
-          <div className="mb-6 w-full text-center md:mb-0 md:mr-0 md:w-auto md:self-start md:text-left">
-            <div className="mb-2 flex items-center justify-center md:justify-start">
-              <Image
-                src="/logo.png"
-                alt="Adapt2Life Logo"
-                width={30}
-                height={30}
-                className="mr-2"
-              />
-              <span className="text-lg font-bold text-white">Adapt2Life</span>
-            </div>
-            <p className="text-sm">{footer.tagline}</p>
+      <footer className="bg-gray-800 p-8 text-gray-400 flex flex-col md:flex-row justify-between items-center md:items-start">
+        <div className="mb-6 md:mb-0 text-center md:text-left">
+          <div className="mb-2 flex items-center justify-center md:justify-start">
+            <Image
+              src="/logo.png"
+              alt="Adapt2Life Logo"
+              width={30}
+              height={30}
+              className="mr-2"
+            />
+            <span className="text-lg font-bold text-white">Adapt2Life</span>
+          </div>
+          <p className="text-sm">{footer.tagline}</p>
+        </div>
+
+        <div className="flex flex-col md:flex-row space-y-6 md:space-y-0 md:space-x-12 text-center md:text-left">
+          <div>
+            <h3 className="mb-2 font-semibold text-white">{footer.navigationTitle}</h3>
+            <ul>
+              {navItems.map((item) => (
+                <li key={item.slug}>
+                  <Link href={item.href} className="hover:text-green-400">
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </div>
 
-          <div className="flex flex-col items-center space-y-6 text-center md:flex-row md:items-start md:space-y-0 md:space-x-12 md:text-left">
-            <div>
-              <h3 className="mb-2 font-semibold text-white">{footer.navigationTitle}</h3>
-              <ul className="flex flex-col items-center space-y-1 md:items-start">
-                {navItems.map((item) => (
-                  <li key={item.slug}>
-                    <Link href={item.href} className="hover:text-green-400">
-                      {item.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
+          <div>
+            <h3 className="mb-2 font-semibold text-white">{footer.legalTitle}</h3>
+            <ul>
+              {legalLinks.map((item) => (
+                <li key={item.slug}>
+                  <Link href={item.href} className="hover:text-green-400">
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
 
-            <div>
-              <h3 className="mb-2 font-semibold text-white">{footer.legalTitle}</h3>
-              <ul className="flex flex-col items-center space-y-1 md:items-start">
-                {legalLinks.map((item) => (
-                  <li key={item.slug}>
-                    <Link href={item.href} className="hover:text-green-400">
-                      {item.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="text-center md:text-left">
-              <h3 className="mb-2 font-semibold text-white">{footer.followUsTitle}</h3>
-              <div className="flex justify-center space-x-4 md:justify-start">
-                <Link href="#" className="hover:text-green-400" aria-label="Instagram">
-                  <i className="fab fa-instagram"></i>
-                </Link>
-                <Link href="#" className="hover:text-green-400" aria-label="Twitter">
-                  <i className="fab fa-twitter"></i>
-                </Link>
-                <Link href="#" className="hover:text-green-400" aria-label="LinkedIn">
-                  <i className="fab fa-linkedin"></i>
-                </Link>
-              </div>
+          <div className="text-center md:text-left">
+            <h3 className="mb-2 font-semibold text-white">{footer.followUsTitle}</h3>
+            <div className="flex space-x-4 justify-center md:justify-start">
+              <Link href="#" className="hover:text-green-400" aria-label="Instagram">
+                <i className="fab fa-instagram"></i>
+              </Link>
+              <Link href="#" className="hover:text-green-400" aria-label="Twitter">
+                <i className="fab fa-twitter"></i>
+              </Link>
+              <Link href="#" className="hover:text-green-400" aria-label="LinkedIn">
+                <i className="fab fa-linkedin"></i>
+              </Link>
             </div>
           </div>
         </div>
 
-        <div className="mt-8 text-center">
+        <div className="mt-8 md:mt-0 text-center md:text-right w-full md:w-auto">
           <p className="text-sm">{footer.rights}</p>
         </div>
       </footer>
