@@ -38,9 +38,9 @@ const homeCopy: Record<
   },
 };
 
-export default function HomePage({ params }: HomePageProps) {
+export default async function HomePage({ params }: HomePageProps) {
   const locale = params.locale;
-  const session = getSession();
+  const session = await getSession();
 
   if (session?.userId) {
     const targetLocale = session.locale ?? locale;

@@ -67,9 +67,9 @@ const dashboardCopy: Record<Locale, DashboardCopy> = {
   },
 };
 
-export default function DashboardPage({ params }: DashboardPageProps) {
+export default async function DashboardPage({ params }: DashboardPageProps) {
   const locale = params.locale;
-  const session = getSession();
+  const session = await getSession();
 
   if (!session?.userId) {
     redirect(`/${locale}/login`);

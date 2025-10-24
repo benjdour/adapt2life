@@ -31,11 +31,9 @@ export function encodeSession(payload: SessionPayload): string {
   return Buffer.from(JSON.stringify(payload), "utf-8").toString("base64");
 }
 
-export function getSession(): SessionPayload | null {
-  const cookieStore = cookies();
-  const cookie = "get" in cookieStore
-    ? cookieStore.get(SESSION_COOKIE)?.value
-    : undefined;
+export async function getSession(): Promise<SessionPayload | null> {
+  const cookieStore = await cookies();
+  const cookie = cookieStore.get(SESSION_COOKIE)?.value;
   return decodeSession(cookie);
 }
 

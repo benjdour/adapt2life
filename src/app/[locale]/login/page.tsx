@@ -65,9 +65,9 @@ const loginCopy: Record<Locale, LoginCopy> = {
   },
 };
 
-export default function LoginPage({ params }: LoginPageProps) {
+export default async function LoginPage({ params }: LoginPageProps) {
   const locale = params.locale;
-  const session = getSession();
+  const session = await getSession();
 
   if (session?.userId) {
     const targetLocale = session.locale ?? locale;
