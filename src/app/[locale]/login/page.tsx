@@ -69,8 +69,7 @@ export default async function LoginPage({ params }: LoginPageProps) {
   const { session, common, navCta } = await getLayoutCopy(locale);
 
   if (session?.userId) {
-    const targetLocale = session.locale ?? locale;
-    redirect(`/${targetLocale}/dashboard`);
+    redirect(`/${locale}/dashboard`);
   }
 
   const copy = loginCopy[locale];

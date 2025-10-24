@@ -47,7 +47,7 @@ export function LoginForm({ locale, copy }: LoginFormProps) {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             credentials: "include",
-            body: JSON.stringify({ email, password, locale }),
+            body: JSON.stringify({ email, password }),
           });
 
           const result = await response.json().catch(() => ({

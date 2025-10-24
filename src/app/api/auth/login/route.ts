@@ -11,7 +11,7 @@ type LoginPayload = {
 
 export async function POST(request: Request) {
   const body: LoginPayload = await request.json().catch(() => ({}));
-  const { email, password, locale } = body;
+  const { email, password } = body;
 
   if (!email || !password) {
     return NextResponse.json(
@@ -45,7 +45,6 @@ export async function POST(request: Request) {
   await setSession({
     userId: user.id,
     firstName: user.firstName,
-    locale: locale ?? undefined,
   });
 
   return NextResponse.json({
