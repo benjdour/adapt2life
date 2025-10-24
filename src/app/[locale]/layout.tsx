@@ -1,8 +1,9 @@
+import { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { isLocale, locales } from "@/i18n/config";
 
 type LocaleLayoutProps = Readonly<{
-  children: React.ReactNode;
+  children: ReactNode;
   params: { locale: string };
 }>;
 
@@ -11,9 +12,15 @@ export function generateStaticParams() {
 }
 
 export default function LocaleLayout({ children, params }: LocaleLayoutProps) {
-  if (!isLocale(params.locale)) {
+  const { locale } = params;
+
+  if (!isLocale(locale)) {
     notFound();
   }
 
-  return children;
+  return (
+    <html lang={locale}>
+      <body>{children}</body>
+    </html>
+  );
 }
