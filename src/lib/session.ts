@@ -37,6 +37,7 @@ export async function getSession(): Promise<SessionPayload | null> {
   return decodeSession(cookie);
 }
 
-export function clearSessionCookies() {
-  cookies().delete(SESSION_COOKIE);
+export async function clearSessionCookies() {
+  const cookieStore = await cookies();
+  cookieStore.delete(SESSION_COOKIE);
 }
