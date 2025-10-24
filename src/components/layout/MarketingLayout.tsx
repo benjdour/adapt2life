@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Locale } from "@/i18n/config";
 import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
+import { toast } from "sonner";
 
 type NavItem = {
   slug: string;
@@ -60,23 +61,38 @@ export function MarketingLayout({
 
   const isLogoutCta = nav.cta.slug === "logout";
 
+  const logoutMessages = locale === "fr"
+    ? {
+        success: "Déconnexion réussie",
+        error: "Impossible de se déconnecter. Veuillez réessayer.",
+      }
+    : {
+        success: "Logged out successfully",
+        error: "Unable to log out. Please try again.",
+      };
+
   const handleLogout = async () => {
     if (isLoggingOut) {
       return;
     }
     setIsLoggingOut(true);
     try {
-      await fetch("/api/auth/logout", {
+      const response = await fetch("/api/auth/logout", {
         method: "POST",
         credentials: "include",
       });
-    } catch (error) {
-      console.error("Failed to logout", error);
-    } finally {
-      setIsLoggingOut(false);
+      if (!response.ok) {
+        throw new Error("Request failed");
+      }
+      toast.success(logoutMessages.success);
       setIsMenuOpen(false);
       router.replace(`/${locale}/login`);
       router.refresh();
+    } catch (error) {
+      console.error("Failed to logout", error);
+      toast.error(logoutMessages.error);
+    } finally {
+      setIsLoggingOut(false);
     }
   };
 

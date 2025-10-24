@@ -5,6 +5,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { defaultLocale, isLocale } from "@/i18n/config";
 import type { ReactNode } from "react";
+import { ToasterProvider } from "@/components/ui/ToasterProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -49,6 +50,7 @@ export default async function RootLayout({ children, params }: RootLayoutProps) 
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <ToasterProvider />
         {children}
         <Analytics />
         <SpeedInsights />

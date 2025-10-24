@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 
 type SignupCopy = {
   fields: {
@@ -43,7 +44,6 @@ export function SignupForm({ locale, copy }: SignupFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
 
   return (
     <form
@@ -52,9 +52,9 @@ export function SignupForm({ locale, copy }: SignupFormProps) {
       onSubmit={(event) => {
         event.preventDefault();
         setError(null);
-        setSuccess(null);
 
-        const form = new FormData(event.currentTarget);
+        const formElement = event.currentTarget as HTMLFormElement;
+        const form = new FormData(formElement);
         const firstName = (form.get("firstName") as string | null)?.trim();
         const lastName = (form.get("lastName") as string | null)?.trim();
         const email = (form.get("email") as string | null)?.trim();
@@ -84,19 +84,25 @@ export function SignupForm({ locale, copy }: SignupFormProps) {
 
           if (!result.success) {
             if (result.error === "missing_fields") {
-              setError(copy.errorMessages.missingFields);
+              const message = copy.errorMessages.missingFields;
+              setError(message);
+              toast.error(message);
               return;
             }
             if (result.error === "email_exists") {
-              setError(copy.errorMessages.emailExists);
+              const message = copy.errorMessages.emailExists;
+              setError(message);
+              toast.error(message);
               return;
             }
-            setError(copy.errorMessages.generic);
+            const message = copy.errorMessages.generic;
+            setError(message);
+            toast.error(message);
             return;
           }
 
-          setSuccess(copy.successMessage);
-          (event.currentTarget as HTMLFormElement).reset();
+          toast.success(copy.successMessage);
+          formElement.reset();
           router.refresh();
         });
       }}
@@ -231,12 +237,6 @@ export function SignupForm({ locale, copy }: SignupFormProps) {
       {error ? (
         <p className="rounded-md border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">
           {error}
-        </p>
-      ) : null}
-
-      {success ? (
-        <p className="rounded-md border border-green-500/40 bg-green-500/10 px-4 py-3 text-sm text-green-200">
-          {success}
         </p>
       ) : null}
 

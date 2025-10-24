@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 
 type LoginCopy = {
   emailLabel: string;
@@ -26,7 +27,6 @@ export function LoginForm({ locale, copy }: LoginFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
 
   return (
     <form
@@ -35,7 +35,6 @@ export function LoginForm({ locale, copy }: LoginFormProps) {
       onSubmit={(event) => {
         event.preventDefault();
         setError(null);
-        setSuccess(null);
 
         const formElement = event.currentTarget;
         const form = new FormData(formElement);
@@ -57,18 +56,24 @@ export function LoginForm({ locale, copy }: LoginFormProps) {
 
           if (!result.success) {
             if (result.error === "missing_fields") {
-              setError(copy.errorMessages.missingFields);
+              const message = copy.errorMessages.missingFields;
+              setError(message);
+              toast.error(message);
               return;
             }
             if (result.error === "invalid_credentials") {
-              setError(copy.errorMessages.invalidCredentials);
+              const message = copy.errorMessages.invalidCredentials;
+              setError(message);
+              toast.error(message);
               return;
             }
-            setError(copy.errorMessages.generic);
+            const message = copy.errorMessages.generic;
+            setError(message);
+            toast.error(message);
             return;
           }
 
-          setSuccess(copy.successMessage);
+          toast.success(copy.successMessage);
           formElement.reset();
           router.replace(`/${locale}/dashboard`);
         });
@@ -113,12 +118,6 @@ export function LoginForm({ locale, copy }: LoginFormProps) {
       {error ? (
         <p className="rounded-md border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">
           {error}
-        </p>
-      ) : null}
-
-      {success ? (
-        <p className="rounded-md border border-green-500/40 bg-green-500/10 px-4 py-3 text-sm text-green-200">
-          {success}
         </p>
       ) : null}
 
