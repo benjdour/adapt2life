@@ -1,9 +1,10 @@
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next";
-import type { LayoutProps, Metadata } from "next";
+import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { defaultLocale, isLocale } from "@/i18n/config";
+import type { ReactNode } from "react";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -20,11 +21,13 @@ export const metadata: Metadata = {
   description: "Your AI trainer for a balanced life",
 };
 
-export default async function RootLayout({
-  children,
-  params,
-}: LayoutProps<"/">) {
-  const resolvedParams = (await params) as { locale?: string };
+type RootLayoutProps = Readonly<{
+  children: ReactNode;
+  params: Promise<{ locale?: string }>;
+}>;
+
+export default async function RootLayout({ children, params }: RootLayoutProps) {
+  const resolvedParams = await params;
   const locale = resolvedParams.locale && isLocale(resolvedParams.locale)
     ? resolvedParams.locale
     : defaultLocale;
