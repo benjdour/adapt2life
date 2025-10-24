@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { MarketingLayout } from "@/components/layout/MarketingLayout";
-import { getCommonCopy } from "@/i18n/common";
 import type { Locale } from "@/i18n/config";
 import { SignupForm } from "@/components/auth/SignupForm";
+import { getLayoutCopy } from "@/lib/layout";
 
 type SignupPageProps = Readonly<{
   params: { locale: Locale };
@@ -146,15 +146,15 @@ const signupCopy: Record<Locale, SignupCopy> = {
   },
 };
 
-export default function SignupPage({ params }: SignupPageProps) {
+export default async function SignupPage({ params }: SignupPageProps) {
   const locale = params.locale;
-  const common = getCommonCopy(locale);
+  const { common, navCta } = await getLayoutCopy(locale);
   const copy = signupCopy[locale];
 
   return (
     <MarketingLayout
       locale={locale}
-      nav={{ items: common.navItems, cta: common.navCta }}
+      nav={{ items: common.navItems, cta: navCta }}
       footer={common.footer}
     >
       <section className="flex flex-grow items-center justify-center bg-gradient-to-br from-blue-700 to-green-700 py-16">

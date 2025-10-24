@@ -1,6 +1,6 @@
 import { MarketingLayout } from "@/components/layout/MarketingLayout";
-import { getCommonCopy } from "@/i18n/common";
 import type { Locale } from "@/i18n/config";
+import { getLayoutCopy } from "@/lib/layout";
 
 type LegalNoticePageProps = Readonly<{
   params: { locale: Locale };
@@ -116,15 +116,15 @@ const legalNoticeCopy: Record<Locale, LegalNoticeCopy> = {
   },
 };
 
-export default function LegalNoticePage({ params }: LegalNoticePageProps) {
+export default async function LegalNoticePage({ params }: LegalNoticePageProps) {
   const locale = params.locale;
-  const common = getCommonCopy(locale);
+  const { common, navCta } = await getLayoutCopy(locale);
   const copy = legalNoticeCopy[locale];
 
   return (
     <MarketingLayout
       locale={locale}
-      nav={{ items: common.navItems, cta: common.navCta }}
+      nav={{ items: common.navItems, cta: navCta }}
       footer={common.footer}
     >
       <section className="bg-gray-900 px-4 py-16 text-gray-200">

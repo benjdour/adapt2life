@@ -1,7 +1,7 @@
 import { ContactForm } from "@/components/contact/ContactForm";
 import { MarketingLayout } from "@/components/layout/MarketingLayout";
-import { getCommonCopy } from "@/i18n/common";
 import type { Locale } from "@/i18n/config";
+import { getLayoutCopy } from "@/lib/layout";
 
 type ContactPageProps = Readonly<{
   params: { locale: Locale };
@@ -67,15 +67,15 @@ const contactCopy: Record<Locale, ContactCopy> = {
   },
 };
 
-export default function ContactPage({ params }: ContactPageProps) {
+export default async function ContactPage({ params }: ContactPageProps) {
   const locale = params.locale;
-  const common = getCommonCopy(locale);
+  const { common, navCta } = await getLayoutCopy(locale);
   const copy = contactCopy[locale];
 
   return (
     <MarketingLayout
       locale={locale}
-      nav={{ items: common.navItems, cta: common.navCta }}
+      nav={{ items: common.navItems, cta: navCta }}
       footer={common.footer}
     >
       <section className="bg-gradient-to-br from-blue-700 to-green-700 py-20 text-center">

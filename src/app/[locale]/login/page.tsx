@@ -1,10 +1,9 @@
 import { MarketingLayout } from "@/components/layout/MarketingLayout";
-import { getCommonCopy } from "@/i18n/common";
 import type { Locale } from "@/i18n/config";
 import Link from "next/link";
 import { LoginForm } from "@/components/auth/LoginForm";
-import { getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
+import { getLayoutCopy } from "@/lib/layout";
 
 type LoginPageProps = Readonly<{
   params: { locale: Locale };
@@ -67,20 +66,19 @@ const loginCopy: Record<Locale, LoginCopy> = {
 
 export default async function LoginPage({ params }: LoginPageProps) {
   const locale = params.locale;
-  const session = await getSession();
+  const { session, common, navCta } = await getLayoutCopy(locale);
 
   if (session?.userId) {
     const targetLocale = session.locale ?? locale;
     redirect(`/${targetLocale}/dashboard`);
   }
 
-  const common = getCommonCopy(locale);
   const copy = loginCopy[locale];
 
   return (
     <MarketingLayout
       locale={locale}
-      nav={{ items: common.navItems, cta: common.navCta }}
+      nav={{ items: common.navItems, cta: navCta }}
       footer={common.footer}
     >
       <section className="flex flex-grow items-center justify-center bg-gradient-to-br from-blue-700 to-green-700 py-16">

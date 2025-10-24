@@ -1,7 +1,6 @@
 import { MarketingLayout } from "@/components/layout/MarketingLayout";
-import { getCommonCopy } from "@/i18n/common";
 import type { Locale } from "@/i18n/config";
-import { getSession } from "@/lib/session";
+import { getLayoutCopy } from "@/lib/layout";
 import { redirect } from "next/navigation";
 
 type DashboardPageProps = Readonly<{
@@ -69,7 +68,7 @@ const dashboardCopy: Record<Locale, DashboardCopy> = {
 
 export default async function DashboardPage({ params }: DashboardPageProps) {
   const locale = params.locale;
-  const session = await getSession();
+  const { session, common, navCta } = await getLayoutCopy(locale);
 
   if (!session?.userId) {
     redirect(`/${locale}/login`);
@@ -80,14 +79,12 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
   if (sessionLocale !== locale) {
     redirect(`/${sessionLocale}/dashboard`);
   }
-
-  const common = getCommonCopy(locale);
   const copy = dashboardCopy[locale];
 
   return (
     <MarketingLayout
       locale={locale}
-      nav={{ items: common.navItems, cta: common.navCta }}
+      nav={{ items: common.navItems, cta: navCta }}
       footer={common.footer}
     >
       <section className="flex flex-grow items-center justify-center bg-gradient-to-br from-blue-900 via-blue-700 to-green-700 py-16">

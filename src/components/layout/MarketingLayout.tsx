@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { Locale } from "@/i18n/config";
 import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
 
@@ -49,15 +50,34 @@ export function MarketingLayout({
   children,
 }: MarketingLayoutProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const router = useRouter();
 
   const navItems = nav.items.map((item) => ({
     ...item,
     href: buildHref(locale, item.slug),
   }));
 
-  const ctaLink = {
-    ...nav.cta,
-    href: buildHref(locale, nav.cta.slug),
+  const isLogoutCta = nav.cta.slug === "logout";
+
+  const handleLogout = async () => {
+    if (isLoggingOut) {
+      return;
+    }
+    setIsLoggingOut(true);
+    try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch (error) {
+      console.error("Failed to logout", error);
+    } finally {
+      setIsLoggingOut(false);
+      setIsMenuOpen(false);
+      router.replace(`/${locale}/login`);
+      router.refresh();
+    }
   };
 
   const legalLinks = footer.legalLinks.map((item) => ({
@@ -109,12 +129,23 @@ export function MarketingLayout({
               {item.label}
             </Link>
           ))}
-          <Link
-            href={ctaLink.href}
-            className="rounded-md bg-gradient-to-r from-blue-500 to-green-500 px-4 py-2 text-white hover:from-blue-600 hover:to-green-600"
-          >
-            {ctaLink.label}
-          </Link>
+          {isLogoutCta ? (
+            <button
+              type="button"
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+              className="rounded-md bg-gradient-to-r from-blue-500 to-green-500 px-4 py-2 text-white hover:from-blue-600 hover:to-green-600 disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {isLoggingOut ? "…" : nav.cta.label}
+            </button>
+          ) : (
+            <Link
+              href={buildHref(locale, nav.cta.slug)}
+              className="rounded-md bg-gradient-to-r from-blue-500 to-green-500 px-4 py-2 text-white hover:from-blue-600 hover:to-green-600"
+            >
+              {nav.cta.label}
+            </Link>
+          )}
         </nav>
       </header>
 
@@ -125,13 +156,24 @@ export function MarketingLayout({
               {item.label}
             </Link>
           ))}
-          <Link
-            href={ctaLink.href}
-            className="rounded-md bg-gradient-to-r from-blue-500 to-green-500 px-4 py-2 text-white hover:from-blue-600 hover:to-green-600"
-            onClick={() => setIsMenuOpen(false)}
-          >
-            {ctaLink.label}
-          </Link>
+          {isLogoutCta ? (
+            <button
+              type="button"
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+              className="rounded-md bg-gradient-to-r from-blue-500 to-green-500 px-4 py-2 text-white hover:from-blue-600 hover:to-green-600 disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {isLoggingOut ? "…" : nav.cta.label}
+            </button>
+          ) : (
+            <Link
+              href={buildHref(locale, nav.cta.slug)}
+              className="rounded-md bg-gradient-to-r from-blue-500 to-green-500 px-4 py-2 text-white hover:from-blue-600 hover:to-green-600"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              {nav.cta.label}
+            </Link>
+          )}
         </nav>
       )}
 

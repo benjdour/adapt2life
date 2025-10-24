@@ -1,6 +1,6 @@
 import { MarketingLayout } from "@/components/layout/MarketingLayout";
-import { getCommonCopy } from "@/i18n/common";
 import type { Locale } from "@/i18n/config";
+import { getLayoutCopy } from "@/lib/layout";
 
 type TermsPageProps = Readonly<{
   params: { locale: Locale };
@@ -140,15 +140,15 @@ const termsCopy: Record<Locale, TermsCopy> = {
   },
 };
 
-export default function TermsOfUsePage({ params }: TermsPageProps) {
+export default async function TermsOfUsePage({ params }: TermsPageProps) {
   const locale = params.locale;
-  const common = getCommonCopy(locale);
+  const { common, navCta } = await getLayoutCopy(locale);
   const copy = termsCopy[locale];
 
   return (
     <MarketingLayout
       locale={locale}
-      nav={{ items: common.navItems, cta: common.navCta }}
+      nav={{ items: common.navItems, cta: navCta }}
       footer={common.footer}
     >
       <section className="bg-gray-900 px-4 py-16 text-gray-200">

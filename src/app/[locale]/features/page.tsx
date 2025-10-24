@@ -1,8 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { MarketingLayout } from "@/components/layout/MarketingLayout";
-import { getCommonCopy } from "@/i18n/common";
 import type { Locale } from "@/i18n/config";
+import { getLayoutCopy } from "@/lib/layout";
 
 type FeaturesPageProps = Readonly<{
   params: { locale: Locale };
@@ -154,15 +154,15 @@ const featuresCopy: Record<
   },
 };
 
-export default function FeaturesPage({ params }: FeaturesPageProps) {
+export default async function FeaturesPage({ params }: FeaturesPageProps) {
   const locale = params.locale;
-  const common = getCommonCopy(locale);
+  const { common, navCta } = await getLayoutCopy(locale);
   const copy = featuresCopy[locale];
 
   return (
     <MarketingLayout
       locale={locale}
-      nav={{ items: common.navItems, cta: common.navCta }}
+      nav={{ items: common.navItems, cta: navCta }}
       footer={common.footer}
     >
       <section className="bg-gradient-to-br from-blue-700 to-green-700 py-20 text-center">

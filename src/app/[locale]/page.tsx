@@ -2,9 +2,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { MarketingLayout } from "@/components/layout/MarketingLayout";
-import { getCommonCopy } from "@/i18n/common";
 import type { Locale } from "@/i18n/config";
-import { getSession } from "@/lib/session";
+import { getLayoutCopy } from "@/lib/layout";
 
 type HomePageProps = Readonly<{
   params: { locale: Locale };
@@ -40,20 +39,19 @@ const homeCopy: Record<
 
 export default async function HomePage({ params }: HomePageProps) {
   const locale = params.locale;
-  const session = await getSession();
+  const { session, common, navCta } = await getLayoutCopy(locale);
 
   if (session?.userId) {
     const targetLocale = session.locale ?? locale;
     redirect(`/${targetLocale}/dashboard`);
   }
 
-  const common = getCommonCopy(locale);
   const copy = homeCopy[locale];
 
   return (
     <MarketingLayout
       locale={locale}
-      nav={{ items: common.navItems, cta: common.navCta }}
+      nav={{ items: common.navItems, cta: navCta }}
       footer={common.footer}
     >
       <section className="flex flex-grow items-center justify-center bg-gradient-to-br from-blue-700 to-green-700 p-8">

@@ -5,9 +5,10 @@ type NavItem = {
   label: string;
 };
 
-type CommonCopy = {
+export type CommonCopy = {
   navItems: NavItem[];
   navCta: NavItem;
+  navLogoutLabel: string;
   footer: {
     tagline: string;
     navigationTitle: string;
@@ -30,6 +31,7 @@ const copy: Record<Locale, CommonCopy> = {
       slug: "login",
       label: "Login",
     },
+    navLogoutLabel: "Logout",
     footer: {
       tagline: "Your AI trainer for a balanced life.",
       navigationTitle: "Navigation",
@@ -54,6 +56,7 @@ const copy: Record<Locale, CommonCopy> = {
       slug: "login",
       label: "Connexion",
     },
+    navLogoutLabel: "Déconnexion",
     footer: {
       tagline: "Votre coach IA pour une vie équilibrée.",
       navigationTitle: "Navigation",
