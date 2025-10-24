@@ -8,7 +8,7 @@ This document is aimed at anyone (human or AI) automating work in the Adapt2Life
 
 - **Framework:** Next.js 15 (App Router, Turbopack)
 - **Runtime:** React 19, TypeScript, Tailwind CSS 4
-- **Tooling:** ESLint, Vitest + Testing Library (JSDOM)
+- **Tooling:** ESLint, Vitest + Testing Library (JSDOM), Sonner (toast notifications)
 - **Locales:** English (`en`), French (`fr`)
 - **Deployment Target:** Vercel
 
@@ -22,6 +22,7 @@ This document is aimed at anyone (human or AI) automating work in the Adapt2Life
 4. **Components.** Extract shared UI into `src/components`; keep pages lean, focused on composition.
 5. **Async params.** Layouts receive `params` as a `Promise` in Next 15—always normalize before use.
 6. **Hydration safety.** Avoid non-deterministic code (e.g., `Date.now()`) during SSR, especially in client components.
+7. **Notifications.** Use `sonner` to surface user feedback (success/error). Keep bilingual copy aligned with the active locale.
 
 ---
 
@@ -72,6 +73,10 @@ This document is aimed at anyone (human or AI) automating work in the Adapt2Life
 - **Consume fonts or analytics:**
   - Keep font imports in `src/app/layout.tsx`.
   - Wrap new providers at the layout level unless they must be scoped to a route segment.
+- **Show a toast notification:**
+  1. Import `toast` from `sonner` inside your client component.
+  2. Use `toast.success(...)` / `toast.error(...)` for user feedback.
+  3. No setup needed—`ToasterProvider` is already rendered in `src/app/layout.tsx`.
 
 ---
 

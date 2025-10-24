@@ -43,6 +43,7 @@ src/
  │   │   └─ …                  # Marketing & legal pages
  │   └─ layout.tsx             # Root layout (applies fonts & analytics)
  ├─ components/                # Reusable UI pieces (layouts, widgets…)
+ ├─ components/ui/             # UI primitives (e.g., ToasterProvider)
  ├─ i18n/                      # i18n configuration & shared copy
  └─ __tests__/                 # Vitest test files
 ```
@@ -74,6 +75,14 @@ npm run test:watch    # watch mode
 ```
 
 Add your tests next to components (e.g., `Component.test.tsx`) or under `src/__tests__/`.
+
+---
+
+## 🔔 Notifications
+
+- Toasts are handled by [Sonner](https://sonner.emilkowal.ski/). The global provider is mounted in `src/app/layout.tsx` via `ToasterProvider`.
+- Within client components, import `toast` from `sonner` to show success and error feedback (see `LoginForm` / `SignupForm`).
+- Keep toast copy bilingual and consistent with the page language.
 
 ---
 
