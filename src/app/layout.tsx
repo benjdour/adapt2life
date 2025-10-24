@@ -1,6 +1,6 @@
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next";
-import type { Metadata } from "next";
+import type { LayoutProps, Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { defaultLocale, isLocale } from "@/i18n/config";
@@ -20,15 +20,13 @@ export const metadata: Metadata = {
   description: "Your AI trainer for a balanced life",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
   params,
-}: Readonly<{
-  children: React.ReactNode;
-  params: { locale?: string };
-}>) {
-  const locale = params?.locale && isLocale(params.locale)
-    ? params.locale
+}: LayoutProps<"/">) {
+  const resolvedParams = (await params) as { locale?: string };
+  const locale = resolvedParams.locale && isLocale(resolvedParams.locale)
+    ? resolvedParams.locale
     : defaultLocale;
   return (
     <html lang={locale}>
