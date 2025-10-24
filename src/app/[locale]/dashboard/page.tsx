@@ -1,6 +1,8 @@
 import { MarketingLayout } from "@/components/layout/MarketingLayout";
 import { getCommonCopy } from "@/i18n/common";
 import type { Locale } from "@/i18n/config";
+import { getSession } from "@/lib/session";
+import { redirect } from "next/navigation";
 
 type DashboardPageProps = Readonly<{
   params: { locale: Locale };
@@ -67,6 +69,18 @@ const dashboardCopy: Record<Locale, DashboardCopy> = {
 
 export default function DashboardPage({ params }: DashboardPageProps) {
   const locale = params.locale;
+  const session = getSession();
+
+  if (!session?.userId) {
+    redirect(`/${locale}/login`);
+  }
+
+  const sessionLocale = session.locale ?? locale;
+
+  if (sessionLocale !== locale) {
+    redirect(`/${sessionLocale}/dashboard`);
+  }
+
   const common = getCommonCopy(locale);
   const copy = dashboardCopy[locale];
 

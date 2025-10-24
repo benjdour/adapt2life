@@ -45,7 +45,8 @@ export function LoginForm({ locale, copy }: LoginFormProps) {
           const response = await fetch("/api/auth/login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email, password }),
+            credentials: "include",
+            body: JSON.stringify({ email, password, locale }),
           });
 
           const result = await response.json().catch(() => ({
@@ -68,7 +69,7 @@ export function LoginForm({ locale, copy }: LoginFormProps) {
 
           setSuccess(copy.successMessage);
           (event.currentTarget as HTMLFormElement).reset();
-          router.push(`/${locale}/dashboard`);
+          router.replace(`/${locale}/dashboard`);
         });
       }}
     >
