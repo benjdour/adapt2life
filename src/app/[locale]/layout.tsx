@@ -1,18 +1,18 @@
+import { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { isLocale, locales } from "@/i18n/config";
-import type { ReactNode } from "react";
 
 type LocaleLayoutProps = Readonly<{
   children: ReactNode;
-  params: Promise<{ locale: string }>;
+  params: { locale: string };
 }>;
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
 }
 
-export default async function LocaleLayout({ children, params }: LocaleLayoutProps) {
-  const { locale } = await params;
+export default function LocaleLayout({ children, params }: LocaleLayoutProps) {
+  const { locale } = params;
 
   if (!isLocale(locale)) {
     notFound();
