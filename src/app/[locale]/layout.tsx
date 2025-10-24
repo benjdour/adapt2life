@@ -1,29 +1,30 @@
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { isLocale, locales } from "@/i18n/config";
 
-type LocaleLayoutProps = {
+type LocaleLayoutProps = Readonly<{
   children: ReactNode;
   params: { locale: string } | Promise<{ locale: string }>;
-};
+}>;
+
+function isThenable<T>(value: T | Promise<T>): value is Promise<T> {
+  return typeof (value as Promise<T>).then === "function";
+}
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
 }
 
-export default function LocaleLayout(props: LocaleLayoutProps) {
-  // 🔹 Force la résolution de params (même si c’est une Promise)
-  const resolvedParams =
-    "then" in props.params ? undefined : props.params;
-  const locale = resolvedParams?.locale ?? "en";
+export default async function LocaleLayout({
+  children,
+  params,
+}: LocaleLayoutProps) {
+  const resolvedParams = isThenable(params) ? await params : params;
+  const { locale } = resolvedParams;
 
   if (!isLocale(locale)) {
     notFound();
   }
 
-  return (
-    <html lang={locale}>
-      <body>{props.children}</body>
-    </html>
-  );
+  return children;
 }

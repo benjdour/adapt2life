@@ -21,16 +21,25 @@ export const metadata: Metadata = {
   description: "Your AI trainer for a balanced life",
 };
 
+type RootLayoutParams = {
+  locale?: string;
+};
+
 type RootLayoutProps = Readonly<{
   children: ReactNode;
-  params: Promise<{ locale?: string }>;
+  params: RootLayoutParams | Promise<RootLayoutParams>;
 }>;
 
+function isThenable<T>(value: T | Promise<T>): value is Promise<T> {
+  return typeof (value as Promise<T>).then === "function";
+}
+
 export default async function RootLayout({ children, params }: RootLayoutProps) {
-  const resolvedParams = await params;
-  const locale = resolvedParams.locale && isLocale(resolvedParams.locale)
-    ? resolvedParams.locale
-    : defaultLocale;
+  const resolvedParams = isThenable(params) ? await params : params;
+  const locale =
+    resolvedParams.locale && isLocale(resolvedParams.locale)
+      ? resolvedParams.locale
+      : defaultLocale;
   return (
     <html lang={locale}>
       <head>

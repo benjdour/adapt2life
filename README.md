@@ -1,36 +1,94 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+<h1 align="center">Adapt2Life</h1>
 
-## Getting Started
+Adapt2Life is a bilingual (EN/FR) coaching experience that helps users balance training and lifestyle with AI-guided recommendations. The app is built on Next.js 15 with the App Router, Turbopack, React 19, and Tailwind CSS 4.
 
-First, run the development server:
+---
+
+## 🚀 Quick Start
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The development server boots on [http://localhost:3000](http://localhost:3000). Default content is available in English and French via the `/en` and `/fr` locale segments.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Environment
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Node.js 20+
+- npm (recommended)  
+  If you prefer pnpm/yarn/bun, add the corresponding lockfile before switching.
 
-## Learn More
+### Available Scripts
 
-To learn more about Next.js, take a look at the following resources:
+| Script          | Description                                                   |
+| --------------- | ------------------------------------------------------------- |
+| `npm run dev`   | Start the Next.js dev server with Turbopack                   |
+| `npm run build` | Create an optimized production build                          |
+| `npm run start` | Serve the production build                                    |
+| `npm run lint`  | Lint the codebase with ESLint                                 |
+| `npm run test`  | Run the Vitest suite once (uses JSDOM + Testing Library setup) |
+| `npm run test:watch` | Run Vitest in watch mode                                 |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 🧱 Project Structure
 
-## Deploy on Vercel
+```
+src/
+ ├─ app/
+ │   ├─ [locale]/              # Locale-specific routes (en, fr, …)
+ │   │   ├─ login/             # Login page
+ │   │   ├─ signup/            # Signup form with localized copy
+ │   │   └─ …                  # Marketing & legal pages
+ │   └─ layout.tsx             # Root layout (applies fonts & analytics)
+ ├─ components/                # Reusable UI pieces (layouts, widgets…)
+ ├─ i18n/                      # i18n configuration & shared copy
+ └─ __tests__/                 # Vitest test files
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Key configuration files:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `vitest.config.ts` / `vitest.setup.ts` – testing environment and aliases
+- `tsconfig.json` – TypeScript settings with `@/*` path alias
+- `tailwind.config` (via `tailwindcss` v4 preset) – utility-first styling
+
+---
+
+## 🌍 Internationalization
+
+- Locales are defined in `src/i18n/config.ts`.
+- Shared navigation/footer copy lives in `src/i18n/common.ts`.
+- Route segments under `src/app/[locale]/…` use localized copy fetched through helper functions.
+- When adding new UI, ensure both English and French variants are provided to avoid hydration mismatches.
+
+---
+
+## ✅ Testing
+
+We use [Vitest](https://vitest.dev) with [Testing Library](https://testing-library.com/docs/react-testing-library/intro/) and `jsdom`.
+
+```
+npm run test          # run once
+npm run test:watch    # watch mode
+```
+
+Add your tests next to components (e.g., `Component.test.tsx`) or under `src/__tests__/`.
+
+---
+
+## 📦 Deployment
+
+The project is optimized for Vercel. Build using `npm run build`; review environment variables before deploying.
+
+For more deployment guidance, see the [Next.js deployment docs](https://nextjs.org/docs/app/building-your-application/deploying).
+
+---
+
+## 🤝 Contributing
+
+1. Create a feature branch from `dev`.
+2. Keep UI changes bilingual (EN/FR).
+3. Run `npm run lint` and `npm run test` before submitting a PR.
+
+Feel free to file issues or suggestions to improve the Adapt2Life experience.

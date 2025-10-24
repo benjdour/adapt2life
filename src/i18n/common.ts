@@ -27,8 +27,8 @@ const copy: Record<Locale, CommonCopy> = {
       { slug: "contact", label: "Contact" },
     ],
     navCta: {
-      slug: "signup",
-      label: "Sign Up",
+      slug: "login",
+      label: "Login",
     },
     footer: {
       tagline: "Your AI trainer for a balanced life.",
@@ -51,8 +51,8 @@ const copy: Record<Locale, CommonCopy> = {
       { slug: "contact", label: "Contact" },
     ],
     navCta: {
-      slug: "signup",
-      label: "S'inscrire",
+      slug: "login",
+      label: "Connexion",
     },
     footer: {
       tagline: "Votre coach IA pour une vie équilibrée.",
