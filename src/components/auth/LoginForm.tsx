@@ -37,7 +37,8 @@ export function LoginForm({ locale, copy }: LoginFormProps) {
         setError(null);
         setSuccess(null);
 
-        const form = new FormData(event.currentTarget);
+        const formElement = event.currentTarget;
+        const form = new FormData(formElement);
         const email = (form.get("email") as string | null)?.trim();
         const password = form.get("password") as string | null;
 
@@ -68,7 +69,7 @@ export function LoginForm({ locale, copy }: LoginFormProps) {
           }
 
           setSuccess(copy.successMessage);
-          (event.currentTarget as HTMLFormElement).reset();
+          formElement.reset();
           router.replace(`/${locale}/dashboard`);
         });
       }}
