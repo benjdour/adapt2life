@@ -32,7 +32,10 @@ export function encodeSession(payload: SessionPayload): string {
 }
 
 export function getSession(): SessionPayload | null {
-  const cookie = cookies().get(SESSION_COOKIE)?.value;
+  const cookieStore = cookies();
+  const cookie = "get" in cookieStore
+    ? cookieStore.get(SESSION_COOKIE)?.value
+    : undefined;
   return decodeSession(cookie);
 }
 
