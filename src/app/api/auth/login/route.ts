@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { encodeSession, SESSION_COOKIE } from "@/lib/session";
+import { setSession } from "@/lib/session";
 
 type LoginPayload = {
   email?: string;
@@ -42,13 +42,13 @@ export async function POST(request: Request) {
     );
   }
 
-  const sessionValue = encodeSession({
+  await setSession({
     userId: user.id,
     firstName: user.firstName,
     locale: locale ?? undefined,
   });
 
-  const response = NextResponse.json({
+  return NextResponse.json({
     success: true,
     user: {
       id: user.id,
@@ -58,14 +58,4 @@ export async function POST(request: Request) {
       role: user.role,
     },
   });
-
-  response.cookies.set(SESSION_COOKIE, sessionValue, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 7, // 7 days
-  });
-
-  return response;
 }

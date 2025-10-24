@@ -74,11 +74,6 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
     redirect(`/${locale}/login`);
   }
 
-  const sessionLocale = session.locale ?? locale;
-
-  if (sessionLocale !== locale) {
-    redirect(`/${sessionLocale}/dashboard`);
-  }
   const copy = dashboardCopy[locale];
 
   return (
