@@ -1,6 +1,11 @@
 # Adapt2Life
 
-Adapt2Life est une application Next.js (App Router) qui orchestre l’onboarding Stack Auth, la persistance Postgres (Drizzle ORM) et la synchronisation de données sportives via Garmin Connect.
+Adapt2Life est une application Next.js (App Router) qui orchestre l’onboarding Stack Auth, la persistance Postgres (Drizzle ORM) et la synchronisation de données sportives via Garmin Connect. Le socle inclut :
+
+- Authentification Stack (App Router)
+- Schéma Drizzle (users, workouts) et migrations versionnées
+- UI themée (Geist) avec notifications sonner
+- Configuration prête pour l’intégration Garmin OAuth2 (variables d’environnement)
 
 ## Prérequis
 
@@ -8,57 +13,91 @@ Adapt2Life est une application Next.js (App Router) qui orchestre l’onboarding
 - PostgreSQL (Neon recommandé)
 - npm 10+
 
-## Installation rapide
+## Installation
 
-```bash
-npm install
-npm run dev
-```
+1. Installer les dépendances :
 
-L’application démarre sur `http://localhost:3000`.
+   ```bash
+   npm install
+   ```
+
+2. Créer un fichier `.env.local` (voir ci-dessous) pour vos credentials locaux.
+
+3. Lancer l’environnement de développement :
+
+   ```bash
+   npm run dev
+   ```
+
+L’application tourne sur [http://localhost:3000](http://localhost:3000).
 
 ## Variables d’environnement
 
-Créer un fichier `.env.local` et définir au minimum :
-
 ```bash
+# Base de données
 DATABASE_URL=postgres://user:password@host:port/db
-APP_URL=https://app.exemple.com # URL de base de l’app (utilisée pour les redirections post-OAuth)
 
-# Garmin Connect OAuth2 PKCE
-GARMIN_CLIENT_ID=xxxxxxxx
-GARMIN_CLIENT_SECRET=yyyyyyyy
-GARMIN_REDIRECT_URI=https://app.exemple.com/api/garmin/oauth/callback
+# Stack
+NEXT_PUBLIC_STACK_PROJECT_ID=...
+NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY=...
+STACK_SECRET_SERVER_KEY=...
+
+# Domaine applicatif
+APP_URL=https://adapt2life.dev
+
+# OAuth Garmin (préconfiguré mais optionnel tant que l’intégration n’est pas finalisée)
+GARMIN_CLIENT_ID=...
+GARMIN_CLIENT_SECRET=...
+GARMIN_REDIRECT_URI=https://adapt2life.dev/api/garmin/callback
 GARMIN_TOKEN_ENCRYPTION_KEY=base64-encoded-32-byte-key
 ```
 
-`GARMIN_TOKEN_ENCRYPTION_KEY` doit être une clé symétrique de 32 octets encodée en base64 (ex. `openssl rand -base64 32`).
+> Pour générer une clé de chiffrement : `openssl rand -base64 32`
 
-## Flux Garmin OAuth2 PKCE
+## Scripts npm
 
-1. L’utilisateur authentifié appelle `GET /api/garmin/oauth/start`.  
-   - La route vérifie la session Stack Auth, récupère l’utilisateur local et prépare le couple PKCE (code_verifier / code_challenge).  
-   - Un cookie `garmin_oauth_state` (HttpOnly) conserve l’état et le `code_verifier` pendant 10 minutes.
-2. L’utilisateur est redirigé vers `https://connect.garmin.com/oauth2Confirm`.  
-3. Garmin renvoie sur `GET /api/garmin/oauth/callback`.  
-   - Validation de l’état, échange du code contre des tokens, récupération du `userId` Garmin.  
-   - Les tokens sont chiffrés (AES-256-GCM) et stockés dans `garmin_connections`. Une association Garmin déjà liée à un autre compte est rejetée.
-4. Redirection vers `/integrations/garmin?status=success` (ou `status=error` en cas d’échec).  
+- `npm run dev` : démarrage local (Next.js App Router)
+- `npm run build` : build production
+- `npm run start` : serveur Next.js en mode production
+- `npm run lint` : linting ESLint
+- `npm run test` : suite de tests Vitest
 
-Les colonnes sensibles `access_token_encrypted` et `refresh_token_encrypted` sont chiffrées au repos, conformément à la spécification sécurité.
+## Base de données (Drizzle)
 
-## Migrations Drizzle
+- `npx drizzle-kit generate` : générer une nouvelle migration
+- `npx drizzle-kit migrate` : appliquer les migrations
 
-Les schémas sont versionnés dans `drizzle/`. Pour appliquer les migrations :
-
-```bash
-npx drizzle-kit migrate
-```
+Les migrations sont stockées dans `drizzle/` et le schéma dans `db/schema.ts`.
 
 ## Tests
 
+La stack de tests s’appuie sur Vitest + Testing Library. Pour lancer la suite :
+
 ```bash
-npm test
+npm run test
 ```
 
-Les tests Vitest couvrent notamment la génération PKCE et le chiffrement des secrets Garmin.
+Le répertoire `tests/` contient des tests unitaires pour les helpers (ex : `cn`) et servira de base pour les futurs tests de services (Stack, Drizzle, Garmin).
+
+## Flux Garmin OAuth2 PKCE
+
+1. `GET /api/garmin/oauth/start`  
+   - Vérifie la session Stack Auth et prépare le couple PKCE.  
+   - Écrit un cookie HttpOnly `garmin_oauth_state` (10 minutes) contenant l’état et le `code_verifier`.
+2. Redirection vers `https://connect.garmin.com/oauth2Confirm`.
+3. `GET /api/garmin/oauth/callback`  
+   - Valide les paramètres, échange le code contre des tokens, récupère le `userId` Garmin.  
+   - Chiffre `access_token` et `refresh_token` (AES-256-GCM) avant stockage dans `garmin_connections`.
+4. Redirection vers `/integrations/garmin?status=success|error`.
+
+Les colonnes sensibles `access_token_encrypted` et `refresh_token_encrypted` sont chiffrées au repos, conformément à la spécification sécurité.
+
+## Architecture
+
+- `app/` : routes Next.js (App Router) et composants front
+- `db/` : schéma Drizzle + helpers
+- `lib/` : utilitaires partagés (helpers Tailwind, logique métier)
+- `stack/` : configuration Stack Auth (client + server)
+- `drizzle/` : migrations générées automatiquement
+
+Ce setup fournit un socle prêt pour construire le MVP Adapt2Life : helper `cn`, theming, auth Stack et couche database sont déjà intégrés, à compléter avec les modules Garmin, coaching et analytics décrits dans les spécifications. 
