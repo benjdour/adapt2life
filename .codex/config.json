@@ -1,0 +1,25 @@
+{
+  "project": "Adapt2Life",
+  "connectors": ["vercel", "neon", "context7"],
+  "model": "gpt-5",
+  "role": "fullstack-nextjs-assistant",
+  "description": "AI-driven fitness assistant built with Next.js, Vercel, Neon and GPT-5 integration.",
+  
+  "references": [
+    "./docs/Spec_Developpement_Adapt2Life_v2.md",
+    "./docs/Spec_Technique_Securite_Adapt2Life_v2.md"
+  ],
+
+  "contexts": [
+    {
+      "name": "chef_de_projet",
+      "description": "Répond sur la planification et la roadmap du projet Adapt2Life.",
+      "files": ["./docs/Spec_Developpement_Adapt2Life_v2.md"]
+    },
+    {
+      "name": "architecte",
+      "description": "Répond sur les choix techniques, la sécurité, la stack et les tests du projet Adapt2Life.",
+      "files": ["./docs/Spec_Technique_Securite_Adapt2Life_v2.md"]
+    }
+  ]
+}
