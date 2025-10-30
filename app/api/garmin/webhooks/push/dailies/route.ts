@@ -276,6 +276,7 @@ const buildOAuthHeader = (callbackUrl: URL, method: string): string => {
   }
 
   const oauthToken = callbackUrl.searchParams.get("token") ?? undefined;
+  const oauthTokenSecret = callbackUrl.searchParams.get("tokenSecret") ?? undefined;
 
   const oauthParams: Record<string, string> = {
     oauth_consumer_key: consumerKey,
@@ -305,7 +306,7 @@ const buildOAuthHeader = (callbackUrl: URL, method: string): string => {
 
   const parameterString = signatureParams.map(([key, value]) => `${encode(key)}=${encode(value)}`).join("&");
   const baseString = `${method.toUpperCase()}&${encode(baseUrl)}&${encode(parameterString)}`;
-  const signingKey = `${encode(consumerSecret)}&${oauthToken ? encode(oauthToken) : ""}`;
+  const signingKey = `${encode(consumerSecret)}&${oauthTokenSecret ? encode(oauthTokenSecret) : ""}`;
 
   const oauthSignature = createHmac("sha1", signingKey).update(baseString).digest("base64");
 
