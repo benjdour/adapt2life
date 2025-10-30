@@ -104,13 +104,20 @@ export async function POST(request: Request) {
           keys: Object.keys(callback as Record<string, unknown>),
         });
 
+        const userAccessToken =
+          typeof (callback as Record<string, unknown>).userAccessToken === "string"
+            ? ((callback as Record<string, unknown>).userAccessToken as string)
+            : undefined;
+
         try {
           const response = await fetch(callbackURL, {
             method: "GET",
             headers: {
               Accept: "application/json",
               "Accept-Encoding": "gzip,deflate",
-              Authorization: `Basic ${Buffer.from(`${env.GARMIN_CLIENT_ID}:${env.GARMIN_CLIENT_SECRET}`).toString("base64")}`,
+              Authorization: userAccessToken
+                ? `Bearer ${userAccessToken}`
+                : `Basic ${Buffer.from(`${env.GARMIN_CLIENT_ID}:${env.GARMIN_CLIENT_SECRET}`).toString("base64")}`,
               "User-Agent": "Adapt2Life-GarminWebhook/1.0",
             },
           });
