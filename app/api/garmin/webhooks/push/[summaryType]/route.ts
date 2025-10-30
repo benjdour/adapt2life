@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 import { db } from "@/db";
 import { garminWebhookEvents } from "@/db/schema";
@@ -54,10 +54,10 @@ const SUMMARY_KEY_ALIASES: Record<string, string[]> = {
 type GarminGenericPayload = Record<string, unknown>;
 
 export async function POST(
-  request: Request,
-  { params }: { params: { summaryType: string } },
+  request: NextRequest,
+  { params }: { params: Promise<{ summaryType: string }> },
 ) {
-  const summaryType = params.summaryType;
+  const { summaryType } = await params;
 
   if (summaryType === "dailies") {
     return NextResponse.json({ error: "Use /push/dailies endpoint." }, { status: 405 });
@@ -108,10 +108,11 @@ export async function POST(
 }
 
 export async function GET(
-  _request: Request,
-  { params }: { params: { summaryType: string } },
+  _request: NextRequest,
+  { params }: { params: Promise<{ summaryType: string }> },
 ) {
-  return new Response(`Garmin ${params.summaryType} webhook ready`, { status: 200 });
+  const { summaryType } = await params;
+  return new Response(`Garmin ${summaryType} webhook ready`, { status: 200 });
 }
 
 export async function HEAD() {
