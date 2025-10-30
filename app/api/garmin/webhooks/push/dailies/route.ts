@@ -1,12 +1,9 @@
-import { createHmac, randomBytes } from "crypto";
 import { NextResponse } from "next/server";
 
 import { db } from "@/db";
 import { garminDailySummaries } from "@/db/schema";
-import { env } from "@/lib/env";
 import {
   GarminConnectionRecord,
-  ensureGarminAccessToken,
   fetchGarminConnectionByGarminUserId,
 } from "@/lib/services/garmin-connections";
 
@@ -95,90 +92,13 @@ export async function POST(request: Request) {
     });
     const entries = extractEntries(payload);
 
-    let processed = 0;
-
-    const summaries = entries.filter((entry) => entry && !entry.callbackURL);
-    const callbacks = entries.filter((entry) => entry?.callbackURL);
     const connectionCache = new Map<string, GarminConnectionRecord>();
 
-    if (callbacks.length > 0) {
-      for (const callback of callbacks) {
-        const callbackURL = callback?.callbackURL;
-        if (!callbackURL) continue;
+    const processed = await processSummaryEntries(entries, (garminUserId) =>
+      getConnectionWithCache(garminUserId, connectionCache),
+    );
 
-        console.info("Garmin dailies callback entry", {
-          keys: Object.keys(callback as Record<string, unknown>),
-        });
-
-        const garminUserId = resolveGarminUserId(callback);
-        if (!garminUserId) {
-          continue;
-        }
-
-        const connection = await getConnectionWithCache(garminUserId, connectionCache);
-        if (!connection) {
-          continue;
-        }
-
-        const { connection: updatedConnection, accessToken } = await ensureGarminAccessToken(connection);
-        connectionCache.set(garminUserId, updatedConnection);
-
-        try {
-          const callbackUrl = new URL(callbackURL);
-          const headers: Record<string, string> = {
-            Accept: "application/json",
-            "Accept-Encoding": "gzip,deflate",
-            "User-Agent": "Adapt2Life-GarminWebhook/1.0",
-          };
-
-          if (callbackUrl.searchParams.has("token")) {
-            headers.Authorization = buildOAuthHeader(callbackUrl, "GET");
-          } else {
-            headers.Authorization = `Bearer ${accessToken}`;
-          }
-
-          const response = await fetch(callbackUrl.toString(), {
-            method: "GET",
-            headers,
-          });
-
-          if (!response.ok) {
-            const errorBody = await response.text().catch(() => undefined);
-            console.error("Garmin dailies callback failed", {
-              callbackURL,
-              status: response.status,
-              statusText: response.statusText,
-              body: errorBody,
-            });
-            continue;
-          }
-
-          const fetchedPayload = await response.json().catch((error: unknown) => {
-            console.error("Garmin dailies callback json parse failed", error);
-            return null;
-          });
-
-          if (!fetchedPayload) continue;
-
-          const fetchedEntries = extractEntries(fetchedPayload);
-          processed += await processSummaryEntries(fetchedEntries, (garminUserIdInner) =>
-            getConnectionWithCache(garminUserIdInner, connectionCache),
-          );
-        } catch (error) {
-          console.error("Garmin dailies callback fetch failed", { callbackURL, error });
-        }
-      }
-    }
-
-    if (summaries.length > 0) {
-      processed += await processSummaryEntries(summaries, (garminUserId) =>
-        getConnectionWithCache(garminUserId, connectionCache),
-      );
-    }
-
-    const received = summaries.length + callbacks.length;
-
-    return NextResponse.json({ received, processed }, { status: 200 });
+    return NextResponse.json({ received: entries.length, processed }, { status: 200 });
   } catch (error) {
     console.error("Garmin dailies webhook failed", error);
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
@@ -264,62 +184,3 @@ export async function GET() {
 export async function HEAD() {
   return new Response(null, { status: 200 });
 }
-
-const encode = (value: string) => encodeURIComponent(value).replace(/[!*'()]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
-
-const buildOAuthHeader = (callbackUrl: URL, method: string): string => {
-  const consumerKey = env.GARMIN_CLIENT_ID;
-  const consumerSecret = env.GARMIN_CLIENT_SECRET;
-
-  if (!consumerKey || !consumerSecret) {
-    throw new Error("Garmin consumer key/secret missing for OAuth callback");
-  }
-
-  const oauthToken = callbackUrl.searchParams.get("token") ?? undefined;
-  const oauthTokenSecret = callbackUrl.searchParams.get("tokenSecret") ?? undefined;
-
-  const oauthParams: Record<string, string> = {
-    oauth_consumer_key: consumerKey,
-    oauth_nonce: randomBytes(16).toString("hex"),
-    oauth_signature_method: "HMAC-SHA1",
-    oauth_timestamp: Math.floor(Date.now() / 1000).toString(),
-    oauth_version: "1.0",
-  };
-
-  if (oauthToken) {
-    oauthParams.oauth_token = oauthToken;
-  }
-
-  const baseUrl = `${callbackUrl.protocol}//${callbackUrl.host}${callbackUrl.pathname}`;
-
-  const signatureParams: Array<[string, string]> = [
-    ...Array.from(callbackUrl.searchParams.entries()),
-    ...Object.entries(oauthParams),
-  ].map(([key, value]) => [key, value ?? ""]);
-
-  signatureParams.sort(([aKey, aValue], [bKey, bValue]) => {
-    if (aKey === bKey) {
-      return aValue.localeCompare(bValue);
-    }
-    return aKey.localeCompare(bKey);
-  });
-
-  const parameterString = signatureParams.map(([key, value]) => `${encode(key)}=${encode(value)}`).join("&");
-  const baseString = `${method.toUpperCase()}&${encode(baseUrl)}&${encode(parameterString)}`;
-  const signingKey = `${encode(consumerSecret)}&${oauthTokenSecret ? encode(oauthTokenSecret) : ""}`;
-
-  const oauthSignature = createHmac("sha1", signingKey).update(baseString).digest("base64");
-
-  const headerParams = {
-    ...oauthParams,
-    oauth_signature: oauthSignature,
-  };
-
-  const header =
-    "OAuth " +
-    Object.entries(headerParams)
-      .map(([key, value]) => `${encode(key)}="${encode(value)}"`)
-      .join(", ");
-
-  return header;
-};
