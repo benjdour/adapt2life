@@ -100,6 +100,10 @@ export async function POST(request: Request) {
         const callbackURL = callback?.callbackURL;
         if (!callbackURL) continue;
 
+        console.info("Garmin dailies callback entry", {
+          keys: Object.keys(callback as Record<string, unknown>),
+        });
+
         try {
           const response = await fetch(callbackURL, {
             method: "GET",
