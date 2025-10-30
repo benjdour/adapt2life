@@ -495,7 +495,14 @@ export default async function GarminDataPage() {
   const userMetricsNode = pickObject<Record<string, unknown>>([userMetricsPayload], "metrics");
   const restingHeartRate = pickNumber(
     [userMetricsPayload, userMetricsNode],
-    ["restingHeartRate", "restingHeartRateInBeatsPerMinute", "resting_heart_rate"],
+    [
+      "restingHeartRate",
+      "restingHeartRateInBeatsPerMinute",
+      "resting_heart_rate",
+      "metrics.0.restingHeartRateInBeatsPerMinute",
+      "userMetrics.restingHeartRateInBeatsPerMinute",
+      "summary.restingHeartRateInBeatsPerMinute",
+    ],
   );
   const trainingLoad = pickNumber([userMetricsPayload, userMetricsNode], ["trainingLoad", "status.trainingLoad"]);
   const trainingStatus =
