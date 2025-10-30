@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import { garminConnections, garminDailySummaries } from "@/db/schema";
+import { env } from "@/lib/env";
 
 type GarminDailyPayload = {
   summaryId?: string;
@@ -104,14 +105,19 @@ export async function POST(request: Request) {
             method: "GET",
             headers: {
               Accept: "application/json",
+              "Accept-Encoding": "gzip,deflate",
+              Authorization: `Basic ${Buffer.from(`${env.GARMIN_CLIENT_ID}:${env.GARMIN_CLIENT_SECRET}`).toString("base64")}`,
+              "User-Agent": "Adapt2Life-GarminWebhook/1.0",
             },
           });
 
           if (!response.ok) {
+            const errorBody = await response.text().catch(() => undefined);
             console.error("Garmin dailies callback failed", {
               callbackURL,
               status: response.status,
               statusText: response.statusText,
+              body: errorBody,
             });
             continue;
           }
