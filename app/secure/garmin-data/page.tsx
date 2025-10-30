@@ -31,14 +31,133 @@ const toNumber = (value: unknown): number | null => {
   return null;
 };
 
-const firstNumber = (...values: Array<unknown>): number | null => {
-  for (const value of values) {
-    const parsed = toNumber(value);
-    if (parsed !== null) {
-      return parsed;
+const toTrimmedString = (value: unknown): string | null => {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value.toString();
+  }
+  return null;
+};
+
+const toSnakeCase = (input: string): string =>
+  input
+    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+    .replace(/[-\s]+/g, "_")
+    .toLowerCase();
+
+const toCamelCase = (input: string): string =>
+  input.replace(/[_-](\w)/g, (_, c: string) => c.toUpperCase());
+
+const keyVariants = (segment: string): string[] => {
+  const variants = new Set<string>();
+  variants.add(segment);
+  variants.add(segment.toLowerCase());
+  variants.add(segment.toUpperCase());
+
+  const snake = toSnakeCase(segment);
+  variants.add(snake);
+
+  const camel = toCamelCase(segment);
+  variants.add(camel);
+
+  if (camel.length > 0) {
+    variants.add(camel[0].toUpperCase() + camel.slice(1));
+  }
+
+  if (snake.length > 0) {
+    variants.add(snake.replace(/_/g, ""));
+  }
+
+  return Array.from(variants);
+};
+
+const getFromObject = (source: unknown, segment: string): unknown => {
+  if (!source || typeof source !== "object") return undefined;
+  for (const key of keyVariants(segment)) {
+    if (Object.prototype.hasOwnProperty.call(source, key)) {
+      return (source as Record<string, unknown>)[key];
+    }
+  }
+  return undefined;
+};
+
+const getPathValue = (source: unknown, path: string): unknown => {
+  if (!source) return undefined;
+  const segments = path.split(".");
+  let current: unknown = source;
+
+  for (const segment of segments) {
+    if (current === null || current === undefined) {
+      return undefined;
+    }
+
+    if (Array.isArray(current)) {
+      const index = Number(segment);
+      if (!Number.isNaN(index) && current[index] !== undefined) {
+        current = current[index];
+        continue;
+      }
+      return undefined;
+    }
+
+    current = getFromObject(current, segment);
+    if (current === undefined) {
+      return undefined;
+    }
+  }
+
+  return current;
+};
+
+const pickNumber = (
+  sources: Array<Record<string, unknown> | undefined>,
+  paths: string[],
+): number | null => {
+  for (const source of sources) {
+    if (!source) continue;
+    for (const path of paths) {
+      const candidate = getPathValue(source, path);
+      const parsed = toNumber(candidate);
+      if (parsed !== null) {
+        return parsed;
+      }
     }
   }
   return null;
+};
+
+const pickString = (
+  sources: Array<Record<string, unknown> | undefined>,
+  paths: string[],
+): string | null => {
+  for (const source of sources) {
+    if (!source) continue;
+    for (const path of paths) {
+      const candidate = getPathValue(source, path);
+      const parsed = toTrimmedString(candidate);
+      if (parsed !== null) {
+        return parsed;
+      }
+    }
+  }
+  return null;
+};
+
+const pickObject = <T = Record<string, unknown>>(
+  sources: Array<Record<string, unknown> | undefined>,
+  path: string,
+): T | undefined => {
+  for (const source of sources) {
+    if (!source) continue;
+    const candidate = getPathValue(source, path);
+    if (candidate && typeof candidate === "object") {
+      return candidate as T;
+    }
+  }
+  return undefined;
 };
 
 const formatHours = (seconds: number | null | undefined, digits = 1): string | null => {
@@ -230,50 +349,71 @@ export default async function GarminDataPage() {
     ]);
   }
 
-  const bodyBatteryLevel = firstNumber(
-    latestDailyRaw?.bodyBatteryLevel,
-    (latestDailyRaw?.bodyBatteryDynamicFeedbackEvent as Record<string, unknown> | undefined)?.bodyBatteryLevel,
-    latestDailyRaw?.bodyBatteryStatus && (latestDailyRaw.bodyBatteryStatus as Record<string, unknown>).currentLevel,
+  const bodyBatteryLevel = pickNumber(
+    [latestDailyRaw],
+    [
+      "bodyBatteryLevel",
+      "bodyBatteryDynamicFeedbackEvent.bodyBatteryLevel",
+      "bodyBatteryStatus.currentLevel",
+    ],
   );
-  const bodyBatteryCharged = firstNumber(
-    latestDailyRaw?.bodyBatteryChargedValue,
-    latestDailyRaw?.bodyBatteryStatus && (latestDailyRaw.bodyBatteryStatus as Record<string, unknown>).chargedValue,
+  const bodyBatteryCharged = pickNumber(
+    [latestDailyRaw],
+    [
+      "bodyBatteryChargedValue",
+      "bodyBatteryStatus.chargedValue",
+    ],
   );
-  const bodyBatteryDrained = firstNumber(
-    latestDailyRaw?.bodyBatteryDrainedValue,
-    latestDailyRaw?.bodyBatteryStatus && (latestDailyRaw.bodyBatteryStatus as Record<string, unknown>).drainedValue,
+  const bodyBatteryDrained = pickNumber(
+    [latestDailyRaw],
+    [
+      "bodyBatteryDrainedValue",
+      "bodyBatteryStatus.drainedValue",
+    ],
   );
   const bodyBatteryTrend =
-    (latestDailyRaw?.bodyBatteryDynamicFeedbackEvent as Record<string, unknown> | undefined)?.bodyBatteryTrend ??
-    (latestDailyRaw?.bodyBatteryStatus as Record<string, unknown> | undefined)?.trend;
+    pickString(
+      [latestDailyRaw],
+      [
+        "bodyBatteryDynamicFeedbackEvent.bodyBatteryTrend",
+        "bodyBatteryStatus.trend",
+      ],
+    ) ?? undefined;
   const bodyBatteryParts: string[] = [];
   if (bodyBatteryLevel !== null) bodyBatteryParts.push(`${Math.round(bodyBatteryLevel)}/100`);
   if (bodyBatteryCharged !== null) bodyBatteryParts.push(`+${Math.round(bodyBatteryCharged)}`);
   if (bodyBatteryDrained !== null) bodyBatteryParts.push(`-${Math.round(bodyBatteryDrained)}`);
-  if (bodyBatteryTrend && typeof bodyBatteryTrend === "string") bodyBatteryParts.push(`tendance ${bodyBatteryTrend.toLowerCase()}`);
+  if (bodyBatteryTrend) bodyBatteryParts.push(`tendance ${bodyBatteryTrend.toLowerCase()}`);
   const bodyBatteryDisplay = bodyBatteryParts.length > 0 ? bodyBatteryParts.join(" · ") : null;
 
   const sleepPayload = (latestSleep?.payload as Record<string, unknown>) ?? undefined;
-  const sleepDurationSeconds = firstNumber(
-    sleepPayload?.durationInSeconds,
-    sleepPayload?.totalSleepDurationInSeconds,
-    sleepPayload?.sleepDurationInSeconds,
-    sleepPayload?.actualSleepInSeconds,
-    sleepPayload?.totalSleepSeconds,
+  const sleepDurationSeconds = pickNumber(
+    [sleepPayload],
+    [
+      "durationInSeconds",
+      "totalSleepDurationInSeconds",
+      "sleepDurationInSeconds",
+      "actualSleepInSeconds",
+      "totalSleepSeconds",
+    ],
   );
-  const sleepScore = firstNumber(
-    sleepPayload?.sleepScore,
-    sleepPayload && (sleepPayload.sleepScoreFeedback as Record<string, unknown> | undefined)?.score,
-    sleepPayload?.sleepScoreValue,
+  const sleepScore = pickNumber(
+    [sleepPayload],
+    [
+      "sleepScore",
+      "sleepScoreFeedback.score",
+      "sleepScoreValue",
+      "overallScore",
+    ],
   );
-  const deepSleepSeconds = firstNumber(sleepPayload?.deepSleepDurationInSeconds);
-  const remSleepSeconds = firstNumber(sleepPayload?.remSleepInSeconds);
-  const lightSleepSeconds = firstNumber(sleepPayload?.lightSleepDurationInSeconds);
-  const sleepStartSeconds = firstNumber(sleepPayload?.startTimeInSeconds);
+  const deepSleepSeconds = pickNumber([sleepPayload], ["deepSleepDurationInSeconds", "sleepLevels.deep.durationInSeconds"]);
+  const remSleepSeconds = pickNumber([sleepPayload], ["remSleepInSeconds", "sleepLevels.rem.durationInSeconds"]);
+  const lightSleepSeconds = pickNumber([sleepPayload], ["lightSleepDurationInSeconds", "sleepLevels.light.durationInSeconds"]);
+  const sleepStartSeconds = pickNumber([sleepPayload], ["startTimeInSeconds", "sleepStartTimestamp", "sleepStartTimestampUtc"]);
   const sleepEndSeconds =
-    firstNumber(sleepPayload?.endTimeInSeconds) ??
+    pickNumber([sleepPayload], ["endTimeInSeconds", "sleepEndTimestamp", "sleepEndTimestampUtc"]) ??
     (sleepStartSeconds !== null && sleepDurationSeconds !== null ? sleepStartSeconds + sleepDurationSeconds : null);
-  const sleepOffsetSeconds = firstNumber(sleepPayload?.startTimeOffsetInSeconds) ?? 0;
+  const sleepOffsetSeconds = pickNumber([sleepPayload], ["startTimeOffsetInSeconds", "sleepStartTimezoneOffsetInSeconds"]) ?? 0;
   const sleepBedtimeDisplay = formatDateTime(sleepStartSeconds, sleepOffsetSeconds);
   const sleepWakeDisplay = formatDateTime(sleepEndSeconds, sleepOffsetSeconds);
   const sleepPhasesParts: string[] = [];
@@ -283,159 +423,126 @@ export default async function GarminDataPage() {
   const sleepPhasesDisplay = sleepPhasesParts.length > 0 ? sleepPhasesParts.join(" · ") : null;
 
   const hrvPayloadRaw = (latestHrv?.payload as Record<string, unknown>) ?? undefined;
-  const hrvSource = (hrvPayloadRaw?.hrvSummary as Record<string, unknown>) ?? hrvPayloadRaw ?? {};
-  const hrvAverage = firstNumber(
-    hrvSource?.average,
-    hrvSource?.rmssd,
-    hrvSource?.lastNightRmssd,
-    hrvSource?.lastNightAverage,
-    hrvSource?.value,
+  const hrvSource = pickObject<Record<string, unknown>>([hrvPayloadRaw], "hrvSummary") ?? hrvPayloadRaw ?? {};
+  const hrvAverage = pickNumber(
+    [hrvSource],
+    ["average", "rmssd", "lastNightRmssd", "lastNightAverage", "value", "mean"],
   );
-  const hrvMin = firstNumber(hrvSource?.min, hrvSource?.minimum, hrvSource?.lastNightMinRmssd);
-  const hrvMax = firstNumber(hrvSource?.max, hrvSource?.maximum, hrvSource?.lastNightMaxRmssd);
+  const hrvMin = pickNumber([hrvSource], ["min", "minimum", "lastNightMinRmssd", "lower"]);
+  const hrvMax = pickNumber([hrvSource], ["max", "maximum", "lastNightMaxRmssd", "upper"]);
   const hrvDisplay =
     hrvAverage !== null
       ? `${formatMs(hrvAverage)}${hrvMin !== null || hrvMax !== null ? ` (min ${formatMs(hrvMin)} / max ${formatMs(hrvMax)})` : ""}`
       : null;
 
   const userMetricsPayload = (latestUserMetrics?.payload as Record<string, unknown>) ?? undefined;
-  const restingHeartRate = firstNumber(
-    userMetricsPayload?.restingHeartRate,
-    (userMetricsPayload?.metrics as Record<string, unknown> | undefined)?.restingHeartRate,
-  );
-  const trainingLoad = firstNumber(
-    userMetricsPayload?.trainingLoad,
-    (userMetricsPayload?.metrics as Record<string, unknown> | undefined)?.trainingLoad,
-  );
+  const userMetricsNode = pickObject<Record<string, unknown>>([userMetricsPayload], "metrics");
+  const restingHeartRate = pickNumber([userMetricsPayload, userMetricsNode], ["restingHeartRate", "resting_heart_rate"]);
+  const trainingLoad = pickNumber([userMetricsPayload, userMetricsNode], ["trainingLoad", "status.trainingLoad"]);
   const trainingStatus =
-    (userMetricsPayload?.trainingStatus as string | undefined) ??
-    ((userMetricsPayload?.metrics as Record<string, unknown> | undefined)?.trainingStatus as string | undefined);
-  const trainingReadiness = firstNumber(
-    userMetricsPayload?.trainingReadinessScore,
-    (userMetricsPayload?.metrics as Record<string, unknown> | undefined)?.trainingReadinessScore,
-  );
-  const vo2Max = firstNumber(
-    userMetricsPayload?.vo2Max,
-    (userMetricsPayload?.vo2Max as Record<string, unknown> | undefined)?.value,
-    (userMetricsPayload?.metrics as Record<string, unknown> | undefined)?.vo2Max,
+    pickString([userMetricsPayload, userMetricsNode], ["trainingStatus", "status.trainingStatus", "status.label"]) ?? undefined;
+  const trainingReadiness = pickNumber([userMetricsPayload, userMetricsNode], ["trainingReadinessScore"]);
+  const vo2Max = pickNumber(
+    [userMetricsPayload, userMetricsNode, pickObject<Record<string, unknown>>([userMetricsPayload], "vo2Max")],
+    ["vo2Max", "vo2Max.value", "vo2max"],
   );
 
   const stressPayload = (latestStress?.payload as Record<string, unknown>) ?? undefined;
-  const stressAverage = firstNumber(
-    latestDailyRaw?.averageStressLevel,
-    stressPayload?.averageStressLevel,
-    stressPayload?.stressAvg,
+  const stressAverage = pickNumber(
+    [latestDailyRaw, stressPayload],
+    ["averageStressLevel", "averageStress", "stressAvg"],
   );
-  const stressMax = firstNumber(
-    latestDailyRaw?.maxStressLevel,
-    stressPayload?.maxStressLevel,
-    stressPayload?.stressMax,
+  const stressMax = pickNumber(
+    [latestDailyRaw, stressPayload],
+    ["maxStressLevel", "stressMax"],
   );
-  const stressDurations = computeStressDurations(stressPayload?.timeOffsetStressLevelValues);
+  const stressDurations = computeStressDurations(getPathValue(stressPayload, "timeOffsetStressLevelValues"));
   const relaxationMinutes = formatMinutes(
-    firstNumber(
-      stressPayload?.relaxationDurationInSeconds,
-      stressPayload?.recoveryDurationInSeconds,
-      stressPayload?.totalRecoveryTimeInSeconds,
+    pickNumber(
+      [stressPayload],
+      ["relaxationDurationInSeconds", "recoveryDurationInSeconds", "totalRecoveryTimeInSeconds"],
     ),
   );
 
-  const activeTimeSeconds = firstNumber(
-    latestDailyRaw?.activeTimeInSeconds,
-    latestDailyRaw?.moderateIntensityDurationInSeconds,
+  const activeTimeSeconds = pickNumber(
+    [latestDailyRaw],
+    ["activeTimeInSeconds", "moderateIntensityDurationInSeconds", "totalActiveTimeInSeconds"],
   );
-  const sedentarySeconds = firstNumber(
-    latestDailyRaw?.sedentaryTimeInSeconds,
-    latestDailyRaw?.sedentaryDurationInSeconds,
+  const sedentarySeconds = pickNumber(
+    [latestDailyRaw],
+    ["sedentaryTimeInSeconds", "sedentaryDurationInSeconds"],
   );
 
   const pulsePayload = (latestPulseOx?.payload as Record<string, unknown>) ?? undefined;
-  const spo2Average = firstNumber(
-    pulsePayload?.avgSpO2,
-    pulsePayload?.averageSpO2,
-    pulsePayload?.avgValue,
-    pulsePayload?.spo2Average,
+  const spo2Average = pickNumber(
+    [pulsePayload],
+    ["avgSpO2", "averageSpO2", "avgValue", "spo2Average"],
   );
 
   const skinTempPayload = (latestSkinTemp?.payload as Record<string, unknown>) ?? undefined;
-  const skinTempAverage = firstNumber(
-    skinTempPayload?.meanSkinTemperature,
-    skinTempPayload?.averageSkinTemperature,
-    skinTempPayload?.skinTemperatureAverage,
+  const skinTempAverage = pickNumber(
+    [skinTempPayload],
+    ["meanSkinTemperature", "averageSkinTemperature", "skinTemperatureAverage"],
   );
-  const skinTempDelta = firstNumber(
-    skinTempPayload?.deltaSkinTemperature,
-    skinTempPayload?.skinTemperatureDelta,
+  const skinTempDelta = pickNumber(
+    [skinTempPayload],
+    ["deltaSkinTemperature", "skinTemperatureDelta"],
   );
 
   const bodyCompPayload = (latestBodyComposition?.payload as Record<string, unknown>) ?? undefined;
-  const bodyWeight = firstNumber(bodyCompPayload?.weight, bodyCompPayload?.weightKg, bodyCompPayload?.weightInKilograms);
-  const bodyFat = firstNumber(
-    bodyCompPayload?.percentFat,
-    bodyCompPayload?.bodyFat,
-    bodyCompPayload?.bodyFatPercent,
-  );
-  const bodyMuscle = firstNumber(
-    bodyCompPayload?.muscleMass,
-    bodyCompPayload?.skeletalMuscleMass,
-  );
-  const bodyHydration = firstNumber(bodyCompPayload?.percentHydration, bodyCompPayload?.hydrationPercentage);
+  const bodyWeight = pickNumber([bodyCompPayload], ["weight", "weightKg", "weightInKilograms"]);
+  const bodyFat = pickNumber([bodyCompPayload], ["percentFat", "bodyFat", "bodyFatPercent"]);
+  const bodyMuscle = pickNumber([bodyCompPayload], ["muscleMass", "skeletalMuscleMass", "leanMass"]);
+  const bodyHydration = pickNumber([bodyCompPayload], ["percentHydration", "hydrationPercentage", "bodyWaterPercent"]);
 
   const respirationPayload = (latestRespiration?.payload as Record<string, unknown>) ?? undefined;
-  const respirationAverage = firstNumber(
-    respirationPayload?.avgRespirationValue,
-    respirationPayload?.averageRespirationRate,
-    respirationPayload?.respirationAverage,
+  const respirationAverage = pickNumber(
+    [respirationPayload],
+    ["avgRespirationValue", "averageRespirationRate", "respirationAverage", "averageRespiration"],
   );
 
-  const avgHeartRate24h = firstNumber(
-    latestDailyRaw?.averageHeartRate,
-    latestDailyRaw?.avgHeartRate,
+  const avgHeartRate24h = pickNumber(
+    [latestDailyRaw],
+    ["averageHeartRate", "avgHeartRate", "heartRateAverage"],
   );
 
   const activityPayload = (latestActivity?.payload as Record<string, unknown>) ?? undefined;
   const activityDetailsPayload = (latestActivityDetails?.payload as Record<string, unknown>) ?? undefined;
   const activityType =
-    (activityPayload?.activityType as string | undefined) ??
-    (activityPayload?.activityName as string | undefined) ??
-    (activityDetailsPayload?.activityType as string | undefined);
-  const activityStartSeconds = firstNumber(
-    activityPayload?.startTimeInSeconds,
-    activityDetailsPayload?.startTimeInSeconds,
+    pickString([activityPayload, activityDetailsPayload], ["activityType", "activityName", "sportType"]) ?? undefined;
+  const activityStartSeconds = pickNumber(
+    [activityPayload, activityDetailsPayload],
+    ["startTimeInSeconds", "activityStartInSeconds", "startTimestamp"],
   );
-  const activityOffsetSeconds = firstNumber(
-    activityPayload?.startTimeOffsetInSeconds,
-    activityDetailsPayload?.startTimeOffsetInSeconds,
+  const activityOffsetSeconds = pickNumber(
+    [activityPayload, activityDetailsPayload],
+    ["startTimeOffsetInSeconds", "activityStartOffsetInSeconds"],
   );
   const activityStartDisplay =
     formatDateTime(activityStartSeconds, activityOffsetSeconds) ??
     (typeof activityPayload?.startTimeGmt === "string"
       ? new Date(activityPayload.startTimeGmt).toLocaleString("fr-FR", { hour12: false })
       : null);
-  const activityDurationSeconds = firstNumber(
-    activityPayload?.durationInSeconds,
-    activityDetailsPayload?.durationInSeconds,
+  const activityDurationSeconds = pickNumber(
+    [activityPayload, activityDetailsPayload],
+    ["durationInSeconds", "activityDurationInSeconds"],
   );
   const activityDurationDisplay = formatMinutes(activityDurationSeconds);
-  const activityAvgHr = firstNumber(
-    activityPayload?.averageHeartRateInBeatsPerMinute,
-    activityDetailsPayload?.averageHeartRateInBeatsPerMinute,
-    activityDetailsPayload?.averageHeartRate,
+  const activityAvgHr = pickNumber(
+    [activityPayload, activityDetailsPayload],
+    ["averageHeartRateInBeatsPerMinute", "averageHeartRate", "avgHeartRate"],
   );
-  const activityPower = firstNumber(
-    activityDetailsPayload?.averagePowerInWatts,
-    activityDetailsPayload?.averagePower,
-    activityPayload?.averagePower,
+  const activityPower = pickNumber(
+    [activityDetailsPayload, activityPayload],
+    ["averagePowerInWatts", "averagePower"],
   );
-  const activityCadence = firstNumber(
-    activityDetailsPayload?.averageCadenceInStepsPerMinute,
-    activityDetailsPayload?.averageCadence,
-    activityPayload?.averageCadence,
+  const activityCadence = pickNumber(
+    [activityDetailsPayload, activityPayload],
+    ["averageCadenceInStepsPerMinute", "averageCadence"],
   );
-  const activityCalories = firstNumber(
-    activityPayload?.activeKilocalories,
-    activityPayload?.totalKilocalories,
-    activityDetailsPayload?.totalKilocalories,
+  const activityCalories = pickNumber(
+    [activityPayload, activityDetailsPayload],
+    ["activeKilocalories", "totalKilocalories", "caloriesBurned"],
   );
   const activityIntensityParts: string[] = [];
   if (activityDurationDisplay) activityIntensityParts.push(activityDurationDisplay);
@@ -443,33 +550,31 @@ export default async function GarminDataPage() {
   if (activityPower !== null) activityIntensityParts.push(`${Math.round(activityPower)} W`);
   if (activityCadence !== null) activityIntensityParts.push(`${Math.round(activityCadence)} cad.`);
   const activityIntensityDisplay = activityIntensityParts.length > 0 ? activityIntensityParts.join(" · ") : null;
-  const trainingEffectAerobic = firstNumber(
-    activityPayload?.aerobicTrainingEffect,
-    activityDetailsPayload?.aerobicTrainingEffect,
-    activityPayload?.trainingEffect,
+  const trainingEffectAerobic = pickNumber(
+    [activityPayload, activityDetailsPayload],
+    ["aerobicTrainingEffect", "trainingEffectAerobic", "trainingEffect.aerobic"],
   );
-  const trainingEffectAnaerobic = firstNumber(
-    activityPayload?.anaerobicTrainingEffect,
-    activityDetailsPayload?.anaerobicTrainingEffect,
+  const trainingEffectAnaerobic = pickNumber(
+    [activityPayload, activityDetailsPayload],
+    ["anaerobicTrainingEffect", "trainingEffectAnaerobic", "trainingEffect.anaerobic"],
   );
   const trainingEffectDisplay =
     trainingEffectAerobic !== null || trainingEffectAnaerobic !== null
       ? `Aérobie ${trainingEffectAerobic?.toFixed(1) ?? "—"} / Anaérobie ${trainingEffectAnaerobic?.toFixed(1) ?? "—"}`
       : null;
   const trainingEffectLabel =
-    (activityPayload?.trainingEffectLabel as string | undefined) ??
-    (activityDetailsPayload?.trainingEffectLabel as string | undefined);
-  const trainingEffectValue = firstNumber(
-    activityPayload?.trainingEffect,
-    activityDetailsPayload?.trainingEffect,
+    pickString([activityPayload, activityDetailsPayload], ["trainingEffectLabel", "trainingEffect.label"]) ?? undefined;
+  const trainingEffectValue = pickNumber(
+    [activityPayload, activityDetailsPayload],
+    ["trainingEffect", "trainingEffect.overall"],
   );
   const effortScoreDisplay =
     trainingEffectLabel || trainingEffectValue !== null
       ? [trainingEffectLabel, trainingEffectValue !== null ? trainingEffectValue.toFixed(1) : null].filter(Boolean).join(" ")
       : null;
-  const recoveryTimeSeconds = firstNumber(
-    activityPayload?.recoveryTimeInSeconds,
-    activityDetailsPayload?.recoveryTimeInSeconds,
+  const recoveryTimeSeconds = pickNumber(
+    [activityPayload, activityDetailsPayload],
+    ["recoveryTimeInSeconds", "recoveryTimeInSec"],
   );
 
   const sections: Array<{
@@ -527,7 +632,7 @@ export default async function GarminDataPage() {
       ],
     },
     {
-      title: "💪 Charge d’entraînement",
+      title: "💪 CHARGE D’ENTRAÎNEMENT",
       description: "Données issues de l’Activity API et des Training Status endpoints.",
       items: [
         {
@@ -556,14 +661,14 @@ export default async function GarminDataPage() {
           hint: "Training Status API / User Metrics.",
         },
         {
-          label: "Score de préparation à l’entraînement",
+          label: "Training Readiness",
           value: trainingReadiness !== null ? `${Math.round(trainingReadiness)}/100` : null,
           hint: "User Metrics — trainingReadinessScore.",
         },
       ],
     },
     {
-      title: "⚡ Stress & système nerveux",
+      title: "⚡ STRESS & SYSTÈME NERVEUX",
       description: "Utilise Stress Details summaries et HRV.",
       items: [
         {
@@ -572,7 +677,7 @@ export default async function GarminDataPage() {
           hint: "Daily summaries — averageStressLevel.",
         },
         {
-          label: "Temps en stress faible / moyen / élevé",
+          label: "Durée en stress faible / moyen / élevé",
           value:
             stressDurations && (stressDurations.low || stressDurations.moderate || stressDurations.high)
               ? [
@@ -603,7 +708,7 @@ export default async function GarminDataPage() {
       ],
     },
     {
-      title: "🚶‍♂️ Activité générale",
+      title: "🚶‍♂️ ACTIVITÉ GÉNÉRALE",
       description: "Basé sur Daily summaries & Activity API.",
       items: [
         {
@@ -634,7 +739,7 @@ export default async function GarminDataPage() {
       ],
     },
     {
-      title: "🩸 Indicateurs physiologiques avancés",
+      title: "🩸 INDICATEURS PHYSIOLOGIQUES AVANCÉS",
       description: "Nécessite Health API (Pulse Ox, Skin Temp, Body Composition).",
       items: [
         {
@@ -682,12 +787,12 @@ export default async function GarminDataPage() {
         {
           label: "Respiration moyenne (brpm)",
           value: formatBrpm(respirationAverage),
-          hint: "Respiration summaries (§7.8).",
+          hint: "Respiration summaries (§7.9).",
         },
       ],
     },
     {
-      title: "🕒 Métadonnées d’activité",
+      title: "🕒 MÉTADONNÉES D’ACTIVITÉ",
       description: "Requiert Activity API (summaries & details).",
       items: [
         {
@@ -696,13 +801,16 @@ export default async function GarminDataPage() {
           hint: "Activity summaries (§7.1 Activity API).",
         },
         {
-          label: "Type d’activité (course, vélo, natation, etc.)",
+          label: "Type d’activité",
           value: activityType ?? null,
           hint: "Activity summaries — activityType.",
         },
         {
-          label: "Durée & intensité (HR moyenne, puissance, cadence)",
-          value: activityIntensityDisplay,
+          label: "Durée & intensité (HR, puissance, cadence)",
+          value:
+            activityIntensityDisplay && activityIntensityDisplay.length > 0
+              ? activityIntensityDisplay
+              : activityDurationDisplay,
           hint: "Activity Details (docs/Activity_API-1.2.3_0.md).",
         },
         {
@@ -801,7 +909,6 @@ export default async function GarminDataPage() {
               </div>
             </section>
           ))}
-
         </div>
       ) : null}
 
