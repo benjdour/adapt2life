@@ -600,7 +600,7 @@ export default async function GarminDataPage() {
         {
           label: "Sommeil — score",
           value: sleepScore !== null ? `${Math.round(sleepScore)}/100` : null,
-          hint: "Sleep summaries — champ sleepScore.",
+          hint: "Sleep summaries — champ overallSleepScore.",
         },
         {
           label: "Sommeil — phases (profond, paradoxal, léger)",
