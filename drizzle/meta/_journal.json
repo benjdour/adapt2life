@@ -5,36 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1761758097776,
-      "tag": "0000_hesitant_thaddeus_ross",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1761758406088,
-      "tag": "0001_overconfident_zarek",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1761759789802,
-      "tag": "0002_round_lionheart",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1761760400000,
-      "tag": "0003_connected_garmin",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1761832000000,
-      "tag": "0004_garmin_daily_summaries",
+      "when": 1761851227203,
+      "tag": "0000_minor_sentry",
       "breakpoints": true
     }
   ]
