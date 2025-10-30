@@ -100,6 +100,41 @@ export const exchangeAuthorizationCode = async ({
   };
 };
 
+export const refreshAccessToken = async (refreshToken: string): Promise<GarminTokens> => {
+  const body = new URLSearchParams({
+    grant_type: "refresh_token",
+    client_id: env.GARMIN_CLIENT_ID,
+    client_secret: env.GARMIN_CLIENT_SECRET,
+    refresh_token: refreshToken,
+  });
+
+  const response = await fetch(GARMIN_TOKEN_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: body.toString(),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new GarminOAuthError(`Garmin token refresh failed (${response.status})`, errorBody);
+  }
+
+  const payload = (await response.json()) as GarminTokenResponse;
+  const expiresIn = Math.max(0, payload.expires_in ?? 0);
+  const safeExpiresIn = Math.max(0, expiresIn - 600);
+
+  return {
+    accessToken: payload.access_token,
+    refreshToken: payload.refresh_token,
+    tokenType: payload.token_type,
+    scope: payload.scope,
+    accessTokenExpiresAt: new Date(Date.now() + safeExpiresIn * 1000),
+    raw: payload,
+  };
+};
+
 export const fetchGarminUserId = async (accessToken: string): Promise<string> => {
   const response = await fetch(GARMIN_USER_ID_URL, {
     method: "GET",

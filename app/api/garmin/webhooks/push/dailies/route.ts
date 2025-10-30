@@ -1,10 +1,14 @@
-import crypto from "node:crypto";
+import { createHmac, randomBytes } from "crypto";
 import { NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
 
 import { db } from "@/db";
-import { garminConnections, garminDailySummaries } from "@/db/schema";
+import { garminDailySummaries } from "@/db/schema";
 import { env } from "@/lib/env";
+import {
+  GarminConnectionRecord,
+  ensureGarminAccessToken,
+  fetchGarminConnectionByGarminUserId,
+} from "@/lib/services/garmin-connections";
 
 type GarminDailyPayload = {
   summaryId?: string;
@@ -95,6 +99,7 @@ export async function POST(request: Request) {
 
     const summaries = entries.filter((entry) => entry && !entry.callbackURL);
     const callbacks = entries.filter((entry) => entry?.callbackURL);
+    const connectionCache = new Map<string, GarminConnectionRecord>();
 
     if (callbacks.length > 0) {
       for (const callback of callbacks) {
@@ -105,24 +110,36 @@ export async function POST(request: Request) {
           keys: Object.keys(callback as Record<string, unknown>),
         });
 
-        const userAccessToken =
-          typeof (callback as Record<string, unknown>).userAccessToken === "string"
-            ? ((callback as Record<string, unknown>).userAccessToken as string)
-            : undefined;
+        const garminUserId = resolveGarminUserId(callback);
+        if (!garminUserId) {
+          continue;
+        }
+
+        const connection = await getConnectionWithCache(garminUserId, connectionCache);
+        if (!connection) {
+          continue;
+        }
+
+        const { connection: updatedConnection, accessToken } = await ensureGarminAccessToken(connection);
+        connectionCache.set(garminUserId, updatedConnection);
 
         try {
-          const authorizationHeader = userAccessToken
-            ? `Bearer ${userAccessToken}`
-            : buildOAuthHeader(new URL(callbackURL), "GET");
+          const callbackUrl = new URL(callbackURL);
+          const headers: Record<string, string> = {
+            Accept: "application/json",
+            "Accept-Encoding": "gzip,deflate",
+            "User-Agent": "Adapt2Life-GarminWebhook/1.0",
+          };
 
-          const response = await fetch(callbackURL, {
+          if (callbackUrl.searchParams.has("token")) {
+            headers.Authorization = buildOAuthHeader(callbackUrl, "GET");
+          } else {
+            headers.Authorization = `Bearer ${accessToken}`;
+          }
+
+          const response = await fetch(callbackUrl.toString(), {
             method: "GET",
-            headers: {
-              Accept: "application/json",
-              "Accept-Encoding": "gzip,deflate",
-              Authorization: authorizationHeader,
-              "User-Agent": "Adapt2Life-GarminWebhook/1.0",
-            },
+            headers,
           });
 
           if (!response.ok) {
@@ -152,7 +169,9 @@ export async function POST(request: Request) {
     }
 
     if (summaries.length > 0) {
-      processed += await processSummaryEntries(summaries);
+      processed += await processSummaryEntries(summaries, (garminUserId) =>
+        getConnectionWithCache(garminUserId, connectionCache),
+      );
     }
 
     const received = summaries.length + callbacks.length;
@@ -164,7 +183,25 @@ export async function POST(request: Request) {
   }
 }
 
-async function processSummaryEntries(entries: GarminDailyPayload[]): Promise<number> {
+const getConnectionWithCache = async (
+  garminUserId: string,
+  cache: Map<string, GarminConnectionRecord>,
+): Promise<GarminConnectionRecord | null> => {
+  const cached = cache.get(garminUserId);
+  if (cached) {
+    return cached;
+  }
+  const connection = await fetchGarminConnectionByGarminUserId(garminUserId);
+  if (connection) {
+    cache.set(garminUserId, connection);
+  }
+  return connection;
+};
+
+async function processSummaryEntries(
+  entries: GarminDailyPayload[],
+  getConnection: (garminUserId: string) => Promise<GarminConnectionRecord | null>,
+): Promise<number> {
   if (entries.length === 0) {
     return 0;
   }
@@ -177,11 +214,7 @@ async function processSummaryEntries(entries: GarminDailyPayload[]): Promise<num
       continue;
     }
 
-    const [connection] = await db
-      .select({ userId: garminConnections.userId })
-      .from(garminConnections)
-      .where(eq(garminConnections.garminUserId, garminUserId))
-      .limit(1);
+    const connection = await getConnection(garminUserId);
 
     if (!connection) {
       continue;
@@ -244,7 +277,7 @@ const buildOAuthHeader = (callbackUrl: URL, method: string): string => {
 
   const oauthParams: Record<string, string> = {
     oauth_consumer_key: consumerKey,
-    oauth_nonce: crypto.randomBytes(16).toString("hex"),
+    oauth_nonce: randomBytes(16).toString("hex"),
     oauth_signature_method: "HMAC-SHA1",
     oauth_timestamp: Math.floor(Date.now() / 1000).toString(),
     oauth_version: "1.0",
@@ -272,7 +305,7 @@ const buildOAuthHeader = (callbackUrl: URL, method: string): string => {
   const baseString = `${method.toUpperCase()}&${encode(baseUrl)}&${encode(parameterString)}`;
   const signingKey = `${encode(consumerSecret)}&${oauthToken ? encode(oauthToken) : ""}`;
 
-  const oauthSignature = crypto.createHmac("sha1", signingKey).update(baseString).digest("base64");
+  const oauthSignature = createHmac("sha1", signingKey).update(baseString).digest("base64");
 
   const headerParams = {
     ...oauthParams,
