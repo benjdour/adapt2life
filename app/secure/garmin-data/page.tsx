@@ -404,6 +404,7 @@ export default async function GarminDataPage() {
       "sleepScoreFeedback.score",
       "sleepScoreValue",
       "overallScore",
+      "overallSleepScore",
     ],
   );
   const deepSleepSeconds = pickNumber([sleepPayload], ["deepSleepDurationInSeconds", "sleepLevels.deep.durationInSeconds"]);
@@ -426,7 +427,7 @@ export default async function GarminDataPage() {
   const hrvSource = pickObject<Record<string, unknown>>([hrvPayloadRaw], "hrvSummary") ?? hrvPayloadRaw ?? {};
   const hrvAverage = pickNumber(
     [hrvSource],
-    ["average", "rmssd", "lastNightRmssd", "lastNightAverage", "value", "mean"],
+    ["average", "rmssd", "lastNightRmssd", "lastNightAverage", "lastNightAvg", "value", "mean"],
   );
   const hrvMin = pickNumber([hrvSource], ["min", "minimum", "lastNightMinRmssd", "lower"]);
   const hrvMax = pickNumber([hrvSource], ["max", "maximum", "lastNightMaxRmssd", "upper"]);
