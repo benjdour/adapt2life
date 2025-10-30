@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 
@@ -110,14 +111,16 @@ export async function POST(request: Request) {
             : undefined;
 
         try {
+          const authorizationHeader = userAccessToken
+            ? `Bearer ${userAccessToken}`
+            : buildOAuthHeader(new URL(callbackURL), "GET");
+
           const response = await fetch(callbackURL, {
             method: "GET",
             headers: {
               Accept: "application/json",
               "Accept-Encoding": "gzip,deflate",
-              Authorization: userAccessToken
-                ? `Bearer ${userAccessToken}`
-                : `Basic ${Buffer.from(`${env.GARMIN_CLIENT_ID}:${env.GARMIN_CLIENT_SECRET}`).toString("base64")}`,
+              Authorization: authorizationHeader,
               "User-Agent": "Adapt2Life-GarminWebhook/1.0",
             },
           });
@@ -226,3 +229,61 @@ export async function GET() {
 export async function HEAD() {
   return new Response(null, { status: 200 });
 }
+
+const encode = (value: string) => encodeURIComponent(value).replace(/[!*'()]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
+
+const buildOAuthHeader = (callbackUrl: URL, method: string): string => {
+  const consumerKey = env.GARMIN_CLIENT_ID;
+  const consumerSecret = env.GARMIN_CLIENT_SECRET;
+
+  if (!consumerKey || !consumerSecret) {
+    throw new Error("Garmin consumer key/secret missing for OAuth callback");
+  }
+
+  const oauthToken = callbackUrl.searchParams.get("token") ?? undefined;
+
+  const oauthParams: Record<string, string> = {
+    oauth_consumer_key: consumerKey,
+    oauth_nonce: crypto.randomBytes(16).toString("hex"),
+    oauth_signature_method: "HMAC-SHA1",
+    oauth_timestamp: Math.floor(Date.now() / 1000).toString(),
+    oauth_version: "1.0",
+  };
+
+  if (oauthToken) {
+    oauthParams.oauth_token = oauthToken;
+  }
+
+  const baseUrl = `${callbackUrl.protocol}//${callbackUrl.host}${callbackUrl.pathname}`;
+
+  const signatureParams: Array<[string, string]> = [
+    ...Array.from(callbackUrl.searchParams.entries()),
+    ...Object.entries(oauthParams),
+  ].map(([key, value]) => [key, value ?? ""]);
+
+  signatureParams.sort(([aKey, aValue], [bKey, bValue]) => {
+    if (aKey === bKey) {
+      return aValue.localeCompare(bValue);
+    }
+    return aKey.localeCompare(bKey);
+  });
+
+  const parameterString = signatureParams.map(([key, value]) => `${encode(key)}=${encode(value)}`).join("&");
+  const baseString = `${method.toUpperCase()}&${encode(baseUrl)}&${encode(parameterString)}`;
+  const signingKey = `${encode(consumerSecret)}&${oauthToken ? encode(oauthToken) : ""}`;
+
+  const oauthSignature = crypto.createHmac("sha1", signingKey).update(baseString).digest("base64");
+
+  const headerParams = {
+    ...oauthParams,
+    oauth_signature: oauthSignature,
+  };
+
+  const header =
+    "OAuth " +
+    Object.entries(headerParams)
+      .map(([key, value]) => `${encode(key)}="${encode(value)}"`)
+      .join(", ");
+
+  return header;
+};
