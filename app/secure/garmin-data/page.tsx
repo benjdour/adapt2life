@@ -802,50 +802,6 @@ export default async function GarminDataPage() {
             </section>
           ))}
 
-          {dailySummaries.length > 0 ? (
-            <section className="space-y-4 rounded-2xl border border-white/10 bg-white/5 p-6 shadow-lg">
-              <header>
-                <h2 className="text-xl font-semibold text-white">Historique brut (Daily summaries)</h2>
-                <p className="text-sm text-white/70">Dernières entrées reçues pour contrôle et debug.</p>
-              </header>
-              <div className="overflow-hidden rounded-2xl border border-white/10">
-                <table className="min-w-full divide-y divide-white/10 text-left text-sm">
-                  <thead className="bg-white/5 text-xs uppercase tracking-wide text-white/60">
-                    <tr>
-                      <th className="px-4 py-3">Date</th>
-                      <th className="px-4 py-3">Pas</th>
-                      <th className="px-4 py-3">Distance (m)</th>
-                      <th className="px-4 py-3">Calories</th>
-                      <th className="px-4 py-3">Stress</th>
-                      <th className="px-4 py-3">Sommeil (h)</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/10 text-white/80">
-                    {dailySummaries.map((summary) => (
-                      <tr key={summary.id} className="bg-white/5 hover:bg-white/10">
-                        <td className="px-4 py-3 font-medium text-white">{summary.calendarDate}</td>
-                        <td className="px-4 py-3">{summary.steps ?? "—"}</td>
-                        <td className="px-4 py-3">{summary.distanceMeters ?? "—"}</td>
-                        <td className="px-4 py-3">{summary.calories ?? "—"}</td>
-                        <td className="px-4 py-3">{summary.stressLevel ?? "—"}</td>
-                        <td className="px-4 py-3">
-                          {summary.sleepSeconds ? (summary.sleepSeconds / 3600).toFixed(1) : "—"}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          ) : (
-            <section className="rounded-2xl border border-yellow-500/30 bg-yellow-500/10 p-6 text-sm text-yellow-100">
-              <p className="font-semibold">Aucune donnée quotidienne reçue</p>
-              <p className="text-yellow-100/80">
-                Dès que Garmin enverra les événements &laquo;&nbsp;Dailies&nbsp;&raquo;, ils seront affichés ici. Assure-toi que l’endpoint
-                Push est bien activé via l’Endpoint Configuration Tool.
-              </p>
-            </section>
-          )}
         </div>
       ) : null}
 
