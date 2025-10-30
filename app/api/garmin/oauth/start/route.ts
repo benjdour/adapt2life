@@ -2,15 +2,28 @@ import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 
 import { db } from "@/db";
-import { users } from "@/db/schema";
+import { garminConnections, users } from "@/db/schema";
 import { buildAuthorizationUrl, generatePkcePair, generateState } from "@/lib/adapters/garmin";
 import { stackServerApp } from "@/stack/server";
 
 const OAUTH_COOKIE = "garmin_oauth_state";
 const COOKIE_MAX_AGE_SECONDS = 10 * 60;
 
+const buildIntegrationUrl = (requestUrl: URL, params?: Record<string, string | undefined>) => {
+  const base = new URL("/integrations/garmin", requestUrl.origin);
+  if (params) {
+    for (const [key, value] of Object.entries(params)) {
+      if (value) {
+        base.searchParams.set(key, value);
+      }
+    }
+  }
+  return base;
+};
+
 export async function GET(request: Request) {
   try {
+    const requestUrl = new URL(request.url);
     const stackUser = await stackServerApp.getUser({ tokenStore: request });
     if (!stackUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -41,6 +54,19 @@ export async function GET(request: Request) {
 
     if (!localUser) {
       return NextResponse.json({ error: "Unable to create user profile" }, { status: 500 });
+    }
+
+    const [existingConnection] = await db
+      .select({
+        garminUserId: garminConnections.garminUserId,
+      })
+      .from(garminConnections)
+      .where(eq(garminConnections.userId, localUser.id))
+      .limit(1);
+
+    if (existingConnection) {
+      const redirectUrl = buildIntegrationUrl(requestUrl, { status: "success", reason: "already_connected" });
+      return NextResponse.redirect(redirectUrl);
     }
 
     const { codeVerifier, codeChallenge } = generatePkcePair();

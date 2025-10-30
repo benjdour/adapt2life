@@ -65,9 +65,15 @@ export function GarminIntegrationActions({
     if (!status) return;
 
     if (status === "success") {
-      toast.success("Garmin connecté !", {
-        description: garminUserId ? `userId: ${garminUserId}` : undefined,
-      });
+      if (reason === "already_connected") {
+        toast.info("Garmin déjà connecté.", {
+          description: garminUserId ? `userId: ${garminUserId}` : undefined,
+        });
+      } else {
+        toast.success("Garmin connecté !", {
+          description: garminUserId ? `userId: ${garminUserId}` : undefined,
+        });
+      }
     } else {
       const message = reason ? statusMessages[reason] : undefined;
       toast.error(message?.title ?? "Connexion Garmin échouée.", {
