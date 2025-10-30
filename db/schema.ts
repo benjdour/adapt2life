@@ -1,4 +1,4 @@
-import { integer, pgTable, serial, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { integer, jsonb, pgTable, serial, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -35,5 +35,28 @@ export const garminConnections = pgTable(
   (table) => ({
     userIdUnique: uniqueIndex("garmin_connections_user_id_unique").on(table.userId),
     garminUserUnique: uniqueIndex("garmin_connections_garmin_user_id_unique").on(table.garminUserId),
+  }),
+);
+
+export const garminDailySummaries = pgTable(
+  "garmin_daily_summaries",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    garminUserId: text("garmin_user_id").notNull(),
+    summaryId: text("summary_id").notNull(),
+    calendarDate: text("calendar_date").notNull(),
+    steps: integer("steps"),
+    distanceMeters: integer("distance_meters"),
+    calories: integer("calories"),
+    stressLevel: integer("stress_level"),
+    sleepSeconds: integer("sleep_seconds"),
+    raw: jsonb("raw").notNull(),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => ({
+    summaryIdUnique: uniqueIndex("garmin_daily_summaries_summary_id_unique").on(table.summaryId),
   }),
 );
