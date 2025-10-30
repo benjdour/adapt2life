@@ -556,10 +556,27 @@ export default async function GarminDataPage() {
   );
 
   const bodyCompPayload = (latestBodyComposition?.payload as Record<string, unknown>) ?? undefined;
-  const bodyWeight = pickNumber([bodyCompPayload], ["weight", "weightKg", "weightInKilograms"]);
-  const bodyFat = pickNumber([bodyCompPayload], ["percentFat", "bodyFat", "bodyFatPercent"]);
-  const bodyMuscle = pickNumber([bodyCompPayload], ["muscleMass", "skeletalMuscleMass", "leanMass"]);
-  const bodyHydration = pickNumber([bodyCompPayload], ["percentHydration", "hydrationPercentage", "bodyWaterPercent"]);
+  const bodyWeightGrams = pickNumber(
+    [bodyCompPayload],
+    ["weightInGrams", "bodyCompositions.0.weightInGrams", "weight"],
+  );
+  const bodyWeightKg =
+    bodyWeightGrams !== null ? bodyWeightGrams / 1000 : pickNumber([bodyCompPayload], ["weightKg", "weightInKilograms"]);
+  const bodyWeight = bodyWeightKg ?? (bodyWeightGrams !== null ? bodyWeightGrams / 1000 : null);
+  const bodyFatPercent = pickNumber(
+    [bodyCompPayload],
+    ["bodyFatInPercent", "percentFat", "bodyCompositions.0.bodyFatInPercent"],
+  );
+  const bodyMuscleGrams = pickNumber(
+    [bodyCompPayload],
+    ["muscleMassInGrams", "muscleMass", "bodyCompositions.0.muscleMassInGrams"],
+  );
+  const bodyMuscle =
+    bodyMuscleGrams !== null ? bodyMuscleGrams / 1000 : pickNumber([bodyCompPayload], ["muscleMass", "skeletalMuscleMass", "leanMass"]);
+  const bodyHydrationPercent = pickNumber(
+    [bodyCompPayload],
+    ["bodyWaterInPercent", "percentHydration", "bodyCompositions.0.bodyWaterInPercent"],
+  );
 
   const respirationPayload = (latestRespiration?.payload as Record<string, unknown>) ?? undefined;
   const respirationAverage = pickNumber(
