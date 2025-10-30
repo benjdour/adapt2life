@@ -148,3 +148,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
   }
 }
+
+export async function GET() {
+  return new Response("Garmin dailies webhook ready", { status: 200 });
+}
+
+export async function HEAD() {
+  return new Response(null, { status: 200 });
+}
