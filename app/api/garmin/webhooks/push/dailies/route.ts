@@ -161,7 +161,9 @@ export async function POST(request: Request) {
           if (!fetchedPayload) continue;
 
           const fetchedEntries = extractEntries(fetchedPayload);
-          processed += await processSummaryEntries(fetchedEntries);
+          processed += await processSummaryEntries(fetchedEntries, (garminUserIdInner) =>
+            getConnectionWithCache(garminUserIdInner, connectionCache),
+          );
         } catch (error) {
           console.error("Garmin dailies callback fetch failed", { callbackURL, error });
         }
