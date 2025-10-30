@@ -10,6 +10,7 @@ type GarminDailyPayload = {
   calendarDateLocal?: string;
   startTimeGmt?: string;
   endTimeGmt?: string;
+  callbackURL?: string;
   userId?: string;
   userProfileId?: string;
   steps?: number;
@@ -88,65 +89,117 @@ export async function POST(request: Request) {
     });
     const entries = extractEntries(payload);
 
-    if (entries.length === 0) {
-      return NextResponse.json({ received: 0, processed: 0 }, { status: 200 });
-    }
-
     let processed = 0;
 
-    for (const entry of entries) {
-      const garminUserId = resolveGarminUserId(entry);
-      if (!garminUserId) {
-        continue;
+    const summaries = entries.filter((entry) => entry && !entry.callbackURL);
+    const callbacks = entries.filter((entry) => entry?.callbackURL);
+
+    if (callbacks.length > 0) {
+      for (const callback of callbacks) {
+        const callbackURL = callback?.callbackURL;
+        if (!callbackURL) continue;
+
+        try {
+          const response = await fetch(callbackURL, {
+            method: "GET",
+            headers: {
+              Accept: "application/json",
+            },
+          });
+
+          if (!response.ok) {
+            console.error("Garmin dailies callback failed", {
+              callbackURL,
+              status: response.status,
+              statusText: response.statusText,
+            });
+            continue;
+          }
+
+          const fetchedPayload = await response.json().catch((error: unknown) => {
+            console.error("Garmin dailies callback json parse failed", error);
+            return null;
+          });
+
+          if (!fetchedPayload) continue;
+
+          const fetchedEntries = extractEntries(fetchedPayload);
+          processed += await processSummaryEntries(fetchedEntries);
+        } catch (error) {
+          console.error("Garmin dailies callback fetch failed", { callbackURL, error });
+        }
       }
+    }
 
-      const [connection] = await db
-        .select({ userId: garminConnections.userId })
-        .from(garminConnections)
-        .where(eq(garminConnections.garminUserId, garminUserId))
-        .limit(1);
+    if (summaries.length > 0) {
+      processed += await processSummaryEntries(summaries);
+    }
 
-      if (!connection) {
-        continue;
-      }
+    const received = summaries.length + callbacks.length;
 
-      const summaryId = resolveSummaryId(entry, garminUserId);
-      const calendarDate = resolveCalendarDate(entry);
+    return NextResponse.json({ received, processed }, { status: 200 });
+  } catch (error) {
+    console.error("Garmin dailies webhook failed", error);
+    return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+  }
+}
 
-      await db
-        .insert(garminDailySummaries)
-        .values({
-          userId: connection.userId,
-          garminUserId,
-          summaryId,
-          calendarDate,
+async function processSummaryEntries(entries: GarminDailyPayload[]): Promise<number> {
+  if (entries.length === 0) {
+    return 0;
+  }
+
+  let processed = 0;
+
+  for (const entry of entries) {
+    const garminUserId = resolveGarminUserId(entry);
+    if (!garminUserId) {
+      continue;
+    }
+
+    const [connection] = await db
+      .select({ userId: garminConnections.userId })
+      .from(garminConnections)
+      .where(eq(garminConnections.garminUserId, garminUserId))
+      .limit(1);
+
+    if (!connection) {
+      continue;
+    }
+
+    const summaryId = resolveSummaryId(entry, garminUserId);
+    const calendarDate = resolveCalendarDate(entry);
+
+    await db
+      .insert(garminDailySummaries)
+      .values({
+        userId: connection.userId,
+        garminUserId,
+        summaryId,
+        calendarDate,
+        steps: coerceInteger(entry.steps ?? entry.totalSteps),
+        distanceMeters: coerceInteger(entry.distanceInMeters ?? entry.distanceMeters),
+        calories: coerceInteger(entry.calories ?? entry.totalKilocalories),
+        stressLevel: coerceInteger(entry.maxStressLevel ?? entry.averageStressLevel ?? entry.minStressLevel),
+        sleepSeconds: coerceInteger(entry.sleepDurationInSeconds ?? entry.sleepSeconds),
+        raw: entry,
+      })
+      .onConflictDoUpdate({
+        target: garminDailySummaries.summaryId,
+        set: {
           steps: coerceInteger(entry.steps ?? entry.totalSteps),
           distanceMeters: coerceInteger(entry.distanceInMeters ?? entry.distanceMeters),
           calories: coerceInteger(entry.calories ?? entry.totalKilocalories),
           stressLevel: coerceInteger(entry.maxStressLevel ?? entry.averageStressLevel ?? entry.minStressLevel),
           sleepSeconds: coerceInteger(entry.sleepDurationInSeconds ?? entry.sleepSeconds),
           raw: entry,
-        })
-        .onConflictDoUpdate({
-          target: garminDailySummaries.summaryId,
-          set: {
-            steps: coerceInteger(entry.steps ?? entry.totalSteps),
-            distanceMeters: coerceInteger(entry.distanceInMeters ?? entry.distanceMeters),
-            calories: coerceInteger(entry.calories ?? entry.totalKilocalories),
-            stressLevel: coerceInteger(entry.maxStressLevel ?? entry.averageStressLevel ?? entry.minStressLevel),
-            sleepSeconds: coerceInteger(entry.sleepDurationInSeconds ?? entry.sleepSeconds),
-            raw: entry,
-          },
-        });
+        },
+      });
 
-      processed += 1;
-    }
-
-    return NextResponse.json({ received: entries.length, processed }, { status: 200 });
-  } catch (error) {
-    console.error("Garmin dailies webhook failed", error);
-    return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+    processed += 1;
   }
+
+  return processed;
 }
 
 export async function GET() {
