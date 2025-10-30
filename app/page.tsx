@@ -27,6 +27,15 @@ export default async function Home() {
             >
               Accéder à la page Garmin
             </Link>
+            <form action="/handler/sign-out" method="post" className="inline-flex w-full">
+              <input type="hidden" name="redirect" value="/" />
+              <button
+                type="submit"
+                className="inline-flex h-11 w-full items-center justify-center rounded-md border border-white/30 bg-transparent font-semibold text-white transition hover:bg-white/10 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-white/60"
+              >
+                Se déconnecter d’Adapt2Life
+              </button>
+            </form>
           </div>
         ) : (
           <div className="space-y-4">

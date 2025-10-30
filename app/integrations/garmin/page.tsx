@@ -1,5 +1,6 @@
-import { unstable_noStore as noStore } from "next/cache";
 import { Metadata } from "next";
+import { unstable_noStore as noStore } from "next/cache";
+import Link from "next/link";
 import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 
@@ -147,6 +148,15 @@ export default async function GarminIntegrationPage({ searchParams }: PageProps)
             status={status === "success" || status === "error" ? status : undefined}
             reason={typeof reason === "string" ? reason : undefined}
           />
+
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Link
+              href="/"
+              className="inline-flex items-center justify-center rounded-md border border-emerald-600/50 bg-emerald-500/10 px-5 py-2.5 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-500/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300 sm:w-auto"
+            >
+              Retour à l’accueil Adapt2Life
+            </Link>
+          </div>
         </section>
       ) : (
         <section className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-xl backdrop-blur-lg">

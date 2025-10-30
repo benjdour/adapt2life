@@ -140,9 +140,16 @@ export async function GET(request: Request) {
       .where(eq(garminConnections.garminUserId, garminUserId))
       .limit(1);
 
+    let reassigned = false;
     if (existingGarmin.length > 0 && existingGarmin[0].userId !== localUser.id) {
-      console.error("Garmin account already linked to another user", { garminUserId });
-      return redirectWithCleanup(buildResultUrl("error", "already_linked"));
+      console.warn("Garmin account linked to another user, reassigning", {
+        garminUserId,
+        previousUserId: existingGarmin[0].userId,
+        newUserId: localUser.id,
+      });
+
+      await db.delete(garminConnections).where(eq(garminConnections.garminUserId, garminUserId));
+      reassigned = true;
     }
 
     const accessTokenEncrypted = encryptSecret(tokens.accessToken);
@@ -172,7 +179,8 @@ export async function GET(request: Request) {
         },
       });
 
-    return redirectWithCleanup(buildResultUrl("success"));
+    return redirectWithCleanup(buildResultUrl("success", reassigned ? "reassigned" : undefined));
+
   } catch (error) {
     if (error instanceof GarminOAuthError) {
       console.error("Garmin OAuth callback failed", { message: error.message, cause: error.cause });

@@ -69,6 +69,10 @@ export function GarminIntegrationActions({
         toast.info("Garmin déjà connecté.", {
           description: garminUserId ? `userId: ${garminUserId}` : undefined,
         });
+      } else if (reason === "reassigned") {
+        toast.success("Garmin relié à ce compte.", {
+          description: garminUserId ? `userId: ${garminUserId}` : undefined,
+        });
       } else {
         toast.success("Garmin connecté !", {
           description: garminUserId ? `userId: ${garminUserId}` : undefined,
