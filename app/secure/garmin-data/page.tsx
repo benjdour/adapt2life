@@ -577,6 +577,8 @@ export default async function GarminDataPage() {
     [bodyCompPayload],
     ["bodyWaterInPercent", "percentHydration", "bodyCompositions.0.bodyWaterInPercent"],
   );
+  const bodyFat = bodyFatPercent;
+  const bodyHydration = bodyHydrationPercent;
 
   const respirationPayload = (latestRespiration?.payload as Record<string, unknown>) ?? undefined;
   const respirationAverage = pickNumber(
