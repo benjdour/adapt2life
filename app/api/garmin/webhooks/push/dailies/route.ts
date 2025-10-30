@@ -82,10 +82,14 @@ const resolveCalendarDate = (entry: GarminDailyPayload): string => {
 export async function POST(request: Request) {
   try {
     const payload = await request.json();
+    console.info("Garmin push /dailies received", {
+      bodyType: typeof payload,
+      keys: payload && typeof payload === "object" ? Object.keys(payload as Record<string, unknown>) : undefined,
+    });
     const entries = extractEntries(payload);
 
     if (entries.length === 0) {
-      return NextResponse.json({ received: 0, processed: 0 }, { status: 202 });
+      return NextResponse.json({ received: 0, processed: 0 }, { status: 200 });
     }
 
     let processed = 0;
