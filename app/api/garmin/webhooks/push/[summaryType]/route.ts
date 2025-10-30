@@ -24,6 +24,7 @@ const SUPPORTED_SUMMARY_TYPES = new Set([
   "respiration",
   "skinTemp",
   "sleeps",
+  "sleep",
   "stressDetails",
   "userMetrics",
   "womenHealth",
@@ -45,7 +46,7 @@ const SUMMARY_KEY_ALIASES: Record<string, string[]> = {
   pulseOx: ["pulseOx", "pulseox"],
   respiration: ["respiration", "respirationSummaries", "allDayRespiration"],
   skinTemp: ["skinTemp", "skinTemps"],
-  sleeps: ["sleeps"],
+  sleeps: ["sleeps", "sleep", "sleepSummaries"],
   stressDetails: ["stressDetails"],
   userMetrics: ["userMetrics"],
   womenHealth: ["womenHealth", "womenHealthData"],
@@ -58,12 +59,13 @@ export async function POST(
   { params }: { params: Promise<{ summaryType: string }> },
 ) {
   const { summaryType } = await params;
+  const normalizedType = summaryType === "sleep" ? "sleeps" : summaryType;
 
-  if (summaryType === "dailies") {
+  if (normalizedType === "dailies") {
     return NextResponse.json({ error: "Use /push/dailies endpoint." }, { status: 405 });
   }
 
-  if (!SUPPORTED_SUMMARY_TYPES.has(summaryType)) {
+  if (!SUPPORTED_SUMMARY_TYPES.has(normalizedType)) {
     return NextResponse.json({ error: `Unsupported Garmin webhook type "${summaryType}".` }, { status: 404 });
   }
 
@@ -74,7 +76,7 @@ export async function POST(
       keys: payload && typeof payload === "object" ? Object.keys(payload as Record<string, unknown>) : undefined,
     });
 
-    const entries = extractEntriesForSummary(payload, summaryType);
+    const entries = extractEntriesForSummary(payload, normalizedType);
     const connectionCache = new Map<string, GarminConnectionRecord>();
     let processed = 0;
 
@@ -92,7 +94,7 @@ export async function POST(
       await db.insert(garminWebhookEvents).values({
         userId: connection.userId,
         garminUserId,
-        type: summaryType,
+        type: normalizedType,
         entityId: resolveEntityId(entry),
         payload: entry,
       });
