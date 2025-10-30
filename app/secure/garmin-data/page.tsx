@@ -31,6 +31,61 @@ const toNumber = (value: unknown): number | null => {
   return null;
 };
 
+const extractNumber = (candidate: unknown): number | null => {
+  const direct = toNumber(candidate);
+  if (direct !== null) {
+    return direct;
+  }
+
+  if (Array.isArray(candidate)) {
+    for (const entry of candidate) {
+      const nested = extractNumber(entry);
+      if (nested !== null) {
+        return nested;
+      }
+    }
+    return null;
+  }
+
+  if (candidate && typeof candidate === "object") {
+    const record = candidate as Record<string, unknown>;
+    const priorityKeys = [
+      "value",
+      "score",
+      "avg",
+      "average",
+      "mean",
+      "amount",
+      "total",
+      "overall",
+      "overallScore",
+      "overallValue",
+      "numericValue",
+      "current",
+      "currentLevel",
+    ];
+
+    for (const key of priorityKeys) {
+      if (Object.prototype.hasOwnProperty.call(record, key)) {
+        const nested = extractNumber(record[key]);
+        if (nested !== null) {
+          return nested;
+        }
+      }
+    }
+
+    const values = Object.values(record);
+    for (const value of values) {
+      const nested = extractNumber(value);
+      if (nested !== null) {
+        return nested;
+      }
+    }
+  }
+
+  return null;
+};
+
 const toTrimmedString = (value: unknown): string | null => {
   if (typeof value === "string") {
     const trimmed = value.trim();
@@ -120,7 +175,7 @@ const pickNumber = (
     if (!source) continue;
     for (const path of paths) {
       const candidate = getPathValue(source, path);
-      const parsed = toNumber(candidate);
+      const parsed = extractNumber(candidate);
       if (parsed !== null) {
         return parsed;
       }
