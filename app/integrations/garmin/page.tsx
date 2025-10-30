@@ -90,37 +90,85 @@ export default async function GarminIntegrationPage({ searchParams }: PageProps)
 
   const status = normalizeSearchParam(searchParams?.status);
   const reason = normalizeSearchParam(searchParams?.reason);
+  const isConnected = Boolean(connection);
 
   return (
-    <div className="mx-auto flex min-h-[70vh] max-w-2xl flex-col gap-10 px-6 py-12">
-      <header className="space-y-3">
+    <div className="mx-auto flex min-h-[70vh] max-w-3xl flex-col gap-10 px-6 py-12">
+      <header className="space-y-2">
         <p className="text-sm uppercase tracking-wide text-emerald-400">Intégrations</p>
-        <h1 className="text-3xl font-semibold text-white">Connexion Garmin</h1>
-        <p className="max-w-xl text-sm text-white/70">
-          Testez l&apos;autorisation Garmin Connect via OAuth2 PKCE. Une fois connecté, Adapt2Life pourra synchroniser vos
-          activités et métriques quotidiennes.
-        </p>
+        <h1 className="text-3xl font-semibold text-white">Garmin Connect</h1>
+        {isConnected ? (
+          <p className="max-w-2xl text-sm text-emerald-200/80">
+            Ton compte Garmin est déjà lié à Adapt2Life. Tu peux le gérer ou te déconnecter ci-dessous.
+          </p>
+        ) : (
+          <p className="max-w-2xl text-sm text-white/70">
+            Teste l&apos;autorisation Garmin Connect via OAuth2 PKCE. Une fois connecté, Adapt2Life pourra synchroniser tes
+            activités et métriques quotidiennes.
+          </p>
+        )}
       </header>
 
-      <section className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-xl backdrop-blur-lg">
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-white/90">Utilisateur Stack Auth</p>
-          <p className="text-lg font-semibold text-white">
-            {localUser?.name ?? stackUser.displayName ?? "Profil sans nom"}
-          </p>
-          <p className="text-sm text-white/70">
-            {localUser?.email ?? stackUser.primaryEmail ?? "Email non renseigné"}
-          </p>
-        </div>
+      {isConnected ? (
+        <section className="space-y-6 rounded-3xl border border-emerald-700/40 bg-emerald-900/20 p-8 shadow-xl backdrop-blur">
+          <div className="space-y-2">
+            <p className="text-sm font-medium uppercase tracking-wide text-emerald-300">Statut</p>
+            <h2 className="text-2xl font-semibold text-emerald-100">Garmin est connecté ✅</h2>
+            <p className="text-sm text-emerald-200/80">
+              Adapt2Life peut collecter tes activités depuis Garmin. Tu peux relier un autre compte ou te déconnecter à tout moment.
+            </p>
+          </div>
 
-        <GarminIntegrationActions
-          isConnected={Boolean(connection)}
-          garminUserId={connection?.garminUserId ?? undefined}
-          accessTokenExpiresAt={connection?.accessTokenExpiresAt?.toISOString()}
-          status={status === "success" || status === "error" ? status : undefined}
-          reason={typeof reason === "string" ? reason : undefined}
-        />
-      </section>
+          <dl className="grid gap-4 rounded-2xl border border-emerald-700/30 bg-emerald-900/30 p-6 text-sm text-emerald-100 sm:grid-cols-2">
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-emerald-200/70">Garmin userId</dt>
+              <dd className="mt-1 font-mono text-base">{connection?.garminUserId}</dd>
+            </div>
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-emerald-200/70">Token valide jusqu&apos;au</dt>
+              <dd className="mt-1 font-medium">
+                {connection?.accessTokenExpiresAt ? connection.accessTokenExpiresAt.toLocaleString() : "—"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-emerald-200/70">Utilisateur Adapt2Life</dt>
+              <dd className="mt-1 font-medium">{localUser?.name ?? stackUser.displayName ?? "Profil sans nom"}</dd>
+            </div>
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-emerald-200/70">Email</dt>
+              <dd className="mt-1 font-medium">{localUser?.email ?? stackUser.primaryEmail ?? "Email non renseigné"}</dd>
+            </div>
+          </dl>
+
+          <GarminIntegrationActions
+            isConnected
+            garminUserId={connection?.garminUserId ?? undefined}
+            accessTokenExpiresAt={connection?.accessTokenExpiresAt?.toISOString()}
+            status={status === "success" || status === "error" ? status : undefined}
+            reason={typeof reason === "string" ? reason : undefined}
+          />
+        </section>
+      ) : (
+        <section className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-xl backdrop-blur-lg">
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-white/90">Utilisateur Stack Auth</p>
+            <p className="text-lg font-semibold text-white">
+              {localUser?.name ?? stackUser.displayName ?? "Profil sans nom"}
+            </p>
+            <p className="text-sm text-white/70">
+              {localUser?.email ?? stackUser.primaryEmail ?? "Email non renseigné"}
+            </p>
+          </div>
+
+          <GarminIntegrationActions
+            isConnected={false}
+            garminUserId={undefined}
+            accessTokenExpiresAt={undefined}
+            status={status === "success" || status === "error" ? status : undefined}
+            reason={typeof reason === "string" ? reason : undefined}
+          />
+        </section>
+      )}
     </div>
   );
 }

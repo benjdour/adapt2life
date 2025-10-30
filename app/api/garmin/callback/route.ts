@@ -6,26 +6,15 @@ import { db } from "@/db";
 import { garminConnections, users } from "@/db/schema";
 import { GarminOAuthError, exchangeAuthorizationCode, fetchGarminUserId } from "@/lib/adapters/garmin";
 import { encryptSecret } from "@/lib/crypto";
-import { env } from "@/lib/env";
 import { stackServerApp } from "@/stack/server";
 
 const OAUTH_COOKIE = "garmin_oauth_state";
-const APP_ORIGIN = env.APP_URL ?? new URL(env.GARMIN_REDIRECT_URI).origin;
 
 type OAuthCookiePayload = {
   state: string;
   codeVerifier: string;
   userId: number;
   stackUserId: string;
-};
-
-const buildResultUrl = (status: "success" | "error", reason?: string) => {
-  const url = new URL("/integrations/garmin", APP_ORIGIN);
-  url.searchParams.set("status", status);
-  if (reason) {
-    url.searchParams.set("reason", reason);
-  }
-  return url;
 };
 
 const redirectWithCleanup = (url: URL) => {
@@ -49,6 +38,33 @@ const decodeCookie = (value: string): OAuthCookiePayload | null => {
 };
 
 export async function GET(request: Request) {
+  const requestUrl = new URL(request.url);
+
+  const fallbackOrigin = requestUrl.origin;
+  let appOrigin = fallbackOrigin;
+
+  try {
+    const envModule = await import("@/lib/env");
+    const configuredUrl = envModule.env.APP_URL ?? new URL(envModule.env.GARMIN_REDIRECT_URI).origin;
+    const configuredHost = new URL(configuredUrl).host;
+
+    if (configuredHost === requestUrl.host) {
+      appOrigin = configuredUrl;
+    }
+  } catch (error) {
+    console.warn("Garmin callback unable to resolve APP_URL from env, fallback to request origin", error);
+    appOrigin = fallbackOrigin;
+  }
+
+  const buildResultUrl = (status: "success" | "error", reason?: string) => {
+    const url = new URL("/integrations/garmin", appOrigin);
+    url.searchParams.set("status", status);
+    if (reason) {
+      url.searchParams.set("reason", reason);
+    }
+    return url;
+  };
+
   const url = new URL(request.url);
   const errorParam = url.searchParams.get("error");
   if (errorParam) {

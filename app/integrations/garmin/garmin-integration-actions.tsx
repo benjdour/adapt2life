@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -58,6 +58,8 @@ export function GarminIntegrationActions({
   accessTokenExpiresAt,
 }: Props) {
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [isDisconnecting, startDisconnect] = useTransition();
 
   useEffect(() => {
     if (!status) return;
@@ -97,25 +99,59 @@ export function GarminIntegrationActions({
     <div className="mt-6 space-y-4">
       <button
         type="button"
-        onClick={() => {
-          window.location.href = "/api/garmin/oauth/start";
-        }}
-        className="inline-flex items-center justify-center rounded-md bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400"
+        onClick={() =>
+          startTransition(() => {
+            window.location.href = "/api/garmin/oauth/start";
+          })
+        }
+        className="inline-flex items-center justify-center rounded-md bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400 disabled:cursor-not-allowed disabled:opacity-70"
+        disabled={isPending || isDisconnecting}
       >
-        {nextActionLabel}
+        {isPending ? "Ouverture..." : nextActionLabel}
       </button>
 
       {isConnected ? (
-        <div className="rounded-md border border-emerald-700/40 bg-emerald-900/30 p-4 text-sm text-emerald-50">
-          <p className="font-medium">Statut : Connecté</p>
-          {garminUserId ? <p className="mt-1 text-emerald-100/90">Garmin userId : {garminUserId}</p> : null}
-          {nextExpiryLabel ? (
-            <p className="mt-1 text-emerald-100/80">Token valide jusqu&apos;au : {nextExpiryLabel}</p>
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <button
+            type="button"
+            onClick={() =>
+              startDisconnect(async () => {
+                try {
+                  const response = await fetch("/api/garmin/disconnect", {
+                    method: "POST",
+                  });
+
+                  if (!response.ok) {
+                    const payload = await response.json().catch(() => ({}));
+                    throw new Error(payload.error ?? "Impossible de se déconnecter de Garmin");
+                  }
+
+                  toast.success("Garmin déconnecté.");
+                  router.refresh();
+                } catch (error) {
+                  const message = error instanceof Error ? error.message : "Impossible de se déconnecter";
+                  toast.error(message);
+                }
+              })
+            }
+            className="inline-flex w-full items-center justify-center rounded-md border border-emerald-500/60 bg-transparent px-5 py-2.5 text-sm font-semibold text-emerald-200 transition hover:bg-emerald-500/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400 disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
+            disabled={isPending || isDisconnecting}
+          >
+            {isDisconnecting ? "Déconnexion..." : "Se déconnecter de Garmin"}
+          </button>
+          {garminUserId ? (
+            <span className="inline-flex flex-1 items-center justify-center rounded-md border border-emerald-700/40 bg-emerald-900/40 px-4 py-2 text-xs font-mono text-emerald-100">
+              userId&nbsp;: {garminUserId}
+            </span>
           ) : null}
         </div>
       ) : (
         <p className="text-sm text-white/70">Aucun compte Garmin lié. Cliquez sur le bouton pour démarrer l&apos;OAuth.</p>
       )}
+
+      {isConnected && nextExpiryLabel ? (
+        <p className="text-xs text-emerald-200/70">Token valide jusqu&apos;au : {nextExpiryLabel}</p>
+      ) : null}
     </div>
   );
 }
