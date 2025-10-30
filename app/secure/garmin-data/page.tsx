@@ -588,7 +588,12 @@ export default async function GarminDataPage() {
 
   const avgHeartRate24h = pickNumber(
     [latestDailyRaw],
-    ["averageHeartRate", "avgHeartRate", "heartRateAverage"],
+    [
+      "averageHeartRate",
+      "averageHeartRateInBeatsPerMinute",
+      "avgHeartRate",
+      "heartRateAverage",
+    ],
   );
 
   const activityPayload = (latestActivity?.payload as Record<string, unknown>) ?? undefined;
