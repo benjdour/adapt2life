@@ -671,11 +671,6 @@ export default async function GarminDataPage() {
           hint: "Sleep summaries — startTimeInSeconds/endTimeInSeconds.",
         },
         {
-          label: "HRV (moyenne / min / max, 24h)",
-          value: hrvDisplay,
-          hint: "HRV summaries (docs/Garmin_Health_API_1.2.2.md §7.10).",
-        },
-        {
           label: "Fréquence cardiaque au repos (RHR)",
           value: formatBpm(restingHeartRate),
           hint: "User Metrics summaries — champ restingHeartRate.",
