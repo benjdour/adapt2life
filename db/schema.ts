@@ -1,4 +1,4 @@
-import { integer, jsonb, pgTable, serial, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { index, integer, jsonb, pgTable, serial, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -58,5 +58,24 @@ export const garminDailySummaries = pgTable(
   },
   (table) => ({
     summaryIdUnique: uniqueIndex("garmin_daily_summaries_summary_id_unique").on(table.summaryId),
+  }),
+);
+
+export const garminWebhookEvents = pgTable(
+  "garmin_webhook_events",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+    garminUserId: text("garmin_user_id").notNull(),
+    type: text("type").notNull(),
+    entityId: text("entity_id"),
+    payload: jsonb("payload").notNull(),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => ({
+    typeIndex: index("garmin_webhook_events_type_idx").on(table.type),
+    userTypeIndex: index("garmin_webhook_events_user_type_idx").on(table.userId, table.type),
   }),
 );

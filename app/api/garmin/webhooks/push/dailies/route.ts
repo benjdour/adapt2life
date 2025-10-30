@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { db } from "@/db";
-import { garminDailySummaries } from "@/db/schema";
+import { garminDailySummaries, garminWebhookEvents } from "@/db/schema";
 import {
   GarminConnectionRecord,
   fetchGarminConnectionByGarminUserId,
@@ -144,6 +144,14 @@ async function processSummaryEntries(
 
     const summaryId = resolveSummaryId(entry, garminUserId);
     const calendarDate = resolveCalendarDate(entry);
+
+    await db.insert(garminWebhookEvents).values({
+      userId: connection.userId,
+      garminUserId,
+      type: "dailies",
+      entityId: summaryId,
+      payload: entry,
+    });
 
     await db
       .insert(garminDailySummaries)
