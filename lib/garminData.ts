@@ -554,6 +554,8 @@ export const fetchGarminData = async (localUserId: string | number): Promise<Gar
         "summary.totalSleepSeconds",
         "totalSleepSeconds",
         "sleepSeconds",
+        "durationInSeconds",
+        "sleepSummary.durationInSeconds",
       ],
     ) ?? toNumber(latestSummary?.sleepSeconds);
   if (sleepDurationSeconds === null) {
@@ -633,20 +635,44 @@ export const fetchGarminData = async (localUserId: string | number): Promise<Gar
       const sleepStages =
         pickObject<Record<string, unknown>>([source], "stages") ??
         pickObject<Record<string, unknown>>([source], "sleepLevelsMap") ??
+        pickObject<Record<string, unknown>>([source], "sleepSummary") ??
         undefined;
       if (!sleepStages) continue;
 
       const deep = pickNumber(
         [sleepStages],
-        ["deepSleepSeconds", "deepSleep", "deepSeconds", "deep", "slowWaveSeconds", "deepDurationInSeconds"],
+        [
+          "deepSleepSeconds",
+          "deepSleep",
+          "deepSeconds",
+          "deep",
+          "slowWaveSeconds",
+          "deepDurationInSeconds",
+          "deepSleepDurationInSeconds",
+        ],
       );
       const rem = pickNumber(
         [sleepStages],
-        ["remSleepSeconds", "remSleep", "remSeconds", "rem", "paradoxicalSeconds", "remDurationInSeconds"],
+        [
+          "remSleepSeconds",
+          "remSleep",
+          "remSeconds",
+          "rem",
+          "paradoxicalSeconds",
+          "remDurationInSeconds",
+          "remSleepInSeconds",
+        ],
       );
       const light = pickNumber(
         [sleepStages],
-        ["lightSleepSeconds", "lightSleep", "lightSeconds", "light", "lightDurationInSeconds"],
+        [
+          "lightSleepSeconds",
+          "lightSleep",
+          "lightSeconds",
+          "light",
+          "lightDurationInSeconds",
+          "lightSleepDurationInSeconds",
+        ],
       );
 
       if (deep !== null || rem !== null || light !== null) {
