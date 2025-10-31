@@ -15,12 +15,13 @@ type TrainingScoreGaugeProps = {
 
 const getInterpretationMessage = (score: number): string => {
   if (score > 80) return "Excellente journée pour s’entraîner 💪";
-  if (score >= 60) return "Bonne condition, adapte l’intensité ⚡";
+  if (score > 60) return "Bonne condition, adapte l’intensité ⚡";
   return "Fatigue détectée, mise sur la récupération 🧘";
 };
 
 const TrainingScoreGauge: FC<TrainingScoreGaugeProps> = ({ data }) => {
-  const score = useMemo(() => computeTrainingScore(data), [data]);
+  const rawScore = useMemo(() => computeTrainingScore(data), [data]);
+  const score = Math.min(100, Math.max(0, rawScore));
   const message = getInterpretationMessage(score);
 
   return (

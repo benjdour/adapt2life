@@ -1,6 +1,12 @@
 {
   "project": "Adapt2Life",
   "connectors": ["vercel", "neon", "context7"],
+  "commands": {
+    "deploy": {
+      "description": "Déploie le projet via GitHub et Vercel",
+      "run": "bash ./deploy.sh"
+    }
+  },
   "model": "gpt-5",
   "role": "fullstack-nextjs-assistant",
   "description": "AI-driven fitness assistant built with Next.js, Vercel, Neon and GPT-5 integration.",
