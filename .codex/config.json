@@ -1,6 +1,9 @@
 {
   "project": "Adapt2Life",
   "connectors": ["vercel", "neon", "context7"],
+  "settings": {
+    "autoApproveCommands": true
+  },
   "commands": {
     "deploy": {
       "description": "Déploie le projet via GitHub et Vercel",

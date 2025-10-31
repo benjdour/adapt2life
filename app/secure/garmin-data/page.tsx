@@ -721,7 +721,7 @@ export default async function GarminDataPage() {
   }> = [
     {
       title: "🧠 Récupération & énergie",
-      description: "Basé sur les résumés quotidiens, sommeil et HRV (Health API — Daily, Sleep, HRV summaries).",
+      description: undefined,
       items: [
         {
           label: "Body Battery (actuel / chargé / dépensé / tendance 24h)",
@@ -765,7 +765,7 @@ export default async function GarminDataPage() {
     },
     {
       title: "⚡ STRESS & SYSTÈME NERVEUX",
-      description: "Utilise Stress Details summaries et HRV.",
+      description: undefined,
       items: [
         {
           label: "Stress moyen de la journée",
@@ -800,7 +800,7 @@ export default async function GarminDataPage() {
     },
     {
       title: "🚶‍♂️ ACTIVITÉ GÉNÉRALE",
-      description: "Basé sur Daily summaries & Activity API.",
+      description: undefined,
       items: [
         {
           label: "Nombre total de pas",
@@ -826,7 +826,7 @@ export default async function GarminDataPage() {
     },
     {
       title: "🩸 INDICATEURS PHYSIOLOGIQUES AVANCÉS",
-      description: "Nécessite Health API (Pulse Ox, Skin Temp, Body Composition).",
+      description: undefined,
       items: [
         {
           label: "SpO₂ moyen",
@@ -871,7 +871,7 @@ export default async function GarminDataPage() {
     },
     {
       title: "🕒 MÉTADONNÉES D’ACTIVITÉ",
-      description: "Requiert Activity API (summaries & details).",
+      description: undefined,
       items: [
         {
           label: "Dernière activité — date & heure",
@@ -920,7 +920,6 @@ export default async function GarminDataPage() {
 
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-4xl flex-col gap-10 px-6 py-12 text-white">
-      <TrainingScoreGauge data={trainingGaugeData} />
       <header className="space-y-2">
         <p className="text-sm uppercase tracking-wide text-emerald-400">Garmin</p>
         <h1 className="text-3xl font-semibold">Données synchronisées</h1>
@@ -967,6 +966,7 @@ export default async function GarminDataPage() {
 
       {connection ? (
         <div className="space-y-8">
+          <TrainingScoreGauge data={trainingGaugeData} />
           {sections.map((section) => (
             <section key={section.title} className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-lg backdrop-blur">
               <header className="mb-4 space-y-1">
