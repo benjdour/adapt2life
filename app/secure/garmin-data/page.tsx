@@ -534,40 +534,33 @@ export default async function GarminDataPage() {
     [latestDailyRaw],
     ["activeTimeInSeconds", "moderateIntensityDurationInSeconds", "totalActiveTimeInSeconds"],
   );
+  const dailyArrayCandidate = getPathValue(latestDailyRaw, "dailies");
+  const firstDailyEntry =
+    Array.isArray(dailyArrayCandidate) && dailyArrayCandidate.length > 0 && typeof dailyArrayCandidate[0] === "object"
+      ? (dailyArrayCandidate[0] as Record<string, unknown>)
+      : undefined;
+  const dailySummaryNode =
+    firstDailyEntry && typeof firstDailyEntry === "object"
+      ? pickObject<Record<string, unknown>>([firstDailyEntry], "summary") ?? undefined
+      : undefined;
+
+  const calorieSources: Array<Record<string, unknown> | undefined> = [
+    dailySummaryNode,
+    firstDailyEntry,
+    latestDailyRaw,
+  ];
+
   const activeKilocaloriesDaily = pickNumber(
-    [latestDailyRaw],
-    [
-      "activeKilocalories",
-      "summary.activeKilocalories",
-      "summary.activeCalories",
-      "summary.activeCal",
-      "dailies.0.activeKilocalories",
-      "dailies.0.summary.activeKilocalories",
-    ],
+    calorieSources,
+    ["activeKilocalories", "activeCalories", "activeCal", "summary.activeKilocalories", "summary.activeCalories"],
   );
   const bmrKilocaloriesDaily = pickNumber(
-    [latestDailyRaw],
-    [
-      "bmrKilocalories",
-      "summary.bmrKilocalories",
-      "summary.bmrCalories",
-      "summary.restingKilocalories",
-      "summary.restingCalories",
-      "dailies.0.bmrKilocalories",
-      "dailies.0.summary.bmrKilocalories",
-    ],
+    calorieSources,
+    ["bmrKilocalories", "bmrCalories", "restingKilocalories", "restingCalories", "summary.bmrKilocalories", "summary.bmrCalories"],
   );
   const totalKilocaloriesRaw = pickNumber(
-    [latestDailyRaw],
-    [
-      "totalKilocalories",
-      "summary.totalKilocalories",
-      "summary.totalCalories",
-      "summary.calories",
-      "calories",
-      "dailies.0.totalKilocalories",
-      "dailies.0.summary.totalKilocalories",
-    ],
+    calorieSources,
+    ["totalKilocalories", "totalCalories", "calories", "summary.totalKilocalories", "summary.totalCalories"],
   );
   const totalKilocalories =
     activeKilocaloriesDaily !== null || bmrKilocaloriesDaily !== null
