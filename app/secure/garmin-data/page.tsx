@@ -304,6 +304,17 @@ const computeStressDurations = (map: unknown): { low: string | null; moderate: s
   };
 };
 
+const averageNumericValues = (input: unknown): number | null => {
+  if (!input || typeof input !== "object") return null;
+  const values = Object.values(input as Record<string, unknown>)
+    .map((value) => toNumber(value))
+    .filter((value): value is number => value !== null);
+
+  if (values.length === 0) return null;
+  const sum = values.reduce((accumulator, value) => accumulator + value, 0);
+  return sum / values.length;
+};
+
 export default async function GarminDataPage() {
   noStore();
 
@@ -568,10 +579,15 @@ export default async function GarminDataPage() {
       : totalKilocaloriesRaw ?? toNumber(latestSummary?.calories);
 
   const pulsePayload = (latestPulseOx?.payload as Record<string, unknown>) ?? undefined;
-  const spo2Average = pickNumber(
-    [pulsePayload],
-    ["avgSpO2", "averageSpO2", "avgValue", "spo2Average"],
-  );
+  const spo2OffsetsAverage =
+    averageNumericValues(getPathValue(pulsePayload, "timeOffsetSpo2Values")) ??
+    averageNumericValues(getPathValue(pulsePayload, "pulseOx.timeOffsetSpo2Values"));
+  const spo2Average =
+    spo2OffsetsAverage ??
+    pickNumber(
+      [pulsePayload],
+      ["avgSpO2", "averageSpO2", "avgValue", "spo2Average", "summary.avgSpO2", "summary.averageSpO2"],
+    );
 
   const skinTempPayload = (latestSkinTemp?.payload as Record<string, unknown>) ?? undefined;
   const skinTempAverage = pickNumber(
