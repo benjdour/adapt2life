@@ -537,7 +537,7 @@ export const fetchGarminData = async (localUserId: string | number): Promise<Gar
     return [];
   });
 
-  const sleepDurationSeconds =
+  let sleepDurationSeconds =
     pickNumber(
       sleepNodes,
       [
@@ -556,7 +556,33 @@ export const fetchGarminData = async (localUserId: string | number): Promise<Gar
         "sleepSeconds",
       ],
     ) ?? toNumber(latestSummary?.sleepSeconds);
-  const sleepScore =
+  if (sleepDurationSeconds === null) {
+    const candidateEntries = [getPathValue(latestDailyRaw, "sleep"), getPathValue(sleepPayload, "sleep")].filter(
+      (value): value is Array<unknown> => Array.isArray(value),
+    );
+    for (const array of candidateEntries) {
+      for (const entry of array) {
+        if (entry && typeof entry === "object") {
+          const candidate = pickNumber([
+            entry as Record<string, unknown>,
+            pickObject<Record<string, unknown>>([entry as Record<string, unknown>], "sleepSummary") ?? undefined,
+          ], [
+            "sleepSummary.totalSleepSeconds",
+            "sleepSummary.totalSleepTimeInSeconds",
+            "sleepSummary.sleepDurationInSeconds",
+            "sleepSummary.durationInSeconds",
+            "sleepDurationInSeconds",
+          ]);
+          if (candidate !== null) {
+            sleepDurationSeconds = candidate;
+            break;
+          }
+        }
+      }
+      if (sleepDurationSeconds !== null) break;
+    }
+  }
+  let sleepScore =
     pickNumber(
       sleepNodes,
       [
@@ -572,28 +598,65 @@ export const fetchGarminData = async (localUserId: string | number): Promise<Gar
         "overallSleepScore",
       ],
     ) ?? null;
+  if (sleepScore === null) {
+    const candidateEntries = [getPathValue(latestDailyRaw, "sleep"), getPathValue(sleepPayload, "sleep")].filter(
+      (value): value is Array<unknown> => Array.isArray(value),
+    );
+    for (const array of candidateEntries) {
+      for (const entry of array) {
+        if (entry && typeof entry === "object") {
+          const candidate = pickNumber([
+            entry as Record<string, unknown>,
+            pickObject<Record<string, unknown>>([entry as Record<string, unknown>], "sleepSummary") ?? undefined,
+          ], ["sleepSummary.totalScore", "sleepSummary.overallSleepScore", "sleepSummary.sleepScore", "sleepScore"]);
+          if (candidate !== null) {
+            sleepScore = candidate;
+            break;
+          }
+        }
+      }
+      if (sleepScore !== null) break;
+    }
+  }
   let sleepPhases = pickObject<Record<string, number>>(sleepNodes, "sleepPhasesDerived") ?? undefined;
-  if (!sleepPhases && sleepSummaryNode) {
-    const sleepStages = pickObject<Record<string, unknown>>([sleepSummaryNode], "stages") ?? undefined;
-    if (sleepStages) {
+  if (!sleepPhases) {
+    const stageSources = [
+      sleepSummaryNode,
+      firstEntrySleepSummary,
+      summarySleepNode,
+      topLevelSleepNode,
+      nestedSummarySleepNode,
+      ...sleepNodes,
+    ];
+    for (const source of stageSources) {
+      if (!source) continue;
+      const sleepStages =
+        pickObject<Record<string, unknown>>([source], "stages") ??
+        pickObject<Record<string, unknown>>([source], "sleepLevelsMap") ??
+        undefined;
+      if (!sleepStages) continue;
+
       const deep = pickNumber(
         [sleepStages],
-        ["deepSleepSeconds", "deepSleep", "deepSeconds", "deep", "slowWaveSeconds"],
+        ["deepSleepSeconds", "deepSleep", "deepSeconds", "deep", "slowWaveSeconds", "deepDurationInSeconds"],
       );
       const rem = pickNumber(
         [sleepStages],
-        ["remSleepSeconds", "remSleep", "remSeconds", "rem"],
+        ["remSleepSeconds", "remSleep", "remSeconds", "rem", "paradoxicalSeconds", "remDurationInSeconds"],
       );
       const light = pickNumber(
         [sleepStages],
-        ["lightSleepSeconds", "lightSleep", "lightSeconds", "light"],
+        ["lightSleepSeconds", "lightSleep", "lightSeconds", "light", "lightDurationInSeconds"],
       );
 
-      sleepPhases = {
-        profond: deep ?? 0,
-        paradoxal: rem ?? 0,
-        leger: light ?? 0,
-      };
+      if (deep !== null || rem !== null || light !== null) {
+        sleepPhases = {
+          profond: deep ?? 0,
+          paradoxal: rem ?? 0,
+          leger: light ?? 0,
+        };
+        break;
+      }
     }
   }
   const sleepBedtimeSeconds = pickNumber(
