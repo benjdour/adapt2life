@@ -414,6 +414,10 @@ export const fetchGarminData = async (localUserId: string | number): Promise<Gar
       ? pickObject<Record<string, unknown>>([firstDailyEntry], "summary") ?? undefined
       : undefined;
   const sleepSummaryNode = pickObject<Record<string, unknown>>([latestDailyRaw], "sleepSummary") ?? undefined;
+  const firstEntrySleepSummary = pickObject<Record<string, unknown>>([firstDailyEntry], "sleepSummary") ?? undefined;
+  const summarySleepNode = pickObject<Record<string, unknown>>([dailySummaryNode], "sleepSummary") ?? undefined;
+  const topLevelSleepNode = pickObject<Record<string, unknown>>([latestDailyRaw], "sleep") ?? undefined;
+  const nestedSummarySleepNode = pickObject<Record<string, unknown>>([latestDailyRaw], "summary.sleep") ?? undefined;
 
   let latestSleep: GarminWebhookEventRow | null = null;
   let latestHrv: GarminWebhookEventRow | null = null;
@@ -505,9 +509,22 @@ export const fetchGarminData = async (localUserId: string | number): Promise<Gar
   const bodyBatteryDisplay = bodyBatteryParts.length > 0 ? bodyBatteryParts.join(" · ") : null;
 
   const sleepPayload = (latestSleep?.payload as Record<string, unknown>) ?? undefined;
+
+  const sleepNodes: Array<Record<string, unknown> | undefined> = [
+    sleepPayload,
+    sleepSummaryNode,
+    firstEntrySleepSummary,
+    summarySleepNode,
+    topLevelSleepNode,
+    nestedSummarySleepNode,
+    dailySummaryNode,
+    firstDailyEntry,
+    latestDailyRaw,
+  ];
+
   const sleepDurationSeconds =
     pickNumber(
-      [sleepPayload, sleepSummaryNode, dailySummaryNode, firstDailyEntry, latestDailyRaw],
+      sleepNodes,
       [
         "sleepDurationInSeconds",
         "sleepDuration",
@@ -526,7 +543,7 @@ export const fetchGarminData = async (localUserId: string | number): Promise<Gar
     ) ?? toNumber(latestSummary?.sleepSeconds);
   const sleepScore =
     pickNumber(
-      [sleepPayload, sleepSummaryNode, dailySummaryNode, firstDailyEntry, latestDailyRaw],
+      sleepNodes,
       [
         "sleepScore",
         "sleepScoreFeedback.score",
@@ -536,9 +553,11 @@ export const fetchGarminData = async (localUserId: string | number): Promise<Gar
         "sleepSummary.totalScore",
         "summary.sleepScore",
         "summary.sleep.sleepScore",
+        "sleep.totalScore",
+        "overallSleepScore",
       ],
     ) ?? null;
-  let sleepPhases = pickObject<Record<string, number>>([sleepPayload], "sleepPhasesDerived") ?? undefined;
+  let sleepPhases = pickObject<Record<string, number>>(sleepNodes, "sleepPhasesDerived") ?? undefined;
   if (!sleepPhases && sleepSummaryNode) {
     const sleepStages = pickObject<Record<string, unknown>>([sleepSummaryNode], "stages") ?? undefined;
     if (sleepStages) {
