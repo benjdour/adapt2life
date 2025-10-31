@@ -900,22 +900,12 @@ export default async function GarminDataPage() {
     },
   ];
 
-  const renderMetricValue = (value: string | null, hint?: string) => {
+  const renderMetricValue = (value: string | null) => {
     if (value) {
       return <span className="text-base font-semibold text-white">{value}</span>;
     }
 
-    return (
-      <span className="text-sm text-yellow-200">
-        En attente de synchro
-        {hint ? (
-          <>
-            {" "}
-            <span className="block text-xs text-yellow-200/80">{hint}</span>
-          </>
-        ) : null}
-      </span>
-    );
+    return <span className="text-sm text-yellow-200">En attente de synchro</span>;
   };
 
   return (
@@ -977,7 +967,7 @@ export default async function GarminDataPage() {
                 {section.items.map((item) => (
                   <div key={item.label} className="rounded-xl border border-white/10 bg-white/5 p-4">
                     <p className="text-xs uppercase tracking-wide text-white/50">{item.label}</p>
-                    <div className="mt-2">{renderMetricValue(item.value, item.hint)}</div>
+                    <div className="mt-2">{renderMetricValue(item.value)}</div>
                   </div>
                 ))}
               </div>
