@@ -304,11 +304,18 @@ const computeStressDurations = (map: unknown): { low: string | null; moderate: s
   };
 };
 
-const averageNumericValues = (input: unknown): number | null => {
+const averageNumericValues = (input: unknown, options?: { excludeZero?: boolean }): number | null => {
   if (!input || typeof input !== "object") return null;
   const values = Object.values(input as Record<string, unknown>)
     .map((value) => toNumber(value))
     .filter((value): value is number => value !== null);
+
+  if (options?.excludeZero) {
+    const filtered = values.filter((value) => value !== 0);
+    if (filtered.length === 0) return null;
+    const filteredSum = filtered.reduce((accumulator, value) => accumulator + value, 0);
+    return filteredSum / filtered.length;
+  }
 
   if (values.length === 0) return null;
   const sum = values.reduce((accumulator, value) => accumulator + value, 0);
@@ -625,10 +632,15 @@ export default async function GarminDataPage() {
   const bodyHydration = bodyHydrationPercent;
 
   const respirationPayload = (latestRespiration?.payload as Record<string, unknown>) ?? undefined;
-  const respirationAverage = pickNumber(
-    [respirationPayload],
-    ["avgRespirationValue", "averageRespirationRate", "respirationAverage", "averageRespiration"],
-  );
+  const respirationOffsetsAverage =
+    averageNumericValues(getPathValue(respirationPayload, "timeOffsetEpochToBreaths"), { excludeZero: true }) ??
+    averageNumericValues(getPathValue(respirationPayload, "respirationSummary.timeOffsetEpochToBreaths"), { excludeZero: true });
+  const respirationAverage =
+    respirationOffsetsAverage ??
+    pickNumber(
+      [respirationPayload],
+      ["avgRespirationValue", "averageRespirationRate", "respirationAverage", "averageRespiration"],
+    );
 
   const avgHeartRate24h = pickNumber(
     [latestDailyRaw],
