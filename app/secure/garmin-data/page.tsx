@@ -597,13 +597,17 @@ export default async function GarminDataPage() {
     );
 
   const skinTempPayload = (latestSkinTemp?.payload as Record<string, unknown>) ?? undefined;
-  const skinTempAverage = pickNumber(
-    [skinTempPayload],
-    ["meanSkinTemperature", "averageSkinTemperature", "skinTemperatureAverage"],
-  );
-  const skinTempDelta = pickNumber(
-    [skinTempPayload],
-    ["deltaSkinTemperature", "skinTemperatureDelta"],
+  const skinTempDeviation = pickNumber(
+    [skinTempPayload, latestDailyRaw],
+    [
+      "avgDeviationCelsius",
+      "averageDeviationCelsius",
+      "avgDeviation",
+      "averageDeviation",
+      "skinTemperature.avgDeviationCelsius",
+      "summary.avgDeviationCelsius",
+      "summary.skinTemperature.avgDeviationCelsius",
+    ],
   );
 
   const bodyCompPayload = (latestBodyComposition?.payload as Record<string, unknown>) ?? undefined;
@@ -879,16 +883,8 @@ export default async function GarminDataPage() {
           hint: "Pulse Ox summaries (docs/Garmin_Health_API_1.2.2.md §7.8).",
         },
         {
-          label: "Température corporelle moyenne / variation",
-          value:
-            skinTempAverage !== null || skinTempDelta !== null
-              ? [
-                  skinTempAverage !== null ? formatCelsius(skinTempAverage) : null,
-                  skinTempDelta !== null ? `Δ ${formatCelsius(skinTempDelta)}` : null,
-                ]
-                  .filter(Boolean)
-                  .join(" · ")
-              : null,
+          label: "Variation de température corporelle",
+          value: skinTempDeviation !== null ? `Δ ${formatCelsius(skinTempDeviation)}` : null,
           hint: "Skin Temperature summaries (§7.12).",
         },
         {
