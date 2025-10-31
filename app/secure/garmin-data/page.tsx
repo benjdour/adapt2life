@@ -623,46 +623,6 @@ export default async function GarminDataPage() {
   const bodyFat = bodyFatPercent;
   const bodyHydration = bodyHydrationPercent;
 
-  const nowSeconds = Math.floor(Date.now() / 1000);
-  // Prépare les métriques nécessaires au calcul local de la capacité d'entraînement.
-  const trainingScoreData: TrainingScoreData = {
-    bodyBatteryLevel: bodyBatteryLevel ?? undefined,
-    sleepScore: sleepScore ?? undefined,
-    sleepDurationSeconds: sleepDurationSeconds ?? undefined,
-    stressAverage: stressAverage ?? undefined,
-    hrvAverage: hrvAverage ?? undefined,
-    restingHeartRate: restingHeartRate ?? undefined,
-    steps: latestSummary?.steps ?? undefined,
-    activeMinutes: activeTimeSeconds !== null && activeTimeSeconds !== undefined ? Math.round(activeTimeSeconds / 60) : undefined,
-    totalKilocalories: totalKilocalories ?? undefined,
-    spo2Average: spo2Average ?? undefined,
-    skinTempDeviation: skinTempDeviation ?? undefined,
-    bodyHydrationPercent: bodyHydrationPercent ?? undefined,
-    lastActivityStart: activityStartSeconds ?? undefined,
-    lastActivityDuration: activityDurationSeconds ?? undefined,
-    lastActivityCalories: activityCalories ?? undefined,
-    nowSeconds,
-  };
-  // En absence de données synchronisées, un dataset de démonstration permet d'afficher la jauge.
-  const hasTrainingInputs = [
-    trainingScoreData.bodyBatteryLevel,
-    trainingScoreData.sleepScore,
-    trainingScoreData.sleepDurationSeconds,
-    trainingScoreData.stressAverage,
-    trainingScoreData.hrvAverage,
-    trainingScoreData.restingHeartRate,
-    trainingScoreData.steps,
-    trainingScoreData.activeMinutes,
-    trainingScoreData.totalKilocalories,
-    trainingScoreData.spo2Average,
-    trainingScoreData.skinTempDeviation,
-    trainingScoreData.bodyHydrationPercent,
-    trainingScoreData.lastActivityStart,
-    trainingScoreData.lastActivityDuration,
-    trainingScoreData.lastActivityCalories,
-  ].some((value) => value !== null && value !== undefined);
-  const trainingGaugeData = hasTrainingInputs ? trainingScoreData : mockGarminData();
-
   const respirationPayload = (latestRespiration?.payload as Record<string, unknown>) ?? undefined;
   const respirationOffsetsAverage =
     averageNumericValues(getPathValue(respirationPayload, "timeOffsetEpochToBreaths"), { excludeZero: true }) ??
@@ -728,6 +688,46 @@ export default async function GarminDataPage() {
   if (activityPower !== null) activityIntensityParts.push(`${Math.round(activityPower)} W`);
   if (activityCadence !== null) activityIntensityParts.push(`${Math.round(activityCadence)} cad.`);
   const activityIntensityDisplay = activityIntensityParts.length > 0 ? activityIntensityParts.join(" · ") : null;
+
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  // Prépare les métriques nécessaires au calcul local de la capacité d'entraînement.
+  const trainingScoreData: TrainingScoreData = {
+    bodyBatteryLevel: bodyBatteryLevel ?? undefined,
+    sleepScore: sleepScore ?? undefined,
+    sleepDurationSeconds: sleepDurationSeconds ?? undefined,
+    stressAverage: stressAverage ?? undefined,
+    hrvAverage: hrvAverage ?? undefined,
+    restingHeartRate: restingHeartRate ?? undefined,
+    steps: latestSummary?.steps ?? undefined,
+    activeMinutes: activeTimeSeconds !== null && activeTimeSeconds !== undefined ? Math.round(activeTimeSeconds / 60) : undefined,
+    totalKilocalories: totalKilocalories ?? undefined,
+    spo2Average: spo2Average ?? undefined,
+    skinTempDeviation: skinTempDeviation ?? undefined,
+    bodyHydrationPercent: bodyHydrationPercent ?? undefined,
+    lastActivityStart: activityStartSeconds ?? undefined,
+    lastActivityDuration: activityDurationSeconds ?? undefined,
+    lastActivityCalories: activityCalories ?? undefined,
+    nowSeconds,
+  };
+  // En absence de données synchronisées, un dataset de démonstration permet d'afficher la jauge.
+  const hasTrainingInputs = [
+    trainingScoreData.bodyBatteryLevel,
+    trainingScoreData.sleepScore,
+    trainingScoreData.sleepDurationSeconds,
+    trainingScoreData.stressAverage,
+    trainingScoreData.hrvAverage,
+    trainingScoreData.restingHeartRate,
+    trainingScoreData.steps,
+    trainingScoreData.activeMinutes,
+    trainingScoreData.totalKilocalories,
+    trainingScoreData.spo2Average,
+    trainingScoreData.skinTempDeviation,
+    trainingScoreData.bodyHydrationPercent,
+    trainingScoreData.lastActivityStart,
+    trainingScoreData.lastActivityDuration,
+    trainingScoreData.lastActivityCalories,
+  ].some((value) => value !== null && value !== undefined);
+  const trainingGaugeData = hasTrainingInputs ? trainingScoreData : mockGarminData();
   const sections: Array<{
     title: string;
     description?: string;
