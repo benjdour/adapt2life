@@ -354,6 +354,27 @@ const averageNumericValues = (input: unknown, options?: { excludeZero?: boolean 
   return sum / values.length;
 };
 
+const normalizeDurationSeconds = (value: number | null): number | null => {
+  if (value === null || !Number.isFinite(value)) return null;
+  const abs = Math.abs(value);
+  if (abs === 0) return 0;
+
+  // Already in seconds if within reasonable sleep duration (<= 48h)
+  if (abs <= 172800) return Math.round(value);
+
+  // Milliseconds to seconds
+  if (abs <= 172800 * 1000) return Math.round(value / 1000);
+
+  // Minutes (value represents minutes) -> convert to seconds
+  if (abs <= 172800 / 60 * 60) return Math.round(value * 60);
+
+  // Milliseconds with extra factor (e.g. minutes * 1000)
+  if (abs <= 172800 * 1000 * 60) return Math.round(value / 60000);
+
+  // Fallback: return rounded value
+  return Math.round(value);
+};
+
 export const fetchGarminData = async (localUserId: string | number): Promise<GarminDataBundle> => {
   const numericUserId = typeof localUserId === "string" ? Number(localUserId) : localUserId;
 
@@ -537,7 +558,7 @@ export const fetchGarminData = async (localUserId: string | number): Promise<Gar
     return [];
   });
 
-  let sleepDurationSeconds =
+  let sleepDurationSeconds = normalizeDurationSeconds(
     pickNumber(
       sleepNodes,
       [
@@ -557,7 +578,8 @@ export const fetchGarminData = async (localUserId: string | number): Promise<Gar
         "durationInSeconds",
         "sleepSummary.durationInSeconds",
       ],
-    ) ?? toNumber(latestSummary?.sleepSeconds);
+    ) ?? toNumber(latestSummary?.sleepSeconds),
+  );
   if (sleepDurationSeconds === null) {
     const candidateEntries = [getPathValue(latestDailyRaw, "sleep"), getPathValue(sleepPayload, "sleep")].filter(
       (value): value is Array<unknown> => Array.isArray(value),
@@ -565,16 +587,19 @@ export const fetchGarminData = async (localUserId: string | number): Promise<Gar
     for (const array of candidateEntries) {
       for (const entry of array) {
         if (entry && typeof entry === "object") {
-          const candidate = pickNumber([
-            entry as Record<string, unknown>,
-            pickObject<Record<string, unknown>>([entry as Record<string, unknown>], "sleepSummary") ?? undefined,
-          ], [
-            "sleepSummary.totalSleepSeconds",
-            "sleepSummary.totalSleepTimeInSeconds",
-            "sleepSummary.sleepDurationInSeconds",
-            "sleepSummary.durationInSeconds",
-            "sleepDurationInSeconds",
-          ]);
+          const candidate = normalizeDurationSeconds(
+            pickNumber([
+              entry as Record<string, unknown>,
+              pickObject<Record<string, unknown>>([entry as Record<string, unknown>], "sleepSummary") ?? undefined,
+            ], [
+              "sleepSummary.totalSleepSeconds",
+              "sleepSummary.totalSleepTimeInSeconds",
+              "sleepSummary.sleepDurationInSeconds",
+              "sleepSummary.durationInSeconds",
+              "sleepDurationInSeconds",
+              "durationInSeconds",
+            ]),
+          );
           if (candidate !== null) {
             sleepDurationSeconds = candidate;
             break;
@@ -633,46 +658,54 @@ export const fetchGarminData = async (localUserId: string | number): Promise<Gar
     for (const source of stageSources) {
       if (!source) continue;
       const sleepStages =
+        pickObject<Record<string, unknown>>([source], "sleepSummary") ??
         pickObject<Record<string, unknown>>([source], "stages") ??
         pickObject<Record<string, unknown>>([source], "sleepLevelsMap") ??
-        pickObject<Record<string, unknown>>([source], "sleepSummary") ??
         undefined;
       if (!sleepStages) continue;
 
-      const deep = pickNumber(
-        [sleepStages],
-        [
-          "deepSleepSeconds",
-          "deepSleep",
-          "deepSeconds",
-          "deep",
-          "slowWaveSeconds",
-          "deepDurationInSeconds",
-          "deepSleepDurationInSeconds",
-        ],
+      const deep = normalizeDurationSeconds(
+        pickNumber(
+          [sleepStages],
+          [
+            "deepSleepDurationInSeconds",
+            "deepSleepSeconds",
+            "deepSleep",
+            "deepSeconds",
+            "deep",
+            "slowWaveSeconds",
+            "deepDurationInSeconds",
+            "deepSleepTotalSeconds",
+          ],
+        ),
       );
-      const rem = pickNumber(
-        [sleepStages],
-        [
-          "remSleepSeconds",
-          "remSleep",
-          "remSeconds",
-          "rem",
-          "paradoxicalSeconds",
-          "remDurationInSeconds",
-          "remSleepInSeconds",
-        ],
+      const rem = normalizeDurationSeconds(
+        pickNumber(
+          [sleepStages],
+          [
+            "remSleepInSeconds",
+            "remSleepSeconds",
+            "remSleep",
+            "remSeconds",
+            "rem",
+            "paradoxicalSeconds",
+            "remDurationInSeconds",
+            "remSleepDurationInSeconds",
+          ],
+        ),
       );
-      const light = pickNumber(
-        [sleepStages],
-        [
-          "lightSleepSeconds",
-          "lightSleep",
-          "lightSeconds",
-          "light",
-          "lightDurationInSeconds",
-          "lightSleepDurationInSeconds",
-        ],
+      const light = normalizeDurationSeconds(
+        pickNumber(
+          [sleepStages],
+          [
+            "lightSleepDurationInSeconds",
+            "lightSleepSeconds",
+            "lightSleep",
+            "lightSeconds",
+            "light",
+            "lightDurationInSeconds",
+          ],
+        ),
       );
 
       if (deep !== null || rem !== null || light !== null) {
