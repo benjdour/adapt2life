@@ -375,6 +375,187 @@ const normalizeDurationSeconds = (value: number | null): number | null => {
   return Math.round(value);
 };
 
+const flattenToNodes = (value: unknown): Array<Record<string, unknown>> => {
+  if (!value) return [];
+  if (Array.isArray(value)) {
+    return value.flatMap((entry) => flattenToNodes(entry));
+  }
+  if (typeof value === "object") {
+    return [value as Record<string, unknown>];
+  }
+  return [];
+};
+
+const collectNodes = (...inputs: Array<unknown>): Array<Record<string, unknown>> => {
+  const nodes: Array<Record<string, unknown>> = [];
+  for (const input of inputs) {
+    nodes.push(...flattenToNodes(input));
+  }
+  return nodes;
+};
+
+const getDurationFromPaths = (node: Record<string, unknown> | undefined, paths: readonly string[]): number | null => {
+  if (!node) return null;
+  for (const path of paths) {
+    const value = getPathValue(node, path);
+    const numeric = toNumber(value);
+    const normalized = normalizeDurationSeconds(numeric);
+    if (normalized !== null) return normalized;
+  }
+  return null;
+};
+
+const sleepStageDefinitions = {
+  profond: {
+    valuePaths: [
+      "deepSleepDurationInSeconds",
+      "deepSleepInSeconds",
+      "deepSleepSeconds",
+      "deep.durationInSeconds",
+      "deep.seconds",
+      "sleepSummary.deepSleepDurationInSeconds",
+      "sleepSummary.deepSleepInSeconds",
+      "sleepSummary.deepSleepSeconds",
+      "sleepSummary.stages.deep.durationInSeconds",
+      "sleepSummary.stages.deep.seconds",
+      "stages.deep.durationInSeconds",
+      "stages.deep.seconds",
+      "sleepLevelsMap.deep.durationInSeconds",
+      "sleepLevelsMap.deep.seconds",
+      "sleepLevelsMap.DEEP.durationInSeconds",
+      "sleepLevelsMap.deepSleep.durationInSeconds",
+    ],
+    mapKeys: ["deep", "deepSleep", "DEEP"],
+    arrayLevels: ["deep", "DEEP", "SLEEP_DEEP", "deep_sleep"],
+  },
+  paradoxal: {
+    valuePaths: [
+      "remSleepInSeconds",
+      "remSleepDurationInSeconds",
+      "remSleepSeconds",
+      "rem.durationInSeconds",
+      "rem.seconds",
+      "sleepSummary.remSleepInSeconds",
+      "sleepSummary.remSleepDurationInSeconds",
+      "sleepSummary.remSleepSeconds",
+      "sleepSummary.stages.rem.durationInSeconds",
+      "sleepSummary.stages.rem.seconds",
+      "stages.rem.durationInSeconds",
+      "stages.rem.seconds",
+      "sleepLevelsMap.rem.durationInSeconds",
+      "sleepLevelsMap.rem.seconds",
+      "sleepLevelsMap.REM.durationInSeconds",
+      "sleepLevelsMap.paradoxical.durationInSeconds",
+    ],
+    mapKeys: ["rem", "remSleep", "REM", "paradoxical"],
+    arrayLevels: ["rem", "REM", "SLEEP_REM", "paradoxical"],
+  },
+  leger: {
+    valuePaths: [
+      "lightSleepDurationInSeconds",
+      "lightSleepInSeconds",
+      "lightSleepSeconds",
+      "light.durationInSeconds",
+      "light.seconds",
+      "sleepSummary.lightSleepDurationInSeconds",
+      "sleepSummary.lightSleepInSeconds",
+      "sleepSummary.lightSleepSeconds",
+      "sleepSummary.stages.light.durationInSeconds",
+      "sleepSummary.stages.light.seconds",
+      "stages.light.durationInSeconds",
+      "stages.light.seconds",
+      "sleepLevelsMap.light.durationInSeconds",
+      "sleepLevelsMap.light.seconds",
+      "sleepLevelsMap.LIGHT.durationInSeconds",
+    ],
+    mapKeys: ["light", "lightSleep", "LIGHT"],
+    arrayLevels: ["light", "LIGHT", "SLEEP_LIGHT"],
+  },
+} as const;
+
+type SleepStageKey = keyof typeof sleepStageDefinitions;
+
+const stageArrayPaths = [
+  "sleepLevels",
+  "levels",
+  "sleepSummary.sleepLevels",
+  "sleepSummary.levels",
+];
+
+const stageLevelIdentifierPaths = [
+  "levelType",
+  "type",
+  "level",
+  "sleepLevelType",
+];
+
+const stageArrayDurationPaths = [
+  "durationInSeconds",
+  "sleepDurationInSeconds",
+  "timeInSeconds",
+  "seconds",
+  "duration",
+  "totalSeconds",
+];
+
+const resolveStageDuration = (
+  nodes: Array<Record<string, unknown>>,
+  stage: SleepStageKey,
+): number | null => {
+  const definition = sleepStageDefinitions[stage];
+  const mapValuePaths = [...definition.valuePaths];
+
+  for (const node of nodes) {
+    const direct = getDurationFromPaths(node, definition.valuePaths);
+    if (direct !== null) return direct;
+
+    const candidateObjects = collectNodes(
+      node,
+      getPathValue(node, "sleepSummary"),
+      getPathValue(node, "sleepLevelsMap"),
+      getPathValue(node, "stages"),
+    );
+
+    for (const candidate of candidateObjects) {
+      const candidateDuration = getDurationFromPaths(candidate, definition.valuePaths);
+      if (candidateDuration !== null) return candidateDuration;
+
+      if (definition.mapKeys) {
+        for (const key of definition.mapKeys) {
+          const entry = getPathValue(candidate, key);
+          if (!entry) continue;
+
+          if (typeof entry === "object") {
+            const subDuration = getDurationFromPaths(entry as Record<string, unknown>, mapValuePaths);
+            if (subDuration !== null) return subDuration;
+          } else {
+            const numeric = normalizeDurationSeconds(toNumber(entry));
+            if (numeric !== null) return numeric;
+          }
+        }
+      }
+    }
+
+    for (const path of stageArrayPaths) {
+      const arr = getPathValue(node, path);
+      if (!Array.isArray(arr)) continue;
+      for (const entry of arr) {
+        if (!entry || typeof entry !== "object") continue;
+        const levelRaw = stageLevelIdentifierPaths
+          .map((identifier) => getPathValue(entry, identifier))
+          .find((value): value is string => typeof value === "string");
+        if (!levelRaw) continue;
+        if (!definition.arrayLevels?.some((target) => target.toLowerCase() === levelRaw.toLowerCase())) continue;
+
+        const entryDuration = getDurationFromPaths(entry as Record<string, unknown>, [...definition.valuePaths, ...stageArrayDurationPaths]);
+        if (entryDuration !== null) return entryDuration;
+      }
+    }
+  }
+
+  return null;
+};
+
 export const fetchGarminData = async (localUserId: string | number): Promise<GarminDataBundle> => {
   const numericUserId = typeof localUserId === "string" ? Number(localUserId) : localUserId;
 
@@ -557,6 +738,18 @@ export const fetchGarminData = async (localUserId: string | number): Promise<Gar
     }
     return [];
   });
+  const sleepEntries = collectNodes(getPathValue(latestDailyRaw, "sleep"), getPathValue(sleepPayload, "sleep"));
+  const stageNodes: Array<Record<string, unknown>> = [
+    ...sleepNodes,
+    ...sleepEntries,
+    ...sleepEntries.flatMap((entry) =>
+      collectNodes(
+        pickObject<Record<string, unknown>>([entry], "sleepSummary") ?? undefined,
+        getPathValue(entry, "sleepLevelsMap"),
+        getPathValue(entry, "stages"),
+      ),
+    ),
+  ];
 
   let sleepDurationSeconds = normalizeDurationSeconds(
     pickNumber(
@@ -645,79 +838,19 @@ export const fetchGarminData = async (localUserId: string | number): Promise<Gar
       if (sleepScore !== null) break;
     }
   }
-  let sleepPhases = pickObject<Record<string, number>>(sleepNodes, "sleepPhasesDerived") ?? undefined;
-  if (!sleepPhases) {
-    const stageSources = [
-      sleepSummaryNode,
-      firstEntrySleepSummary,
-      summarySleepNode,
-      topLevelSleepNode,
-      nestedSummarySleepNode,
-      ...sleepNodes,
-    ];
-    for (const source of stageSources) {
-      if (!source) continue;
-      const sleepStages =
-        pickObject<Record<string, unknown>>([source], "sleepSummary") ??
-        pickObject<Record<string, unknown>>([source], "stages") ??
-        pickObject<Record<string, unknown>>([source], "sleepLevelsMap") ??
-        undefined;
-      if (!sleepStages) continue;
-
-      const deep = normalizeDurationSeconds(
-        pickNumber(
-          [sleepStages],
-          [
-            "deepSleepDurationInSeconds",
-            "deepSleepSeconds",
-            "deepSleep",
-            "deepSeconds",
-            "deep",
-            "slowWaveSeconds",
-            "deepDurationInSeconds",
-            "deepSleepTotalSeconds",
-          ],
-        ),
-      );
-      const rem = normalizeDurationSeconds(
-        pickNumber(
-          [sleepStages],
-          [
-            "remSleepInSeconds",
-            "remSleepSeconds",
-            "remSleep",
-            "remSeconds",
-            "rem",
-            "paradoxicalSeconds",
-            "remDurationInSeconds",
-            "remSleepDurationInSeconds",
-          ],
-        ),
-      );
-      const light = normalizeDurationSeconds(
-        pickNumber(
-          [sleepStages],
-          [
-            "lightSleepDurationInSeconds",
-            "lightSleepSeconds",
-            "lightSleep",
-            "lightSeconds",
-            "light",
-            "lightDurationInSeconds",
-          ],
-        ),
-      );
-
-      if (deep !== null || rem !== null || light !== null) {
-        sleepPhases = {
-          profond: deep ?? 0,
-          paradoxal: rem ?? 0,
-          leger: light ?? 0,
-        };
-        break;
-      }
-    }
-  }
+  const stageDurations = {
+    profond: resolveStageDuration(stageNodes, "profond"),
+    paradoxal: resolveStageDuration(stageNodes, "paradoxal"),
+    leger: resolveStageDuration(stageNodes, "leger"),
+  };
+  const sleepPhases =
+    stageDurations.profond !== null || stageDurations.paradoxal !== null || stageDurations.leger !== null
+      ? {
+          profond: stageDurations.profond ?? 0,
+          paradoxal: stageDurations.paradoxal ?? 0,
+          leger: stageDurations.leger ?? 0,
+        }
+      : pickObject<Record<string, number>>(sleepNodes, "sleepPhasesDerived") ?? undefined;
   const sleepBedtimeSeconds = pickNumber(
     [sleepPayload, sleepSummaryNode],
     ["bedTimeInSeconds", "sleepStartTimeInSeconds", "startTimeInSeconds", "summary.startTimeInSeconds", "startTime"],
