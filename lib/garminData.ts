@@ -404,7 +404,7 @@ export const fetchGarminData = async (localUserId: string | number): Promise<Gar
 
   const latestSummary = dailySummaries[0] ?? null;
   const latestDailyRaw = (latestSummary?.raw as Record<string, unknown> | undefined) ?? undefined;
-  const dailyArrayCandidate = getPathValue(latestDailyRaw, "dailies");
+  const dailyArrayCandidate = getPathValue(latestDailyRaw, "dailies") ?? getPathValue(latestDailyRaw, "summary.dailies");
   const firstDailyEntry =
     Array.isArray(dailyArrayCandidate) && dailyArrayCandidate.length > 0 && typeof dailyArrayCandidate[0] === "object"
       ? (dailyArrayCandidate[0] as Record<string, unknown>)
