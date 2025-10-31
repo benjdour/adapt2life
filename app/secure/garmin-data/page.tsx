@@ -4,9 +4,11 @@ import { Metadata } from "next";
 import { and, desc, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 
+import TrainingScoreGauge from "@/components/TrainingScoreGauge";
 import { db } from "@/db";
 import { garminConnections, garminDailySummaries, garminWebhookEvents, users } from "@/db/schema";
 import { stackServerApp } from "@/stack/server";
+import { TrainingScoreData, mockGarminData } from "@/lib/trainingScore";
 
 export const metadata: Metadata = {
   title: "Adapt2Life — Données Garmin",
@@ -533,12 +535,6 @@ export default async function GarminDataPage() {
     ["maxStressLevel", "stressMax"],
   );
   const stressDurations = computeStressDurations(getPathValue(stressPayload, "timeOffsetStressLevelValues"));
-  const relaxationMinutes = formatMinutes(
-    pickNumber(
-      [stressPayload],
-      ["relaxationDurationInSeconds", "recoveryDurationInSeconds", "totalRecoveryTimeInSeconds"],
-    ),
-  );
 
   const activeTimeSeconds = pickNumber(
     [latestDailyRaw],
@@ -626,6 +622,46 @@ export default async function GarminDataPage() {
   );
   const bodyFat = bodyFatPercent;
   const bodyHydration = bodyHydrationPercent;
+
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  // Prépare les métriques nécessaires au calcul local de la capacité d'entraînement.
+  const trainingScoreData: TrainingScoreData = {
+    bodyBatteryLevel: bodyBatteryLevel ?? undefined,
+    sleepScore: sleepScore ?? undefined,
+    sleepDurationSeconds: sleepDurationSeconds ?? undefined,
+    stressAverage: stressAverage ?? undefined,
+    hrvAverage: hrvAverage ?? undefined,
+    restingHeartRate: restingHeartRate ?? undefined,
+    steps: latestSummary?.steps ?? undefined,
+    activeMinutes: activeTimeSeconds !== null && activeTimeSeconds !== undefined ? Math.round(activeTimeSeconds / 60) : undefined,
+    totalKilocalories: totalKilocalories ?? undefined,
+    spo2Average: spo2Average ?? undefined,
+    skinTempDeviation: skinTempDeviation ?? undefined,
+    bodyHydrationPercent: bodyHydrationPercent ?? undefined,
+    lastActivityStart: activityStartSeconds ?? undefined,
+    lastActivityDuration: activityDurationSeconds ?? undefined,
+    lastActivityCalories: activityCalories ?? undefined,
+    nowSeconds,
+  };
+  // En absence de données synchronisées, un dataset de démonstration permet d'afficher la jauge.
+  const hasTrainingInputs = [
+    trainingScoreData.bodyBatteryLevel,
+    trainingScoreData.sleepScore,
+    trainingScoreData.sleepDurationSeconds,
+    trainingScoreData.stressAverage,
+    trainingScoreData.hrvAverage,
+    trainingScoreData.restingHeartRate,
+    trainingScoreData.steps,
+    trainingScoreData.activeMinutes,
+    trainingScoreData.totalKilocalories,
+    trainingScoreData.spo2Average,
+    trainingScoreData.skinTempDeviation,
+    trainingScoreData.bodyHydrationPercent,
+    trainingScoreData.lastActivityStart,
+    trainingScoreData.lastActivityDuration,
+    trainingScoreData.lastActivityCalories,
+  ].some((value) => value !== null && value !== undefined);
+  const trainingGaugeData = hasTrainingInputs ? trainingScoreData : mockGarminData();
 
   const respirationPayload = (latestRespiration?.payload as Record<string, unknown>) ?? undefined;
   const respirationOffsetsAverage =
@@ -898,6 +934,7 @@ export default async function GarminDataPage() {
 
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-4xl flex-col gap-10 px-6 py-12 text-white">
+      <TrainingScoreGauge data={trainingGaugeData} />
       <header className="space-y-2">
         <p className="text-sm uppercase tracking-wide text-emerald-400">Garmin</p>
         <h1 className="text-3xl font-semibold">Données synchronisées</h1>
