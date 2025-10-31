@@ -510,7 +510,7 @@ export const fetchGarminData = async (localUserId: string | number): Promise<Gar
 
   const sleepPayload = (latestSleep?.payload as Record<string, unknown>) ?? undefined;
 
-  const sleepNodes: Array<Record<string, unknown> | undefined> = [
+  const sleepNodeSources: Array<unknown> = [
     sleepPayload,
     sleepSummaryNode,
     firstEntrySleepSummary,
@@ -521,6 +521,17 @@ export const fetchGarminData = async (localUserId: string | number): Promise<Gar
     firstDailyEntry,
     latestDailyRaw,
   ];
+
+  const sleepNodes: Array<Record<string, unknown>> = sleepNodeSources.flatMap((source) => {
+    if (!source) return [];
+    if (Array.isArray(source)) {
+      return source.filter((entry): entry is Record<string, unknown> => !!entry && typeof entry === "object");
+    }
+    if (typeof source === "object") {
+      return [source as Record<string, unknown>];
+    }
+    return [];
+  });
 
   const sleepDurationSeconds =
     pickNumber(
