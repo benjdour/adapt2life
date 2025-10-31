@@ -522,14 +522,6 @@ export default async function GarminDataPage() {
       "summary.restingHeartRateInBeatsPerMinute",
     ],
   );
-  const trainingLoad = pickNumber([userMetricsPayload, userMetricsNode], ["trainingLoad", "status.trainingLoad"]);
-  const trainingStatus =
-    pickString([userMetricsPayload, userMetricsNode], ["trainingStatus", "status.trainingStatus", "status.label"]) ?? undefined;
-  const trainingReadiness = pickNumber([userMetricsPayload, userMetricsNode], ["trainingReadinessScore"]);
-  const vo2Max = pickNumber(
-    [userMetricsPayload, userMetricsNode, pickObject<Record<string, unknown>>([userMetricsPayload], "vo2Max")],
-    ["vo2Max", "vo2Max.value", "vo2max"],
-  );
 
   const stressPayload = (latestStress?.payload as Record<string, unknown>) ?? undefined;
   const stressAverage = pickNumber(
@@ -700,33 +692,6 @@ export default async function GarminDataPage() {
   if (activityPower !== null) activityIntensityParts.push(`${Math.round(activityPower)} W`);
   if (activityCadence !== null) activityIntensityParts.push(`${Math.round(activityCadence)} cad.`);
   const activityIntensityDisplay = activityIntensityParts.length > 0 ? activityIntensityParts.join(" · ") : null;
-  const trainingEffectAerobic = pickNumber(
-    [activityPayload, activityDetailsPayload],
-    ["aerobicTrainingEffect", "trainingEffectAerobic", "trainingEffect.aerobic"],
-  );
-  const trainingEffectAnaerobic = pickNumber(
-    [activityPayload, activityDetailsPayload],
-    ["anaerobicTrainingEffect", "trainingEffectAnaerobic", "trainingEffect.anaerobic"],
-  );
-  const trainingEffectDisplay =
-    trainingEffectAerobic !== null || trainingEffectAnaerobic !== null
-      ? `Aérobie ${trainingEffectAerobic?.toFixed(1) ?? "—"} / Anaérobie ${trainingEffectAnaerobic?.toFixed(1) ?? "—"}`
-      : null;
-  const trainingEffectLabel =
-    pickString([activityPayload, activityDetailsPayload], ["trainingEffectLabel", "trainingEffect.label"]) ?? undefined;
-  const trainingEffectValue = pickNumber(
-    [activityPayload, activityDetailsPayload],
-    ["trainingEffect", "trainingEffect.overall"],
-  );
-  const effortScoreDisplay =
-    trainingEffectLabel || trainingEffectValue !== null
-      ? [trainingEffectLabel, trainingEffectValue !== null ? trainingEffectValue.toFixed(1) : null].filter(Boolean).join(" ")
-      : null;
-  const recoveryTimeSeconds = pickNumber(
-    [activityPayload, activityDetailsPayload],
-    ["recoveryTimeInSeconds", "recoveryTimeInSec"],
-  );
-
   const sections: Array<{
     title: string;
     description?: string;
@@ -773,42 +738,6 @@ export default async function GarminDataPage() {
           label: "Niveau d’énergie global",
           value: bodyBatteryDisplay,
           hint: "Synthèse à construire (Body Battery + sommeil + HRV).",
-        },
-      ],
-    },
-    {
-      title: "💪 CHARGE D’ENTRAÎNEMENT",
-      description: "Données issues de l’Activity API et des Training Status endpoints.",
-      items: [
-        {
-          label: "Training Load (7 jours)",
-          value: trainingLoad !== null ? `${Math.round(trainingLoad)}` : null,
-          hint: "Training Status / User Metrics (docs/Activity_API-1.2.3_0.md).",
-        },
-        {
-          label: "Training Effect (aérobie / anaérobie)",
-          value: trainingEffectDisplay,
-          hint: "Activity summaries & details — champs trainingEffect.",
-        },
-        {
-          label: "VO₂ Max estimé",
-          value: vo2Max !== null ? `${vo2Max.toFixed(1)} ml/kg/min` : null,
-          hint: "User Metrics — champ vo2Max.",
-        },
-        {
-          label: "Temps de récupération recommandé",
-          value: recoveryTimeSeconds !== null ? formatHours(recoveryTimeSeconds, 1) : null,
-          hint: "Activity Details — recoveryTimeInSeconds.",
-        },
-        {
-          label: "Statut d’entraînement",
-          value: trainingStatus ?? null,
-          hint: "Training Status API / User Metrics.",
-        },
-        {
-          label: "Training Readiness",
-          value: trainingReadiness !== null ? `${Math.round(trainingReadiness)}/100` : null,
-          hint: "User Metrics — trainingReadinessScore.",
         },
       ],
     },
