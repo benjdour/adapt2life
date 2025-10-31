@@ -404,6 +404,16 @@ export const fetchGarminData = async (localUserId: string | number): Promise<Gar
 
   const latestSummary = dailySummaries[0] ?? null;
   const latestDailyRaw = (latestSummary?.raw as Record<string, unknown> | undefined) ?? undefined;
+  const dailyArrayCandidate = getPathValue(latestDailyRaw, "dailies");
+  const firstDailyEntry =
+    Array.isArray(dailyArrayCandidate) && dailyArrayCandidate.length > 0 && typeof dailyArrayCandidate[0] === "object"
+      ? (dailyArrayCandidate[0] as Record<string, unknown>)
+      : undefined;
+  const dailySummaryNode =
+    firstDailyEntry && typeof firstDailyEntry === "object"
+      ? pickObject<Record<string, unknown>>([firstDailyEntry], "summary") ?? undefined
+      : undefined;
+  const sleepSummaryNode = pickObject<Record<string, unknown>>([latestDailyRaw], "sleepSummary") ?? undefined;
 
   let latestSleep: GarminWebhookEventRow | null = null;
   let latestHrv: GarminWebhookEventRow | null = null;
@@ -495,20 +505,25 @@ export const fetchGarminData = async (localUserId: string | number): Promise<Gar
   const bodyBatteryDisplay = bodyBatteryParts.length > 0 ? bodyBatteryParts.join(" · ") : null;
 
   const sleepPayload = (latestSleep?.payload as Record<string, unknown>) ?? undefined;
-  const sleepDurationSeconds = pickNumber(
-    [sleepPayload],
-    [
-      "sleepDurationInSeconds",
-      "sleepDuration",
-      "sleepSummary.sleepDurationInSeconds",
-      "sleepSummary.durationInSeconds",
-      "sleepSummary.duration",
-    ],
-  );
-  const sleepScore = pickNumber(
-    [sleepPayload],
-    ["sleepScore", "sleepScoreFeedback.score", "sleepScoreValue"],
-  );
+  const sleepDurationSeconds =
+    pickNumber(
+      [sleepPayload, latestDailyRaw, firstDailyEntry, sleepSummaryNode],
+      [
+        "sleepDurationInSeconds",
+        "sleepDuration",
+        "sleepSummary.sleepDurationInSeconds",
+        "sleepSummary.durationInSeconds",
+        "sleepSummary.duration",
+        "summary.sleepDurationInSeconds",
+        "summary.sleepDuration",
+        "sleepSeconds",
+      ],
+    ) ?? toNumber(latestSummary?.sleepSeconds);
+  const sleepScore =
+    pickNumber(
+      [sleepPayload, latestDailyRaw, firstDailyEntry, sleepSummaryNode],
+      ["sleepScore", "sleepScoreFeedback.score", "sleepScoreValue", "summary.sleepScore"],
+    ) ?? null;
   const sleepPhases = pickObject<Record<string, number>>(
     [sleepPayload],
     "sleepPhasesDerived",
@@ -576,16 +591,6 @@ export const fetchGarminData = async (localUserId: string | number): Promise<Gar
     [latestDailyRaw],
     ["activeTimeInSeconds", "moderateIntensityDurationInSeconds", "totalActiveTimeInSeconds"],
   );
-  const dailyArrayCandidate = getPathValue(latestDailyRaw, "dailies");
-  const firstDailyEntry =
-    Array.isArray(dailyArrayCandidate) && dailyArrayCandidate.length > 0 && typeof dailyArrayCandidate[0] === "object"
-      ? (dailyArrayCandidate[0] as Record<string, unknown>)
-      : undefined;
-  const dailySummaryNode =
-    firstDailyEntry && typeof firstDailyEntry === "object"
-      ? pickObject<Record<string, unknown>>([firstDailyEntry], "summary") ?? undefined
-      : undefined;
-
   const calorieSources: Array<Record<string, unknown> | undefined> = [
     dailySummaryNode,
     firstDailyEntry,
