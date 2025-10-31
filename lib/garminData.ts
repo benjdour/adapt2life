@@ -507,42 +507,76 @@ export const fetchGarminData = async (localUserId: string | number): Promise<Gar
   const sleepPayload = (latestSleep?.payload as Record<string, unknown>) ?? undefined;
   const sleepDurationSeconds =
     pickNumber(
-      [sleepPayload, latestDailyRaw, firstDailyEntry, sleepSummaryNode],
+      [sleepPayload, sleepSummaryNode, dailySummaryNode, firstDailyEntry, latestDailyRaw],
       [
         "sleepDurationInSeconds",
         "sleepDuration",
         "sleepSummary.sleepDurationInSeconds",
         "sleepSummary.durationInSeconds",
         "sleepSummary.duration",
+        "sleepSummary.totalSleepSeconds",
+        "sleepSummary.totalSleepTimeInSeconds",
         "summary.sleepDurationInSeconds",
         "summary.sleepDuration",
+        "summary.sleep.sleepDurationInSeconds",
+        "summary.totalSleepSeconds",
+        "totalSleepSeconds",
         "sleepSeconds",
       ],
     ) ?? toNumber(latestSummary?.sleepSeconds);
   const sleepScore =
     pickNumber(
-      [sleepPayload, latestDailyRaw, firstDailyEntry, sleepSummaryNode],
-      ["sleepScore", "sleepScoreFeedback.score", "sleepScoreValue", "summary.sleepScore"],
+      [sleepPayload, sleepSummaryNode, dailySummaryNode, firstDailyEntry, latestDailyRaw],
+      [
+        "sleepScore",
+        "sleepScoreFeedback.score",
+        "sleepScoreValue",
+        "sleepSummary.sleepScore",
+        "sleepSummary.overallSleepScore",
+        "sleepSummary.totalScore",
+        "summary.sleepScore",
+        "summary.sleep.sleepScore",
+      ],
     ) ?? null;
-  const sleepPhases = pickObject<Record<string, number>>(
-    [sleepPayload],
-    "sleepPhasesDerived",
-  );
+  let sleepPhases = pickObject<Record<string, number>>([sleepPayload], "sleepPhasesDerived") ?? undefined;
+  if (!sleepPhases && sleepSummaryNode) {
+    const sleepStages = pickObject<Record<string, unknown>>([sleepSummaryNode], "stages") ?? undefined;
+    if (sleepStages) {
+      const deep = pickNumber(
+        [sleepStages],
+        ["deepSleepSeconds", "deepSleep", "deepSeconds", "deep", "slowWaveSeconds"],
+      );
+      const rem = pickNumber(
+        [sleepStages],
+        ["remSleepSeconds", "remSleep", "remSeconds", "rem"],
+      );
+      const light = pickNumber(
+        [sleepStages],
+        ["lightSleepSeconds", "lightSleep", "lightSeconds", "light"],
+      );
+
+      sleepPhases = {
+        profond: deep ?? 0,
+        paradoxal: rem ?? 0,
+        leger: light ?? 0,
+      };
+    }
+  }
   const sleepBedtimeSeconds = pickNumber(
-    [sleepPayload],
-    ["bedTimeInSeconds", "sleepStartTimeInSeconds", "startTimeInSeconds"],
+    [sleepPayload, sleepSummaryNode],
+    ["bedTimeInSeconds", "sleepStartTimeInSeconds", "startTimeInSeconds", "summary.startTimeInSeconds", "startTime"],
   );
   const sleepWakeSeconds = pickNumber(
-    [sleepPayload],
-    ["wakeupTimeInSeconds", "sleepEndTimeInSeconds", "endTimeInSeconds"],
+    [sleepPayload, sleepSummaryNode],
+    ["wakeupTimeInSeconds", "sleepEndTimeInSeconds", "endTimeInSeconds", "summary.endTimeInSeconds", "endTime"],
   );
   const sleepBedtimeOffset = pickNumber(
-    [sleepPayload],
-    ["bedTimeOffsetInSeconds", "startTimeOffsetInSeconds"],
+    [sleepPayload, sleepSummaryNode],
+    ["bedTimeOffsetInSeconds", "startTimeOffsetInSeconds", "startTimeOffset"],
   );
   const sleepWakeOffset = pickNumber(
-    [sleepPayload],
-    ["wakeupTimeOffsetInSeconds", "endTimeOffsetInSeconds"],
+    [sleepPayload, sleepSummaryNode],
+    ["wakeupTimeOffsetInSeconds", "endTimeOffsetInSeconds", "endTimeOffset"],
   );
   const sleepBedtimeDisplay = formatDateTime(sleepBedtimeSeconds, sleepBedtimeOffset);
   const sleepWakeDisplay = formatDateTime(sleepWakeSeconds, sleepWakeOffset);
