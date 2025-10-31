@@ -394,6 +394,87 @@ const collectNodes = (...inputs: Array<unknown>): Array<Record<string, unknown>>
   return nodes;
 };
 
+const normalizeTimestampSeconds = (value: number | null): number | null => {
+  if (value === null || !Number.isFinite(value)) return null;
+  const abs = Math.abs(value);
+  if (abs === 0) return 0;
+
+  if (abs > 1e12) {
+    return Math.round(value / 1000);
+  }
+
+  if (abs > 315360000) {
+    return Math.round(value);
+  }
+
+  return Math.round(value);
+};
+
+const parseTimestampString = (value: unknown): number | null => {
+  if (typeof value !== "string") return null;
+  const parsed = Date.parse(value);
+  if (Number.isNaN(parsed)) return null;
+  return Math.round(parsed / 1000);
+};
+
+const getTimestampFromPaths = (
+  node: Record<string, unknown> | undefined,
+  numericPaths: readonly string[],
+  isoPaths: readonly string[],
+): number | null => {
+  if (!node) return null;
+
+  for (const path of numericPaths) {
+    const value = getPathValue(node, path);
+    const numeric = toNumber(value);
+    const normalized = normalizeTimestampSeconds(numeric);
+    if (normalized !== null) return normalized;
+  }
+
+  for (const path of isoPaths) {
+    const value = getPathValue(node, path);
+    const parsed = parseTimestampString(value);
+    if (parsed !== null) return parsed;
+  }
+
+  return null;
+};
+
+const getOffsetFromPaths = (node: Record<string, unknown> | undefined, offsetPaths: readonly string[]): number | null => {
+  if (!node) return null;
+  for (const path of offsetPaths) {
+    const value = getPathValue(node, path);
+    const numeric = toNumber(value);
+    if (numeric !== null && Number.isFinite(numeric)) {
+      return Math.round(numeric);
+    }
+  }
+  return null;
+};
+
+const resolveTimestampSeconds = (
+  nodes: Array<Record<string, unknown>>,
+  numericPaths: readonly string[],
+  isoPaths: readonly string[],
+): number | null => {
+  for (const node of nodes) {
+    const timestamp = getTimestampFromPaths(node, numericPaths, isoPaths);
+    if (timestamp !== null) return timestamp;
+  }
+  return null;
+};
+
+const resolveOffsetSeconds = (
+  nodes: Array<Record<string, unknown>>,
+  offsetPaths: readonly string[],
+): number | null => {
+  for (const node of nodes) {
+    const offset = getOffsetFromPaths(node, offsetPaths);
+    if (offset !== null) return offset;
+  }
+  return null;
+};
+
 const getDurationFromPaths = (node: Record<string, unknown> | undefined, paths: readonly string[]): number | null => {
   if (!node) return null;
   for (const path of paths) {
@@ -750,6 +831,19 @@ export const fetchGarminData = async (localUserId: string | number): Promise<Gar
       ),
     ),
   ];
+  const timestampNodes = collectNodes(
+    sleepNodes,
+    sleepEntries,
+    sleepSummaryNode,
+    firstEntrySleepSummary,
+    summarySleepNode,
+    topLevelSleepNode,
+    nestedSummarySleepNode,
+    dailySummaryNode,
+    firstDailyEntry,
+    latestDailyRaw,
+    sleepPayload,
+  );
 
   let sleepDurationSeconds = normalizeDurationSeconds(
     pickNumber(
@@ -851,22 +945,81 @@ export const fetchGarminData = async (localUserId: string | number): Promise<Gar
           leger: stageDurations.leger ?? 0,
         }
       : pickObject<Record<string, number>>(sleepNodes, "sleepPhasesDerived") ?? undefined;
-  const sleepBedtimeSeconds = pickNumber(
-    [sleepPayload, sleepSummaryNode],
-    ["bedTimeInSeconds", "sleepStartTimeInSeconds", "startTimeInSeconds", "summary.startTimeInSeconds", "startTime"],
-  );
-  const sleepWakeSeconds = pickNumber(
-    [sleepPayload, sleepSummaryNode],
-    ["wakeupTimeInSeconds", "sleepEndTimeInSeconds", "endTimeInSeconds", "summary.endTimeInSeconds", "endTime"],
-  );
-  const sleepBedtimeOffset = pickNumber(
-    [sleepPayload, sleepSummaryNode],
-    ["bedTimeOffsetInSeconds", "startTimeOffsetInSeconds", "startTimeOffset"],
-  );
-  const sleepWakeOffset = pickNumber(
-    [sleepPayload, sleepSummaryNode],
-    ["wakeupTimeOffsetInSeconds", "endTimeOffsetInSeconds", "endTimeOffset"],
-  );
+  const sleepStartNumericPaths = [
+    "bedTimeInSeconds",
+    "sleepStartTimeInSeconds",
+    "startTimeInSeconds",
+    "sleepSummary.startTimeInSeconds",
+    "sleepSummary.sleepStartTimeInSeconds",
+    "sleepSummary.startSeconds",
+    "startSeconds",
+    "sleepSummary.startTimestamp",
+    "sleepSummary.sleepStartTimestamp",
+    "startTimestamp",
+    "sleepSummary.sleepStartTime",
+    "sleepSummary.startTime",
+    "summary.startTimeInSeconds",
+    "summary.sleep.startTimeInSeconds",
+    "sleep.startTimeInSeconds",
+    "sleepSummary.startTimeSeconds",
+    "sleepSummary.sleepStartTimeSeconds",
+  ] as const;
+  const sleepStartIsoPaths = [
+    "startTimeGmt",
+    "sleepStartTimeGmt",
+    "sleepSummary.startTimeGmt",
+    "sleepSummary.sleepStartTimeGmt",
+    "startTimeLocal",
+    "sleepSummary.startTimeLocal",
+  ] as const;
+  const sleepEndNumericPaths = [
+    "wakeupTimeInSeconds",
+    "sleepEndTimeInSeconds",
+    "endTimeInSeconds",
+    "sleepSummary.endTimeInSeconds",
+    "sleepSummary.sleepEndTimeInSeconds",
+    "sleepSummary.endSeconds",
+    "endSeconds",
+    "sleepSummary.endTimestamp",
+    "sleepSummary.sleepEndTimestamp",
+    "endTimestamp",
+    "summary.endTimeInSeconds",
+    "summary.sleep.endTimeInSeconds",
+    "sleep.endTimeInSeconds",
+  ] as const;
+  const sleepEndIsoPaths = [
+    "endTimeGmt",
+    "sleepEndTimeGmt",
+    "sleepSummary.endTimeGmt",
+    "sleepSummary.sleepEndTimeGmt",
+    "endTimeLocal",
+    "sleepSummary.endTimeLocal",
+  ] as const;
+  const sleepStartOffsetPaths = [
+    "bedTimeOffsetInSeconds",
+    "sleepStartOffsetInSeconds",
+    "startTimeOffsetInSeconds",
+    "sleepSummary.startTimeOffsetInSeconds",
+    "sleepSummary.sleepStartOffsetInSeconds",
+    "startTimeOffset",
+    "sleepSummary.startTimeOffset",
+    "sleepSummary.sleepStartTimeOffset",
+  ] as const;
+  const sleepEndOffsetPaths = [
+    "wakeupTimeOffsetInSeconds",
+    "sleepEndOffsetInSeconds",
+    "endTimeOffsetInSeconds",
+    "sleepSummary.endTimeOffsetInSeconds",
+    "sleepSummary.sleepEndOffsetInSeconds",
+    "endTimeOffset",
+    "sleepSummary.endTimeOffset",
+    "sleepSummary.sleepEndTimeOffset",
+  ] as const;
+
+  const sleepBedtimeSeconds = resolveTimestampSeconds(timestampNodes, sleepStartNumericPaths, sleepStartIsoPaths);
+  const sleepWakeSeconds = resolveTimestampSeconds(timestampNodes, sleepEndNumericPaths, sleepEndIsoPaths);
+  const sleepBedtimeOffset = resolveOffsetSeconds(timestampNodes, sleepStartOffsetPaths);
+  const sleepWakeOffset = resolveOffsetSeconds(timestampNodes, sleepEndOffsetPaths);
   const sleepBedtimeDisplay = formatDateTime(sleepBedtimeSeconds, sleepBedtimeOffset);
   const sleepWakeDisplay = formatDateTime(sleepWakeSeconds, sleepWakeOffset);
   const sleepPhasesDisplay =
