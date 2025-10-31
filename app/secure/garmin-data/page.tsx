@@ -534,10 +534,45 @@ export default async function GarminDataPage() {
     [latestDailyRaw],
     ["activeTimeInSeconds", "moderateIntensityDurationInSeconds", "totalActiveTimeInSeconds"],
   );
-  const sedentarySeconds = pickNumber(
+  const activeKilocaloriesDaily = pickNumber(
     [latestDailyRaw],
-    ["sedentaryTimeInSeconds", "sedentaryDurationInSeconds"],
+    [
+      "activeKilocalories",
+      "summary.activeKilocalories",
+      "summary.activeCalories",
+      "summary.activeCal",
+      "dailies.0.activeKilocalories",
+      "dailies.0.summary.activeKilocalories",
+    ],
   );
+  const bmrKilocaloriesDaily = pickNumber(
+    [latestDailyRaw],
+    [
+      "bmrKilocalories",
+      "summary.bmrKilocalories",
+      "summary.bmrCalories",
+      "summary.restingKilocalories",
+      "summary.restingCalories",
+      "dailies.0.bmrKilocalories",
+      "dailies.0.summary.bmrKilocalories",
+    ],
+  );
+  const totalKilocaloriesRaw = pickNumber(
+    [latestDailyRaw],
+    [
+      "totalKilocalories",
+      "summary.totalKilocalories",
+      "summary.totalCalories",
+      "summary.calories",
+      "calories",
+      "dailies.0.totalKilocalories",
+      "dailies.0.summary.totalKilocalories",
+    ],
+  );
+  const totalKilocalories =
+    activeKilocaloriesDaily !== null || bmrKilocaloriesDaily !== null
+      ? (activeKilocaloriesDaily ?? 0) + (bmrKilocaloriesDaily ?? 0)
+      : totalKilocaloriesRaw ?? toNumber(latestSummary?.calories);
 
   const pulsePayload = (latestPulseOx?.payload as Record<string, unknown>) ?? undefined;
   const spo2Average = pickNumber(
@@ -785,11 +820,6 @@ export default async function GarminDataPage() {
           value: hrvDisplay,
           hint: "HRV summaries.",
         },
-        {
-          label: "Minutes de relaxation / respiration guidée",
-          value: relaxationMinutes,
-          hint: "Stress Details / Relax notifications.",
-        },
       ],
     },
     {
@@ -807,13 +837,8 @@ export default async function GarminDataPage() {
           hint: "Daily summaries — activeTimeInSeconds.",
         },
         {
-          label: "Temps sédentaire",
-          value: formatMinutes(sedentarySeconds),
-          hint: "Daily summaries — sedentaryTimeInSeconds.",
-        },
-        {
           label: "Calories totales brûlées",
-          value: latestSummary?.calories !== null && latestSummary?.calories !== undefined ? `${latestSummary.calories} kcal` : null,
+          value: formatKcal(totalKilocalories),
           hint: "Daily summaries — totalKilocalories.",
         },
         {
@@ -902,11 +927,6 @@ export default async function GarminDataPage() {
           label: "Calories de la dernière activité",
           value: formatKcal(activityCalories),
           hint: "Activity summaries — activeKilocalories.",
-        },
-        {
-          label: "Score d’effort de la dernière activité",
-          value: effortScoreDisplay ?? trainingEffectDisplay,
-          hint: "Activity summaries / Training Effect.",
         },
       ],
     },
