@@ -530,10 +530,6 @@ export default async function GarminDataPage() {
     [latestDailyRaw, stressPayload],
     ["averageStressLevel", "averageStress", "stressAvg"],
   );
-  const stressMax = pickNumber(
-    [latestDailyRaw, stressPayload],
-    ["maxStressLevel", "stressMax"],
-  );
   const stressDurations = computeStressDurations(getPathValue(stressPayload, "timeOffsetStressLevelValues"));
 
   const activeTimeSeconds = pickNumber(
@@ -787,9 +783,9 @@ export default async function GarminDataPage() {
           hint: "Stress Details summaries — timeOffsetStressLevelValues.",
         },
         {
-          label: "Stress maximal de la journée",
-          value: stressMax !== null ? `${Math.round(stressMax)}/100` : null,
-          hint: "Daily summaries / Stress Details.",
+          label: "Stress moyen (score 0–100)",
+          value: stressAverage !== null ? `${Math.round(stressAverage)}/100` : null,
+          hint: "Daily summaries — averageStressLevel.",
         },
         {
           label: "HRV (corrélé au stress)",
