@@ -12,6 +12,7 @@ const userSelection = {
   id: users.id,
   name: users.name,
   email: users.email,
+  pseudo: users.pseudo,
   firstName: users.firstName,
   lastName: users.lastName,
   gender: users.gender,
@@ -56,6 +57,7 @@ async function ensureLocalUser(stackUser: NonNullable<Awaited<ReturnType<typeof 
       stackId: stackUser.id,
       name: stackUser.displayName ?? null,
       email: stackUser.primaryEmail ?? `user-${stackUser.id}@example.com`,
+      pseudo: null,
       firstName: null,
       lastName: null,
       gender: null,
@@ -82,6 +84,7 @@ async function updateProfile(formData: FormData) {
 
   const firstName = getNullableText(formData.get("firstName"));
   const lastName = getNullableText(formData.get("lastName"));
+  const pseudo = getNullableText(formData.get("pseudo"));
   const gender = getNullableText(formData.get("gender"));
   const birthDate = getNullableText(formData.get("birthDate"));
 
@@ -104,6 +107,7 @@ async function updateProfile(formData: FormData) {
       name: fullName,
       firstName,
       lastName,
+      pseudo,
       gender,
       birthDate,
       sportLevel,
@@ -159,6 +163,9 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
             <h2 className="text-2xl font-semibold">{stackUser.displayName ?? "Profil sans nom"}</h2>
             <p className="text-sm text-white/70">{primaryEmail}</p>
           </div>
+          <p className="text-xs text-white/50">
+            Pseudo Adapt2Life: <span className="font-semibold text-white/80">{localUser?.pseudo ?? "Non défini"}</span>
+          </p>
           {stackUser.profileImageUrl ? (
             <p className="text-xs text-white/50">
               Image de profil:{" "}
@@ -215,6 +222,20 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
           ) : null}
 
           <div className="grid gap-4 sm:grid-cols-2">
+            <div className="flex flex-col gap-2 sm:col-span-2">
+              <label htmlFor="pseudo" className="text-sm font-semibold text-emerald-100">
+                Pseudo
+              </label>
+              <input
+                id="pseudo"
+                name="pseudo"
+                type="text"
+                defaultValue={localUser?.pseudo ?? ""}
+                placeholder="Ex. IronRunner"
+                className="rounded-md border border-emerald-700/40 bg-emerald-950/60 px-3 py-2 text-sm text-emerald-50 placeholder:text-emerald-200/40 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
+              />
+            </div>
+
             <div className="flex flex-col gap-2">
               <label htmlFor="lastName" className="text-sm font-semibold text-emerald-100">
                 Nom
@@ -320,6 +341,10 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
             <div>
               <dt className="text-xs uppercase tracking-wide text-emerald-200/70">Nom enregistré</dt>
               <dd className="mt-2 text-base font-semibold">{localUser.name ?? "Non renseigné"}</dd>
+            </div>
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-emerald-200/70">Pseudo</dt>
+              <dd className="mt-2 text-base font-semibold">{localUser.pseudo ?? "Non renseigné"}</dd>
             </div>
             <div>
               <dt className="text-xs uppercase tracking-wide text-emerald-200/70">Email enregistré</dt>

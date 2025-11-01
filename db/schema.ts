@@ -4,6 +4,7 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   stackId: text("stack_id").notNull().unique(),
   name: text("name"),
+  pseudo: text("pseudo"),
   firstName: text("first_name"),
   lastName: text("last_name"),
   gender: text("gender"),
