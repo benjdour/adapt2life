@@ -1,6 +1,18 @@
 #!/bin/bash
 set -e
 
+if [ -f ".env.local" ]; then
+  set -a
+  # shellcheck source=/dev/null
+  source .env.local
+  set +a
+fi
+
+if [ -z "${VERCEL_TOKEN:-}" ]; then
+  echo "❌ VERCEL_TOKEN manquant. Ajoute-le à .env.local ou exporte la variable avant de déployer."
+  exit 1
+fi
+
 echo "🚀 Commit & push vers GitHub..."
 git add .
 git commit -m "🚀 Déploiement automatique"
