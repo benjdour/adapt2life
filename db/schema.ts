@@ -4,6 +4,11 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   stackId: text("stack_id").notNull().unique(),
   name: text("name"),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  gender: text("gender"),
+  birthDate: text("birth_date"),
+  sportLevel: integer("sport_level"),
   email: text("email").notNull().unique(),
   createdAt: timestamp("created_at").defaultNow(),
 });
