@@ -1017,10 +1017,16 @@ export const fetchGarminData = async (localUserId: string | number): Promise<Gar
   ] as const;
 
   const sleepBedtimeSeconds = resolveTimestampSeconds(timestampNodes, sleepStartNumericPaths, sleepStartIsoPaths);
-  const sleepWakeSeconds = resolveTimestampSeconds(timestampNodes, sleepEndNumericPaths, sleepEndIsoPaths);
+  let sleepWakeSeconds = resolveTimestampSeconds(timestampNodes, sleepEndNumericPaths, sleepEndIsoPaths);
   const sleepBedtimeOffset = resolveOffsetSeconds(timestampNodes, sleepStartOffsetPaths);
-  const sleepWakeOffset = resolveOffsetSeconds(timestampNodes, sleepEndOffsetPaths);
+  let sleepWakeOffset = resolveOffsetSeconds(timestampNodes, sleepEndOffsetPaths);
   const sleepBedtimeDisplay = formatDateTime(sleepBedtimeSeconds, sleepBedtimeOffset);
+  if (sleepWakeSeconds === null && sleepBedtimeSeconds !== null && sleepDurationSeconds !== null) {
+    sleepWakeSeconds = sleepBedtimeSeconds + sleepDurationSeconds;
+  }
+  if (sleepWakeOffset === null && sleepBedtimeOffset !== null) {
+    sleepWakeOffset = sleepBedtimeOffset;
+  }
   const sleepWakeDisplay = formatDateTime(sleepWakeSeconds, sleepWakeOffset);
   const sleepPhasesDisplay =
     sleepPhases && Object.keys(sleepPhases).length > 0
