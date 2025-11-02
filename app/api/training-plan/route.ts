@@ -253,7 +253,7 @@ export async function POST(request: NextRequest) {
         "X-Title": "Adapt2Life",
       },
       body: JSON.stringify({
-        model: "openrouter/anthropic/claude-3.5-sonnet",
+        model: "anthropic/claude-3.5-haiku-20241022",
         messages: [
           {
             role: "system",
