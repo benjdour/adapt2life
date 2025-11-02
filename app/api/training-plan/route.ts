@@ -228,19 +228,25 @@ export async function POST(request: NextRequest) {
       .join("\n");
 
     const userPrompt = [
-      "Tu es un coach sportif professionnel. Génère un plan d’entraînement hebdomadaire structuré.",
-      "Prends en compte le profil et les contraintes énoncées ci-dessous.",
+      "Tu es un coach sportif professionnel. Compose une séance d’entraînement unique pour aujourd’hui.",
+      "Prends en compte le profil et les contraintes énoncées ci-dessous pour proposer une séance réaliste et motivante.",
       "",
-      "Profil utilisateur :",
+      "Profil utilisateur (à utiliser pour contextualiser la séance, ne pas le répéter dans la réponse finale) :",
       profileLines,
       "",
-      `Objectif principal : ${goal}`,
+      `Objectif / demande du jour : ${goal}`,
       `Contraintes / blessures : ${constraints || "Aucune mentionnée"}`,
       `Disponibilités : ${availability || "Non précisées"}`,
       `Préférences : ${preferences || "Non précisées"}`,
       "",
-      "Réponds en français, avec un ton motivant, et structure la réponse par jour (jour 1, jour 2, etc.).",
-      "Ajoute des recommandations générales (échauffement, récupération, nutrition) en fin de plan.",
+      "Structure la séance uniquement (ne répète pas le profil dans ta réponse) :",
+      "1. Échauffement (durée et exercices précis)",
+      "2. Corps de séance (blocs détaillés, intensités, répétitions ou temps par exercice)",
+      "3. Retour au calme (durée et exercices)",
+      "4. Conseils de récupération / nutrition",
+      "",
+      "Mentionne la durée totale estimée, l’intensité globale et tout équipement nécessaire.",
+      "Réponds en français avec un ton positif et motivant.",
     ].join("\n");
 
     const inferredOrigin =
