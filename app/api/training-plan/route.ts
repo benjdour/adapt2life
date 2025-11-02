@@ -256,8 +256,9 @@ export async function POST(request: NextRequest) {
     const appUrl = process.env.APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? inferredOrigin ?? "http://localhost:3000";
 
     const candidateModels = [
+      "openai/gpt-5",
+      "openai/gpt-5-mini",
       "anthropic/claude-3.5-haiku-20241022",
-      "perplexity/sonar-pro",
     ];
 
     let completionResponse: Response | null = null;
