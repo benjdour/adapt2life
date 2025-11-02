@@ -144,6 +144,14 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
   const signedUpAt =
     stackUser.signedUpAt instanceof Date ? stackUser.signedUpAt : stackUser.signedUpAt ? new Date(stackUser.signedUpAt) : null;
   const statusMessage = normalizeSearchParam(searchParams?.status) === "updated" ? "Profil mis à jour avec succès 🎉" : null;
+  const genderOptions = [
+    { value: "femme", label: "Femme" },
+    { value: "homme", label: "Homme" },
+    { value: "non-binaire", label: "Non binaire" },
+    { value: "transgenre", label: "Transgenre" },
+    { value: "prefere-ne-pas-dire", label: "Préfère ne pas répondre" },
+    { value: "autre", label: "Autre" },
+  ];
   const sportLevelOptions = [
     { value: 1, label: "Sédentaire", description: "Activité physique très faible, aucun entraînement régulier." },
     { value: 2, label: "Débutant absolu", description: "Commence tout juste une activité sportive, peu d’expérience." },
@@ -162,6 +170,13 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
     }
     const match = sportLevelOptions.find((option) => option.value === level);
     return match ? `${level} — ${match.label}` : String(level);
+  };
+  const genderLabel = (value: string | null | undefined) => {
+    if (!value) {
+      return null;
+    }
+    const match = genderOptions.find((option) => option.value === value);
+    return match ? match.label : value;
   };
 
   return (
@@ -288,15 +303,19 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
               <label htmlFor="gender" className="text-sm font-semibold text-emerald-100">
                 Genre
               </label>
-              <input
+              <select
                 id="gender"
                 name="gender"
-                type="text"
                 defaultValue={localUser?.gender ?? ""}
-                placeholder="Ex. Femme, Homme, Non binaire…"
-                className="rounded-md border border-emerald-700/40 bg-emerald-950/60 px-3 py-2 text-sm text-emerald-50 placeholder:text-emerald-200/40 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
-                autoComplete="sex"
-              />
+                className="rounded-md border border-emerald-700/40 bg-emerald-950/60 px-3 py-2 text-sm text-emerald-50 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
+              >
+                <option value="">Sélectionne ton genre</option>
+                {genderOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="flex flex-col gap-2">
@@ -360,6 +379,10 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
             <div>
               <dt className="text-xs uppercase tracking-wide text-emerald-200/70">Nom enregistré</dt>
               <dd className="mt-2 text-base font-semibold">{localUser.name ?? "Non renseigné"}</dd>
+            </div>
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-emerald-200/70">Genre</dt>
+              <dd className="mt-2 text-base font-semibold">{genderLabel(localUser.gender) ?? "Non renseigné"}</dd>
             </div>
             <div>
               <dt className="text-xs uppercase tracking-wide text-emerald-200/70">Niveau sportif</dt>
