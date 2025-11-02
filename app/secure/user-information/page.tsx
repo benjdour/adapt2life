@@ -155,6 +155,7 @@ const formatAge = (value: string | null | undefined) => {
   return `${age} ans`;
 };
 
+
 async function ensureLocalUser(stackUser: NonNullable<Awaited<ReturnType<typeof stackServerApp.getUser>>>) {
   const [existingUser] = await db
     .select(userSelection)
@@ -276,47 +277,6 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
   const formattedAge = formatAge(localUser?.birthDate ?? null);
   const genderOptions = GENDER_OPTIONS;
   const sportLevelOptions = SPORT_LEVEL_OPTIONS;
-const calculateAge = (value: string | null | undefined) => {
-  if (!value || typeof value !== "string") {
-    return null;
-  }
-  const [yearStr, monthStr, dayStr] = value.split("-");
-  const year = Number.parseInt(yearStr ?? "", 10);
-  const month = Number.parseInt(monthStr ?? "", 10);
-  const day = Number.parseInt(dayStr ?? "", 10);
-  if (
-    Number.isNaN(year) ||
-    Number.isNaN(month) ||
-    Number.isNaN(day) ||
-    month < 1 ||
-    month > 12 ||
-    day < 1 ||
-    day > 31
-  ) {
-    return null;
-  }
-  const birthDate = new Date(Date.UTC(year, month - 1, day));
-  if (Number.isNaN(birthDate.getTime())) {
-    return null;
-  }
-  const today = new Date();
-  let age = today.getUTCFullYear() - birthDate.getUTCFullYear();
-  const hasBirthdayPassed =
-    today.getUTCMonth() > birthDate.getUTCMonth() ||
-    (today.getUTCMonth() === birthDate.getUTCMonth() && today.getUTCDate() >= birthDate.getUTCDate());
-  if (!hasBirthdayPassed) {
-    age -= 1;
-  }
-  return age >= 0 ? age : null;
-};
-const formatAge = (value: string | null | undefined) => {
-  const age = calculateAge(value);
-  if (age === null) {
-    return null;
-  }
-  return `${age} ans`;
-};
-
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-3xl flex-col gap-10 px-6 py-12 text-white">
       <header className="space-y-2">
