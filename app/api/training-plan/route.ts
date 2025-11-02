@@ -6,11 +6,20 @@ import { db } from "@/db";
 import { garminWebhookEvents, users } from "@/db/schema";
 import { stackServerApp } from "@/stack/server";
 
+const MAX_TEXT_LENGTH = 2000;
+
+const shortText = z
+  .string()
+  .transform((value) => value.trim())
+  .refine((value) => value.length <= MAX_TEXT_LENGTH, {
+    message: `Merci de limiter chaque champ à ${MAX_TEXT_LENGTH} caractères.`,
+  });
+
 const REQUEST_SCHEMA = z.object({
-  goal: z.string().trim().min(1, "Le but est obligatoire.").max(500),
-  constraints: z.string().trim().optional().default(""),
-  availability: z.string().trim().optional().default(""),
-  preferences: z.string().trim().optional().default(""),
+  goal: shortText.min(1, "L’objectif est obligatoire."),
+  constraints: shortText.optional().default(""),
+  availability: shortText.optional().default(""),
+  preferences: shortText.optional().default(""),
 });
 
 const WEIGHT_KG_PATHS: string[][] = [
@@ -183,8 +192,11 @@ export async function POST(request: NextRequest) {
     const json = await request.json();
     const parsed = REQUEST_SCHEMA.safeParse(json);
     if (!parsed.success) {
-      const message = parsed.error.issues.map((issue) => issue.message).join(" ");
-      return NextResponse.json({ error: message || "Requête invalide." }, { status: 400 });
+      const flattened = parsed.error.flatten();
+      const message =
+        flattened.formErrors.join(" ") || Object.values(flattened.fieldErrors).flat().join(" ") || "Requête invalide.";
+
+      return NextResponse.json({ error: message }, { status: 400 });
     }
 
     const localUser = await ensureLocalUser(stackUser);
