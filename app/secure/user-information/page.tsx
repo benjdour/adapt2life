@@ -80,58 +80,6 @@ const getNullableText = (value: FormDataEntryValue | null) => {
   return trimmed.length > 0 ? trimmed : null;
 };
 
-const sportLevelLabel = (level: number | null | undefined) => {
-  if (typeof level !== "number") {
-    return null;
-  }
-  const match = SPORT_LEVEL_OPTIONS.find((option) => option.value === level);
-  return match ? `${level} — ${match.label}` : String(level);
-};
-
-const genderLabel = (value: string | null | undefined) => {
-  if (!value) {
-    return null;
-  }
-  const match = GENDER_OPTIONS.find((option) => option.value === value);
-  if (match) {
-    return match.label;
-  }
-  const legacyLabels: Record<string, string> = {
-    "non-binaire": "Non binaire",
-    "transgenre": "Transgenre",
-    "prefere-ne-pas-dire": "Préfère ne pas répondre",
-    autre: "Autre",
-  };
-  return legacyLabels[value] ?? value;
-};
-
-const formatHeight = (value: number | null | undefined) => {
-  if (typeof value !== "number" || Number.isNaN(value)) {
-    return null;
-  }
-  return `${value} cm`;
-};
-
-const formatWeight = (value: string | number | null | undefined) => {
-  if (value === null || value === undefined) {
-    return null;
-  }
-  const numeric =
-    typeof value === "string"
-      ? Number.parseFloat(value)
-      : typeof value === "number"
-      ? value
-      : Number.NaN;
-  if (Number.isNaN(numeric)) {
-    return null;
-  }
-  const hasDecimals = Math.abs(numeric % 1) > Number.EPSILON;
-  return `${numeric.toLocaleString("fr-FR", {
-    minimumFractionDigits: hasDecimals ? 2 : 0,
-    maximumFractionDigits: hasDecimals ? 2 : 0,
-  })} kg`;
-};
-
 const toNumeric = (value: unknown): number | null => {
   if (typeof value === "number" && Number.isFinite(value)) {
     return value;
@@ -234,14 +182,6 @@ const calculateAge = (value: string | null | undefined) => {
     age -= 1;
   }
   return age >= 0 ? age : null;
-};
-
-const formatAge = (value: string | null | undefined) => {
-  const age = calculateAge(value);
-  if (age === null) {
-    return null;
-  }
-  return `${age} ans`;
 };
 
 
@@ -365,7 +305,6 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
 
   const statusMessage = normalizeSearchParam(searchParams?.status) === "updated" ? "Profil mis à jour avec succès 🎉" : null;
   const computedAge = calculateAge(localUser.birthDate ?? null);
-  const formattedAge = formatAge(localUser.birthDate ?? null);
   const genderOptions = GENDER_OPTIONS;
   const sportLevelOptions = SPORT_LEVEL_OPTIONS;
   const storedWeightValue =
@@ -586,60 +525,7 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
           </div>
         </form>
 
-        {localUser ? (
-          <dl className="grid gap-4 rounded-2xl border border-emerald-700/30 bg-emerald-900/30 p-4 text-sm sm:grid-cols-2 sm:gap-6 sm:p-6">
-            <div>
-              <dt className="text-xs uppercase tracking-wide text-emerald-200/70">Identifiant interne</dt>
-              <dd className="mt-2 font-mono text-xs sm:text-sm">{localUser.id}</dd>
-            </div>
-            <div>
-              <dt className="text-xs uppercase tracking-wide text-emerald-200/70">Nom enregistré</dt>
-              <dd className="mt-2 text-base font-semibold">{localUser.name ?? "Non renseigné"}</dd>
-            </div>
-            <div>
-              <dt className="text-xs uppercase tracking-wide text-emerald-200/70">Genre</dt>
-              <dd className="mt-2 text-base font-semibold">{genderLabel(localUser.gender) ?? "Non renseigné"}</dd>
-            </div>
-            <div>
-              <dt className="text-xs uppercase tracking-wide text-emerald-200/70">Niveau sportif</dt>
-              <dd className="mt-2 text-base font-semibold">{sportLevelLabel(localUser.sportLevel) ?? "Non renseigné"}</dd>
-            </div>
-            <div>
-              <dt className="text-xs uppercase tracking-wide text-emerald-200/70">Pseudo</dt>
-              <dd className="mt-2 text-base font-semibold">{localUser.pseudo ?? "Non renseigné"}</dd>
-            </div>
-            <div className="sm:col-span-2">
-              <dt className="text-xs uppercase tracking-wide text-emerald-200/70">Objectif sportif principal</dt>
-              <dd className="mt-2 text-base font-semibold text-emerald-100/90">
-                {localUser.trainingGoal && localUser.trainingGoal.trim().length > 0
-                  ? localUser.trainingGoal
-                  : "Non renseigné"}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs uppercase tracking-wide text-emerald-200/70">Âge</dt>
-              <dd className="mt-2 text-base font-semibold">{formattedAge ?? "Non renseigné"}</dd>
-            </div>
-            <div>
-              <dt className="text-xs uppercase tracking-wide text-emerald-200/70">Taille</dt>
-              <dd className="mt-2 text-base font-semibold">{formatHeight(localUser.heightCm) ?? "Non renseigné"}</dd>
-            </div>
-            <div>
-              <dt className="text-xs uppercase tracking-wide text-emerald-200/70">Poids</dt>
-              <dd className="mt-2 text-base font-semibold">{formatWeight(localUser.weightKg) ?? "Non renseigné"}</dd>
-            </div>
-            <div>
-              <dt className="text-xs uppercase tracking-wide text-emerald-200/70">Email enregistré</dt>
-              <dd className="mt-2 text-base font-semibold">{localUser.email}</dd>
-            </div>
-            <div>
-              <dt className="text-xs uppercase tracking-wide text-emerald-200/70">Créé le</dt>
-              <dd className="mt-2 text-base font-semibold">
-                {localUser.createdAt ? localUser.createdAt.toLocaleString("fr-FR") : "Non disponible"}
-              </dd>
-            </div>
-          </dl>
-        ) : null}
+        {localUser ? null : null}
       </section>
 
       <div className="flex flex-col gap-3 sm:flex-row">

@@ -215,7 +215,9 @@ export async function POST(request: NextRequest) {
 
     const { goal, constraints, availability, preferences } = parsed.data;
 
-    const profileLines = [
+    const trainingGoal = localUser?.trainingGoal?.trim() ?? null;
+
+    const profileParts = [
       `Nom complet: ${localUser?.name ?? stackUser.displayName ?? "Inconnu"}`,
       `Genre: ${localUser?.gender ?? "Non spécifié"}`,
       `Date de naissance: ${localUser?.birthDate ?? "Non indiquée"}`,
@@ -226,15 +228,18 @@ export async function POST(request: NextRequest) {
           ? `${inferredWeightKg.toFixed(2)} kg`
           : localUser?.weightKg ?? "Non renseigné"
       }`,
-      `Objectif sportif principal: ${localUser?.trainingGoal ?? "Non renseigné"}`,
       `CAPACITÉ À S’ENTRAÎNER AUJOURD’HUI: ${goal}`,
-    ]
-      .filter(Boolean)
-      .join("\n");
+    ];
+
+    if (trainingGoal) {
+      profileParts.splice(5, 0, `Objectif sportif principal: ${trainingGoal}`);
+    }
+
+    const profileLines = profileParts.filter(Boolean).join("\n");
 
     const userPrompt = [
       "Tu es un coach sportif professionnel. Compose une séance d’entraînement unique pour aujourd’hui.",
-      "Prends en compte le profil et les contraintes énoncées ci-dessous pour proposer une séance réaliste et motivante.",
+      "Prends en compte le profil, l’objectif sportif principal et les contraintes énoncées ci-dessous pour proposer une séance réaliste et motivante.",
       "",
       "Profil utilisateur (à utiliser pour contextualiser la séance, ne pas le répéter dans la réponse finale) :",
       profileLines,
