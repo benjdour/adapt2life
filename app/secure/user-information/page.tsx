@@ -385,6 +385,7 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
   }
   const weightInputDefault =
     weightPrefill !== null && Number.isFinite(weightPrefill) ? weightPrefill.toFixed(2) : "";
+  const showGarminHint = weightPrefillSource === "garmin" && weightInputDefault !== "";
 
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-3xl flex-col gap-10 px-6 py-12 text-white">
@@ -585,7 +586,7 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
                 className="rounded-md border border-emerald-700/40 bg-emerald-950/60 px-3 py-2 text-sm text-emerald-50 placeholder:text-emerald-200/40 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
                 inputMode="decimal"
               />
-              {weightPrefillSource === "garmin" ? (
+              {showGarminHint ? (
                 <p className="text-xs text-emerald-200/60">Valeur suggérée d’après ta dernière mesure Garmin.</p>
               ) : null}
             </div>
