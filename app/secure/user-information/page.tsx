@@ -349,14 +349,28 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
                   </option>
                 ))}
               </select>
-              <ul className="space-y-2 rounded-md border border-emerald-700/30 bg-emerald-900/30 p-3 text-xs text-emerald-200/80">
-                {sportLevelOptions.map((option) => (
-                  <li key={option.value}>
-                    <span className="font-semibold text-emerald-100">{`${option.value} — ${option.label}`}</span>
-                    {option.description ? <span className="block text-emerald-200/70">{option.description}</span> : null}
-                  </li>
-                ))}
-              </ul>
+              <div className="space-y-2 rounded-md border border-emerald-700/30 bg-emerald-900/30 p-3 text-xs text-emerald-200/70">
+                <p className="text-emerald-200/60">Survole l’icône pour consulter la description détaillée.</p>
+                <ul className="space-y-2">
+                  {sportLevelOptions.map((option) => (
+                    <li key={option.value} className="flex items-center gap-3">
+                      <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-emerald-600/50 bg-emerald-500/10 font-semibold text-emerald-100">
+                        {option.value}
+                      </span>
+                      <span className="font-medium text-emerald-100">{option.label}</span>
+                      {option.description ? (
+                        <span
+                          className="ml-auto inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-emerald-500/40 text-emerald-200/80 hover:text-emerald-100"
+                          title={option.description}
+                          aria-label={`Description niveau ${option.value}`}
+                        >
+                          i
+                        </span>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
           </div>
 
