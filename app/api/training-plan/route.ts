@@ -8,18 +8,17 @@ import { stackServerApp } from "@/stack/server";
 
 const MAX_TEXT_LENGTH = 2000;
 
-const shortText = z
-  .string()
-  .transform((value) => value.trim())
-  .refine((value) => value.length <= MAX_TEXT_LENGTH, {
-    message: `Merci de limiter chaque champ à ${MAX_TEXT_LENGTH} caractères.`,
-  });
+const trimString = z.string().transform((value) => value.trim());
+
+const boundedText = trimString.refine((value) => value.length <= MAX_TEXT_LENGTH, {
+  message: `Merci de limiter chaque champ à ${MAX_TEXT_LENGTH} caractères.`,
+});
 
 const REQUEST_SCHEMA = z.object({
-  goal: shortText.min(1, "L’objectif est obligatoire."),
-  constraints: shortText.optional().default(""),
-  availability: shortText.optional().default(""),
-  preferences: shortText.optional().default(""),
+  goal: boundedText.refine((value) => value.length >= 1, "L’objectif est obligatoire."),
+  constraints: boundedText.optional().default(""),
+  availability: boundedText.optional().default(""),
+  preferences: boundedText.optional().default(""),
 });
 
 const WEIGHT_KG_PATHS: string[][] = [
