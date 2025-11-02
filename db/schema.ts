@@ -12,6 +12,7 @@ export const users = pgTable("users", {
   sportLevel: integer("sport_level"),
   heightCm: integer("height_cm"),
   weightKg: numeric("weight_kg", { precision: 6, scale: 2 }),
+  trainingGoal: text("training_goal"),
   email: text("email").notNull().unique(),
   createdAt: timestamp("created_at").defaultNow(),
 });

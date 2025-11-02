@@ -20,6 +20,7 @@ const userSelection = {
   sportLevel: users.sportLevel,
   heightCm: users.heightCm,
   weightKg: users.weightKg,
+  trainingGoal: users.trainingGoal,
   createdAt: users.createdAt,
 };
 
@@ -269,6 +270,7 @@ async function ensureLocalUser(stackUser: NonNullable<Awaited<ReturnType<typeof 
       sportLevel: null,
       heightCm: null,
       weightKg: null,
+      trainingGoal: null,
     })
     .returning(userSelection);
 
@@ -291,6 +293,7 @@ async function updateProfile(formData: FormData) {
   const firstName = getNullableText(formData.get("firstName"));
   const lastName = getNullableText(formData.get("lastName"));
   const pseudo = getNullableText(formData.get("pseudo"));
+  const trainingGoal = getNullableText(formData.get("trainingGoal"));
   const gender = getNullableText(formData.get("gender"));
   const birthDate = getNullableText(formData.get("birthDate"));
 
@@ -328,6 +331,7 @@ async function updateProfile(formData: FormData) {
       sportLevel,
       heightCm,
       weightKg: weightKg !== null ? weightKg.toFixed(2) : null,
+      trainingGoal,
     })
     .where(eq(users.id, localUser.id));
 
@@ -474,6 +478,20 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
                 defaultValue={localUser?.pseudo ?? ""}
                 placeholder="Ex. IronRunner"
                 className="rounded-md border border-emerald-700/40 bg-emerald-950/60 px-3 py-2 text-sm text-emerald-50 placeholder:text-emerald-200/40 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
+              />
+            </div>
+
+            <div className="flex flex-col gap-2 sm:col-span-2">
+              <label htmlFor="trainingGoal" className="text-sm font-semibold text-emerald-100">
+                Objectif sportif principal
+              </label>
+              <textarea
+                id="trainingGoal"
+                name="trainingGoal"
+                defaultValue={localUser?.trainingGoal ?? ""}
+                rows={3}
+                placeholder="Ex. Terminer un marathon en moins de 4h, améliorer ma VO2max, préparer un triathlon sprint..."
+                className="min-h-[96px] rounded-md border border-emerald-700/40 bg-emerald-950/60 px-3 py-2 text-sm text-emerald-50 placeholder:text-emerald-200/40 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
               />
             </div>
 
@@ -642,6 +660,14 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
             <div>
               <dt className="text-xs uppercase tracking-wide text-emerald-200/70">Pseudo</dt>
               <dd className="mt-2 text-base font-semibold">{localUser.pseudo ?? "Non renseigné"}</dd>
+            </div>
+            <div className="sm:col-span-2">
+              <dt className="text-xs uppercase tracking-wide text-emerald-200/70">Objectif sportif principal</dt>
+              <dd className="mt-2 text-base font-semibold text-emerald-100/90">
+                {localUser.trainingGoal && localUser.trainingGoal.trim().length > 0
+                  ? localUser.trainingGoal
+                  : "Non renseigné"}
+              </dd>
             </div>
             <div>
               <dt className="text-xs uppercase tracking-wide text-emerald-200/70">Âge</dt>

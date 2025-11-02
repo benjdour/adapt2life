@@ -95,6 +95,7 @@ async function ensureLocalUser(stackUser: NonNullable<Awaited<ReturnType<typeof 
       sportLevel: users.sportLevel,
       heightCm: users.heightCm,
       weightKg: users.weightKg,
+      trainingGoal: users.trainingGoal,
     })
     .from(users)
     .where(eq(users.stackId, stackUser.id))
@@ -115,6 +116,7 @@ async function ensureLocalUser(stackUser: NonNullable<Awaited<ReturnType<typeof 
       sportLevel: null,
       heightCm: null,
       weightKg: null,
+      trainingGoal: null,
     })
     .returning({
       id: users.id,
@@ -125,6 +127,7 @@ async function ensureLocalUser(stackUser: NonNullable<Awaited<ReturnType<typeof 
       sportLevel: users.sportLevel,
       heightCm: users.heightCm,
       weightKg: users.weightKg,
+      trainingGoal: users.trainingGoal,
     });
 
   if (inserted) {
@@ -141,6 +144,7 @@ async function ensureLocalUser(stackUser: NonNullable<Awaited<ReturnType<typeof 
       sportLevel: users.sportLevel,
       heightCm: users.heightCm,
       weightKg: users.weightKg,
+      trainingGoal: users.trainingGoal,
     })
     .from(users)
     .where(eq(users.stackId, stackUser.id))
@@ -222,6 +226,7 @@ export async function POST(request: NextRequest) {
           ? `${inferredWeightKg.toFixed(2)} kg`
           : localUser?.weightKg ?? "Non renseigné"
       }`,
+      `Objectif sportif principal: ${localUser?.trainingGoal ?? "Non renseigné"}`,
       `CAPACITÉ À S’ENTRAÎNER AUJOURD’HUI: ${goal}`,
     ]
       .filter(Boolean)
