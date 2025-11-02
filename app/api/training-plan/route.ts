@@ -299,7 +299,7 @@ export async function POST(request: NextRequest) {
             },
           ],
           temperature: 0.8,
-          max_tokens: 1024,
+          max_tokens: 2048,
         }),
       });
 
@@ -365,12 +365,17 @@ export async function POST(request: NextRequest) {
         return [];
       };
 
-      const segments = [
-        ...collectSegments(message.reasoning),
-        ...collectSegments(message.content),
-      ].map((segment) => segment.trim());
+      const contentSegments = collectSegments(message.content).map((segment) => segment.trim()).filter(Boolean);
+      if (contentSegments.length > 0) {
+        return contentSegments.join("\n\n");
+      }
 
-      return segments.filter((segment) => segment.length > 0).join("\n\n");
+      const reasoningSegments = collectSegments(message.reasoning).map((segment) => segment.trim()).filter(Boolean);
+      if (reasoningSegments.length > 0) {
+        return reasoningSegments.join("\n\n");
+      }
+
+      return null;
     };
 
     const plan = extractMessageContent(completionJson.choices?.[0]?.message)?.trim();
