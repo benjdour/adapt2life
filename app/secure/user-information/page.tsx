@@ -18,6 +18,8 @@ const userSelection = {
   gender: users.gender,
   birthDate: users.birthDate,
   sportLevel: users.sportLevel,
+  heightCm: users.heightCm,
+  weightKg: users.weightKg,
   createdAt: users.createdAt,
 };
 
@@ -63,6 +65,8 @@ async function ensureLocalUser(stackUser: NonNullable<Awaited<ReturnType<typeof 
       gender: null,
       birthDate: null,
       sportLevel: null,
+      heightCm: null,
+      weightKg: null,
     })
     .returning(userSelection);
 
@@ -95,6 +99,15 @@ async function updateProfile(formData: FormData) {
     parsedSportLevel && !Number.isNaN(parsedSportLevel) && parsedSportLevel >= 1 && parsedSportLevel <= 10
       ? parsedSportLevel
       : null;
+  const heightRaw = formData.get("heightCm");
+  const parsedHeight =
+    typeof heightRaw === "string" && heightRaw.length > 0 ? Number.parseInt(heightRaw, 10) : null;
+  const heightCm = parsedHeight && !Number.isNaN(parsedHeight) && parsedHeight > 0 ? parsedHeight : null;
+  const weightRaw = formData.get("weightKg");
+  const parsedWeight =
+    typeof weightRaw === "string" && weightRaw.length > 0 ? Number.parseFloat(weightRaw) : null;
+  const weightKg =
+    parsedWeight && !Number.isNaN(parsedWeight) && parsedWeight > 0 ? Number.parseFloat(parsedWeight.toFixed(2)) : null;
 
   const localUser = await ensureLocalUser(stackUser);
 
@@ -111,6 +124,8 @@ async function updateProfile(formData: FormData) {
       gender,
       birthDate,
       sportLevel,
+      heightCm,
+      weightKg: weightKg !== null ? weightKg.toFixed(2) : null,
     })
     .where(eq(users.id, localUser.id));
 
@@ -144,13 +159,12 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
   const signedUpAt =
     stackUser.signedUpAt instanceof Date ? stackUser.signedUpAt : stackUser.signedUpAt ? new Date(stackUser.signedUpAt) : null;
   const statusMessage = normalizeSearchParam(searchParams?.status) === "updated" ? "Profil mis à jour avec succès 🎉" : null;
+  const computedAge = calculateAge(localUser?.birthDate ?? null);
+  const formattedAge = computedAge !== null ? `${computedAge} ans` : null;
   const genderOptions = [
-    { value: "femme", label: "Femme" },
     { value: "homme", label: "Homme" },
-    { value: "non-binaire", label: "Non binaire" },
-    { value: "transgenre", label: "Transgenre" },
-    { value: "prefere-ne-pas-dire", label: "Préfère ne pas répondre" },
-    { value: "autre", label: "Autre" },
+    { value: "femme", label: "Femme" },
+    { value: "non-specifie", label: "Non spécifié" },
   ];
   const sportLevelOptions = [
     { value: 1, label: "Sédentaire", description: "Activité physique très faible, aucun entraînement régulier." },
@@ -176,8 +190,82 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
       return null;
     }
     const match = genderOptions.find((option) => option.value === value);
-    return match ? match.label : value;
+    if (match) {
+      return match.label;
+    }
+    const legacyLabels: Record<string, string> = {
+      "non-binaire": "Non binaire",
+      "transgenre": "Transgenre",
+      "prefere-ne-pas-dire": "Préfère ne pas répondre",
+      autre: "Autre",
+    };
+    return legacyLabels[value] ?? value;
   };
+  const formatHeight = (value: number | null | undefined) => {
+    if (typeof value !== "number" || Number.isNaN(value)) {
+      return null;
+    }
+    return `${value} cm`;
+  };
+const formatWeight = (value: string | number | null | undefined) => {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  const numeric =
+      typeof value === "string"
+        ? Number.parseFloat(value)
+        : typeof value === "number"
+        ? value
+        : Number.NaN;
+    if (Number.isNaN(numeric)) {
+      return null;
+    }
+  const hasDecimals = Math.abs(numeric % 1) > Number.EPSILON;
+  return `${numeric.toLocaleString("fr-FR", {
+    minimumFractionDigits: hasDecimals ? 2 : 0,
+    maximumFractionDigits: hasDecimals ? 2 : 0,
+  })} kg`;
+};
+const calculateAge = (value: string | null | undefined) => {
+  if (!value || typeof value !== "string") {
+    return null;
+  }
+  const [yearStr, monthStr, dayStr] = value.split("-");
+  const year = Number.parseInt(yearStr ?? "", 10);
+  const month = Number.parseInt(monthStr ?? "", 10);
+  const day = Number.parseInt(dayStr ?? "", 10);
+  if (
+    Number.isNaN(year) ||
+    Number.isNaN(month) ||
+    Number.isNaN(day) ||
+    month < 1 ||
+    month > 12 ||
+    day < 1 ||
+    day > 31
+  ) {
+    return null;
+  }
+  const birthDate = new Date(Date.UTC(year, month - 1, day));
+  if (Number.isNaN(birthDate.getTime())) {
+    return null;
+  }
+  const today = new Date();
+  let age = today.getUTCFullYear() - birthDate.getUTCFullYear();
+  const hasBirthdayPassed =
+    today.getUTCMonth() > birthDate.getUTCMonth() ||
+    (today.getUTCMonth() === birthDate.getUTCMonth() && today.getUTCDate() >= birthDate.getUTCDate());
+  if (!hasBirthdayPassed) {
+    age -= 1;
+  }
+  return age >= 0 ? age : null;
+};
+const formatAge = (value: string | null | undefined) => {
+  const age = calculateAge(value);
+  if (age === null) {
+    return null;
+  }
+  return `${age} ans`;
+};
 
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-3xl flex-col gap-10 px-6 py-12 text-white">
@@ -332,6 +420,54 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
               />
             </div>
 
+            <div className="flex flex-col gap-2">
+              <label htmlFor="age" className="text-sm font-semibold text-emerald-100">
+                Âge (calculé)
+              </label>
+              <input
+                id="age"
+                type="number"
+                readOnly
+                value={computedAge ?? ""}
+                placeholder="Ex. 29"
+                className="rounded-md border border-emerald-700/40 bg-emerald-950/40 px-3 py-2 text-sm text-emerald-50 placeholder:text-emerald-200/40 focus:outline-none"
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label htmlFor="heightCm" className="text-sm font-semibold text-emerald-100">
+                Taille (cm)
+              </label>
+              <input
+                id="heightCm"
+                name="heightCm"
+                type="number"
+                min="0"
+                step="1"
+                defaultValue={typeof localUser?.heightCm === "number" ? String(localUser.heightCm) : ""}
+                placeholder="Ex. 172"
+                className="rounded-md border border-emerald-700/40 bg-emerald-950/60 px-3 py-2 text-sm text-emerald-50 placeholder:text-emerald-200/40 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
+                inputMode="numeric"
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label htmlFor="weightKg" className="text-sm font-semibold text-emerald-100">
+                Poids (kg)
+              </label>
+              <input
+                id="weightKg"
+                name="weightKg"
+                type="number"
+                min="0"
+                step="0.1"
+                defaultValue={localUser?.weightKg ? String(localUser.weightKg) : ""}
+                placeholder="Ex. 68.5"
+                className="rounded-md border border-emerald-700/40 bg-emerald-950/60 px-3 py-2 text-sm text-emerald-50 placeholder:text-emerald-200/40 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
+                inputMode="decimal"
+              />
+            </div>
+
             <div className="flex flex-col gap-2 sm:col-span-2">
               <label htmlFor="sportLevel" className="text-sm font-semibold text-emerald-100">
                 Niveau sportif
@@ -349,28 +485,6 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
                   </option>
                 ))}
               </select>
-              <div className="space-y-2 rounded-md border border-emerald-700/30 bg-emerald-900/30 p-3 text-xs text-emerald-200/70">
-                <p className="text-emerald-200/60">Survole l’icône pour consulter la description détaillée.</p>
-                <ul className="space-y-2">
-                  {sportLevelOptions.map((option) => (
-                    <li key={option.value} className="flex items-center gap-3">
-                      <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-emerald-600/50 bg-emerald-500/10 font-semibold text-emerald-100">
-                        {option.value}
-                      </span>
-                      <span className="font-medium text-emerald-100">{option.label}</span>
-                      {option.description ? (
-                        <span
-                          className="ml-auto inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-emerald-500/40 text-emerald-200/80 hover:text-emerald-100"
-                          title={option.description}
-                          aria-label={`Description niveau ${option.value}`}
-                        >
-                          i
-                        </span>
-                      ) : null}
-                    </li>
-                  ))}
-                </ul>
-              </div>
             </div>
           </div>
 
@@ -405,6 +519,18 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
             <div>
               <dt className="text-xs uppercase tracking-wide text-emerald-200/70">Pseudo</dt>
               <dd className="mt-2 text-base font-semibold">{localUser.pseudo ?? "Non renseigné"}</dd>
+            </div>
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-emerald-200/70">Âge</dt>
+              <dd className="mt-2 text-base font-semibold">{formattedAge ?? "Non renseigné"}</dd>
+            </div>
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-emerald-200/70">Taille</dt>
+              <dd className="mt-2 text-base font-semibold">{formatHeight(localUser.heightCm) ?? "Non renseigné"}</dd>
+            </div>
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-emerald-200/70">Poids</dt>
+              <dd className="mt-2 text-base font-semibold">{formatWeight(localUser.weightKg) ?? "Non renseigné"}</dd>
             </div>
             <div>
               <dt className="text-xs uppercase tracking-wide text-emerald-200/70">Email enregistré</dt>

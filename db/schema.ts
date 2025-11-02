@@ -1,4 +1,4 @@
-import { index, integer, jsonb, pgTable, serial, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { index, integer, jsonb, numeric, pgTable, serial, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -10,6 +10,8 @@ export const users = pgTable("users", {
   gender: text("gender"),
   birthDate: text("birth_date"),
   sportLevel: integer("sport_level"),
+  heightCm: integer("height_cm"),
+  weightKg: numeric("weight_kg", { precision: 6, scale: 2 }),
   email: text("email").notNull().unique(),
   createdAt: timestamp("created_at").defaultNow(),
 });
