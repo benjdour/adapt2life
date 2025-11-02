@@ -363,9 +363,6 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
 
   const localUser = maybeLocalUser ?? (await ensureLocalUser(stackUser));
 
-  const primaryEmail = stackUser.primaryEmail ?? localUser.email ?? "Email non renseigné";
-  const signedUpAt =
-    stackUser.signedUpAt instanceof Date ? stackUser.signedUpAt : stackUser.signedUpAt ? new Date(stackUser.signedUpAt) : null;
   const statusMessage = normalizeSearchParam(searchParams?.status) === "updated" ? "Profil mis à jour avec succès 🎉" : null;
   const computedAge = calculateAge(localUser.birthDate ?? null);
   const formattedAge = formatAge(localUser.birthDate ?? null);
@@ -401,56 +398,6 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
         </p>
       </header>
 
-      <section className="space-y-6 rounded-3xl border border-white/10 bg-white/5 p-8 shadow-xl backdrop-blur">
-        <div className="space-y-3">
-          <p className="text-sm uppercase tracking-wide text-white/60">Identité Stack Auth</p>
-          <div>
-            <h2 className="text-2xl font-semibold">{stackUser.displayName ?? "Profil sans nom"}</h2>
-            <p className="text-sm text-white/70">{primaryEmail}</p>
-          </div>
-          <p className="text-xs text-white/50">
-            Pseudo Adapt2Life: <span className="font-semibold text-white/80">{localUser.pseudo ?? "Non défini"}</span>
-          </p>
-          {stackUser.profileImageUrl ? (
-            <p className="text-xs text-white/50">
-              Image de profil:{" "}
-              <a href={stackUser.profileImageUrl} target="_blank" rel="noreferrer" className="text-emerald-300 underline">
-                {stackUser.profileImageUrl}
-              </a>
-            </p>
-          ) : null}
-        </div>
-
-        <dl className="grid gap-4 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm sm:grid-cols-2 sm:gap-6 sm:p-6">
-          <div>
-            <dt className="text-xs uppercase tracking-wide text-white/60">Email vérifié</dt>
-            <dd className="mt-2 text-base font-semibold">{stackUser.primaryEmailVerified ? "Oui ✅" : "Non"}</dd>
-          </div>
-          <div>
-            <dt className="text-xs uppercase tracking-wide text-white/60">Mot de passe configuré</dt>
-            <dd className="mt-2 text-base font-semibold">{stackUser.hasPassword ? "Oui" : "Non"}</dd>
-          </div>
-          <div>
-            <dt className="text-xs uppercase tracking-wide text-white/60">Compte anonyme</dt>
-            <dd className="mt-2 text-base font-semibold">{stackUser.isAnonymous ? "Oui" : "Non"}</dd>
-          </div>
-          <div>
-            <dt className="text-xs uppercase tracking-wide text-white/60">Inscription Stack</dt>
-            <dd className="mt-2 text-base font-semibold">{signedUpAt ? signedUpAt.toLocaleString("fr-FR") : "Non disponible"}</dd>
-          </div>
-          <div>
-            <dt className="text-xs uppercase tracking-wide text-white/60">ID Stack</dt>
-            <dd className="mt-2 font-mono text-xs sm:text-sm">{stackUser.id}</dd>
-          </div>
-          <div>
-            <dt className="text-xs uppercase tracking-wide text-white/60">Métadonnées client</dt>
-            <dd className="mt-2 text-xs text-white/60">
-              {stackUser.clientMetadata ? JSON.stringify(stackUser.clientMetadata) : "Aucune métadonnée"}
-            </dd>
-          </div>
-        </dl>
-      </section>
-
       <section className="space-y-6 rounded-3xl border border-emerald-700/40 bg-emerald-900/20 p-8 shadow-xl backdrop-blur">
         <div>
           <p className="text-sm uppercase tracking-wide text-emerald-300">Profil Adapt2Life</p>
@@ -478,20 +425,6 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
                 defaultValue={localUser?.pseudo ?? ""}
                 placeholder="Ex. IronRunner"
                 className="rounded-md border border-emerald-700/40 bg-emerald-950/60 px-3 py-2 text-sm text-emerald-50 placeholder:text-emerald-200/40 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
-              />
-            </div>
-
-            <div className="flex flex-col gap-2 sm:col-span-2">
-              <label htmlFor="trainingGoal" className="text-sm font-semibold text-emerald-100">
-                Objectif sportif principal
-              </label>
-              <textarea
-                id="trainingGoal"
-                name="trainingGoal"
-                defaultValue={localUser?.trainingGoal ?? ""}
-                rows={3}
-                placeholder="Ex. Terminer un marathon en moins de 4h, améliorer ma VO2max, préparer un triathlon sprint..."
-                className="min-h-[96px] rounded-md border border-emerald-700/40 bg-emerald-950/60 px-3 py-2 text-sm text-emerald-50 placeholder:text-emerald-200/40 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
               />
             </div>
 
@@ -626,6 +559,20 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
                   </option>
                 ))}
               </select>
+            </div>
+
+            <div className="flex flex-col gap-2 sm:col-span-2">
+              <label htmlFor="trainingGoal" className="text-sm font-semibold text-emerald-100">
+                Objectif sportif principal
+              </label>
+              <textarea
+                id="trainingGoal"
+                name="trainingGoal"
+                defaultValue={localUser?.trainingGoal ?? ""}
+                rows={3}
+                placeholder="Ex. Terminer un marathon en moins de 4h, améliorer ma VO2max, préparer un triathlon sprint..."
+                className="min-h-[96px] rounded-md border border-emerald-700/40 bg-emerald-950/60 px-3 py-2 text-sm text-emerald-50 placeholder:text-emerald-200/40 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
+              />
             </div>
           </div>
 
