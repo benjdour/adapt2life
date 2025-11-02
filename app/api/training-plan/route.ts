@@ -244,34 +244,58 @@ export async function POST(request: NextRequest) {
 
     const appUrl = process.env.APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
-    const completionResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${openRouterKey}`,
-        "HTTP-Referer": appUrl,
-        "X-Title": "Adapt2Life",
-      },
-      body: JSON.stringify({
-        model: "anthropic/claude-3.5-haiku-20241022",
-        messages: [
-          {
-            role: "system",
-            content:
-              "Tu es Adapt2Life, un entraîneur sportif numérique spécialisé dans la préparation de plans d’entraînement personnalisés.",
-          },
-          {
-            role: "user",
-            content: userPrompt,
-          },
-        ],
-        temperature: 0.8,
-        max_tokens: 1024,
-      }),
-    });
+    const candidateModels = [
+      "anthropic/claude-3.5-haiku-20241022",
+      "perplexity/sonar-pro",
+    ];
 
-    if (!completionResponse.ok) {
-      if (completionResponse.status === 429) {
+    let completionResponse: Response | null = null;
+    let lastErrorPayload: string | null = null;
+
+    for (let index = 0; index < candidateModels.length; index += 1) {
+      const model = candidateModels[index];
+
+      completionResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${openRouterKey}`,
+          "HTTP-Referer": appUrl,
+          "X-Title": "Adapt2Life",
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            {
+              role: "system",
+              content:
+                "Tu es Adapt2Life, un entraîneur sportif numérique spécialisé dans la préparation de plans d’entraînement personnalisés.",
+            },
+            {
+              role: "user",
+              content: userPrompt,
+            },
+          ],
+          temperature: 0.8,
+          max_tokens: 1024,
+        }),
+      });
+
+      if (completionResponse.ok) {
+        break;
+      }
+
+      if (completionResponse.status === 429 && index < candidateModels.length - 1) {
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        continue;
+      }
+
+      lastErrorPayload = await completionResponse.text();
+      break;
+    }
+
+    if (!completionResponse || !completionResponse.ok) {
+      if (completionResponse?.status === 429) {
         return NextResponse.json(
           {
             error:
@@ -281,10 +305,9 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const errorText = await completionResponse.text();
       return NextResponse.json(
-        { error: "La génération a échoué sur OpenRouter.", details: errorText },
-        { status: completionResponse.status },
+        { error: "La génération a échoué sur OpenRouter.", details: lastErrorPayload ?? null },
+        { status: completionResponse?.status ?? 500 },
       );
     }
 
