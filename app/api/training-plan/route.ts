@@ -271,6 +271,16 @@ export async function POST(request: NextRequest) {
     });
 
     if (!completionResponse.ok) {
+      if (completionResponse.status === 429) {
+        return NextResponse.json(
+          {
+            error:
+              "Le service d’IA est momentanément saturé. Réessaie dans quelques instants ou réduis la fréquence de génération.",
+          },
+          { status: 429 },
+        );
+      }
+
       const errorText = await completionResponse.text();
       return NextResponse.json(
         { error: "La génération a échoué sur OpenRouter.", details: errorText },
