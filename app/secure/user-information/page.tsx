@@ -1,11 +1,11 @@
 import { Metadata } from "next";
 import { revalidatePath, unstable_noStore as noStore } from "next/cache";
 import Link from "next/link";
-import { eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 
 import { db } from "@/db";
-import { users } from "@/db/schema";
+import { garminWebhookEvents, users } from "@/db/schema";
 import { stackServerApp } from "@/stack/server";
 
 const userSelection = {
@@ -40,6 +40,24 @@ const SPORT_LEVEL_OPTIONS = [
   { value: 8, label: "Expert", description: "Suit un programme exigeant avec encadrement ou suivi précis des données." },
   { value: 9, label: "Compétiteur élite amateur", description: "Participe à des compétitions de haut niveau, gros volume d’entraînement." },
   { value: 10, label: "Professionnel", description: "Athlète professionnel ou semi-pro avec calendrier compétitif intense." },
+];
+
+const WEIGHT_KG_PATHS: string[][] = [
+  ["weightKg"],
+  ["weightInKilograms"],
+  ["bodyCompositions", "0", "weightKg"],
+  ["bodyCompositions", "0", "weightInKilograms"],
+  ["bodyComposition", "weightKg"],
+  ["bodyComposition", "weightInKilograms"],
+];
+
+const WEIGHT_GRAM_PATHS: string[][] = [
+  ["weightInGrams"],
+  ["bodyCompositions", "0", "weightInGrams"],
+  ["bodyCompositions", "0", "weight"],
+  ["bodyComposition", "weightInGrams"],
+  ["bodyComposition", "weight"],
+  ["weight"],
 ];
 
 type PageProps = {
@@ -112,6 +130,76 @@ const formatWeight = (value: string | number | null | undefined) => {
     maximumFractionDigits: hasDecimals ? 2 : 0,
   })} kg`;
 };
+
+const toNumeric = (value: unknown): number | null => {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string") {
+    const parsed = Number.parseFloat(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+};
+
+const getNestedValue = (source: unknown, path: readonly string[]): unknown => {
+  let current: unknown = source;
+  for (const segment of path) {
+    if (current === null || current === undefined) {
+      return undefined;
+    }
+    if (Array.isArray(current)) {
+      const index = Number.parseInt(segment, 10);
+      if (Number.isNaN(index) || index < 0 || index >= current.length) {
+        return undefined;
+      }
+      current = current[index];
+      continue;
+    }
+    if (typeof current === "object") {
+      current = (current as Record<string, unknown>)[segment];
+      continue;
+    }
+    return undefined;
+  }
+  return current;
+};
+
+const pickNumberFromPaths = (source: unknown, paths: readonly string[][]): number | null => {
+  for (const pathSegments of paths) {
+    const value = getNestedValue(source, pathSegments);
+    const numeric = toNumeric(value);
+    if (numeric !== null) {
+      return numeric;
+    }
+  }
+  return null;
+};
+
+async function fetchLatestGarminWeightKg(userId: number): Promise<number | null> {
+  const [event] = await db
+    .select({
+      payload: garminWebhookEvents.payload,
+    })
+    .from(garminWebhookEvents)
+    .where(and(eq(garminWebhookEvents.userId, userId), eq(garminWebhookEvents.type, "bodyCompositions")))
+    .orderBy(desc(garminWebhookEvents.createdAt))
+    .limit(1);
+
+  if (!event?.payload) {
+    return null;
+  }
+
+  const payload = event.payload as Record<string, unknown>;
+
+  const weightKg = pickNumberFromPaths(payload, WEIGHT_KG_PATHS);
+  if (weightKg !== null) {
+    return weightKg;
+  }
+
+  const weightGrams = pickNumberFromPaths(payload, WEIGHT_GRAM_PATHS);
+  return weightGrams !== null ? weightGrams / 1000 : null;
+}
 
 const calculateAge = (value: string | null | undefined) => {
   if (!value || typeof value !== "string") {
@@ -263,20 +351,41 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
     redirect("/handler/sign-in?redirect=/secure/user-information");
   }
 
-  const [localUser] = await db
+  const [maybeLocalUser] = await db
     .select(userSelection)
     .from(users)
     .where(eq(users.stackId, stackUser.id))
     .limit(1);
 
-  const primaryEmail = stackUser.primaryEmail ?? localUser?.email ?? "Email non renseigné";
+  const localUser = maybeLocalUser ?? (await ensureLocalUser(stackUser));
+
+  const primaryEmail = stackUser.primaryEmail ?? localUser.email ?? "Email non renseigné";
   const signedUpAt =
     stackUser.signedUpAt instanceof Date ? stackUser.signedUpAt : stackUser.signedUpAt ? new Date(stackUser.signedUpAt) : null;
   const statusMessage = normalizeSearchParam(searchParams?.status) === "updated" ? "Profil mis à jour avec succès 🎉" : null;
-  const computedAge = calculateAge(localUser?.birthDate ?? null);
-  const formattedAge = formatAge(localUser?.birthDate ?? null);
+  const computedAge = calculateAge(localUser.birthDate ?? null);
+  const formattedAge = formatAge(localUser.birthDate ?? null);
   const genderOptions = GENDER_OPTIONS;
   const sportLevelOptions = SPORT_LEVEL_OPTIONS;
+  const storedWeightValue =
+    localUser.weightKg !== null && localUser.weightKg !== undefined
+      ? Number.parseFloat(String(localUser.weightKg))
+      : null;
+  let weightPrefillSource: "profile" | "garmin" | null = null;
+  let weightPrefill =
+    storedWeightValue !== null && Number.isFinite(storedWeightValue) ? storedWeightValue : null;
+  if (weightPrefill !== null) {
+    weightPrefillSource = "profile";
+  } else {
+    const garminWeight = await fetchLatestGarminWeightKg(localUser.id);
+    if (garminWeight !== null) {
+      weightPrefill = garminWeight;
+      weightPrefillSource = "garmin";
+    }
+  }
+  const weightInputDefault =
+    weightPrefill !== null && Number.isFinite(weightPrefill) ? weightPrefill.toFixed(2) : "";
+
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-3xl flex-col gap-10 px-6 py-12 text-white">
       <header className="space-y-2">
@@ -295,7 +404,7 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
             <p className="text-sm text-white/70">{primaryEmail}</p>
           </div>
           <p className="text-xs text-white/50">
-            Pseudo Adapt2Life: <span className="font-semibold text-white/80">{localUser?.pseudo ?? "Non défini"}</span>
+            Pseudo Adapt2Life: <span className="font-semibold text-white/80">{localUser.pseudo ?? "Non défini"}</span>
           </p>
           {stackUser.profileImageUrl ? (
             <p className="text-xs text-white/50">
@@ -471,11 +580,14 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
                 type="number"
                 min="0"
                 step="0.1"
-                defaultValue={localUser?.weightKg ? String(localUser.weightKg) : ""}
+                defaultValue={weightInputDefault}
                 placeholder="Ex. 68.5"
                 className="rounded-md border border-emerald-700/40 bg-emerald-950/60 px-3 py-2 text-sm text-emerald-50 placeholder:text-emerald-200/40 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
                 inputMode="decimal"
               />
+              {weightPrefillSource === "garmin" ? (
+                <p className="text-xs text-emerald-200/60">Valeur suggérée d’après ta dernière mesure Garmin.</p>
+              ) : null}
             </div>
 
             <div className="flex flex-col gap-2 sm:col-span-2">
