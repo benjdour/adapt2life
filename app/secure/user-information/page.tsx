@@ -144,7 +144,25 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
   const signedUpAt =
     stackUser.signedUpAt instanceof Date ? stackUser.signedUpAt : stackUser.signedUpAt ? new Date(stackUser.signedUpAt) : null;
   const statusMessage = normalizeSearchParam(searchParams?.status) === "updated" ? "Profil mis à jour avec succès 🎉" : null;
-  const sportLevelOptions = Array.from({ length: 10 }, (_, index) => index + 1);
+  const sportLevelOptions = [
+    { value: 1, label: "Sédentaire", description: "Activité physique très faible, aucun entraînement régulier." },
+    { value: 2, label: "Débutant absolu", description: "Commence tout juste une activité sportive, peu d’expérience." },
+    { value: 3, label: "Débutant régulier", description: "Pratique légère 1 à 2 fois par semaine, encore en phase d’apprentissage." },
+    { value: 4, label: "Loisir occasionnel", description: "Activité de loisir sans objectif particulier, rythme irrégulier." },
+    { value: 5, label: "Loisir sérieux", description: "Pratique structurée 2 à 3 fois par semaine, objectifs personnels simples." },
+    { value: 6, label: "Intermédiaire", description: "Bon niveau d’endurance, séances régulières avec planification basique." },
+    { value: 7, label: "Avancé", description: "S’entraîne fréquemment avec planification, vise des performances mesurées." },
+    { value: 8, label: "Expert", description: "Suit un programme exigeant avec encadrement ou suivi précis des données." },
+    { value: 9, label: "Compétiteur élite amateur", description: "Participe à des compétitions de haut niveau, gros volume d’entraînement." },
+    { value: 10, label: "Professionnel", description: "Athlète professionnel ou semi-pro avec calendrier compétitif intense." },
+  ];
+  const sportLevelLabel = (level: number | null | undefined) => {
+    if (typeof level !== "number") {
+      return null;
+    }
+    const match = sportLevelOptions.find((option) => option.value === level);
+    return match ? `${level} — ${match.label}` : String(level);
+  };
 
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-3xl flex-col gap-10 px-6 py-12 text-white">
@@ -306,19 +324,20 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
                 className="rounded-md border border-emerald-700/40 bg-emerald-950/60 px-3 py-2 text-sm text-emerald-50 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
               >
                 <option value="">Sélectionne ton niveau</option>
-                {sportLevelOptions.map((level) => (
-                  <option key={level} value={String(level)}>
-                    {level === 1
-                      ? "1 - Non sportif"
-                      : level === 10
-                      ? "10 - Sportif professionnel"
-                      : `${level}`}
+                {sportLevelOptions.map((option) => (
+                  <option key={option.value} value={String(option.value)}>
+                    {`${option.value} — ${option.label}`}
                   </option>
                 ))}
               </select>
-              <p className="text-xs text-emerald-200/60">
-                1 correspond à un profil sédentaire, 10 à un sportif professionnel.
-              </p>
+              <ul className="space-y-2 rounded-md border border-emerald-700/30 bg-emerald-900/30 p-3 text-xs text-emerald-200/80">
+                {sportLevelOptions.map((option) => (
+                  <li key={option.value}>
+                    <span className="font-semibold text-emerald-100">{`${option.value} — ${option.label}`}</span>
+                    {option.description ? <span className="block text-emerald-200/70">{option.description}</span> : null}
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
 
@@ -341,6 +360,10 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
             <div>
               <dt className="text-xs uppercase tracking-wide text-emerald-200/70">Nom enregistré</dt>
               <dd className="mt-2 text-base font-semibold">{localUser.name ?? "Non renseigné"}</dd>
+            </div>
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-emerald-200/70">Niveau sportif</dt>
+              <dd className="mt-2 text-base font-semibold">{sportLevelLabel(localUser.sportLevel) ?? "Non renseigné"}</dd>
             </div>
             <div>
               <dt className="text-xs uppercase tracking-wide text-emerald-200/70">Pseudo</dt>
