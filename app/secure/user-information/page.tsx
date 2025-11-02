@@ -580,7 +580,7 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
                 name="weightKg"
                 type="number"
                 min="0"
-                step="0.1"
+                step="0.01"
                 defaultValue={weightInputDefault}
                 placeholder="Ex. 68.5"
                 className="rounded-md border border-emerald-700/40 bg-emerald-950/60 px-3 py-2 text-sm text-emerald-50 placeholder:text-emerald-200/40 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
