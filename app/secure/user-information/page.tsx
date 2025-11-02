@@ -23,6 +23,25 @@ const userSelection = {
   createdAt: users.createdAt,
 };
 
+const GENDER_OPTIONS = [
+  { value: "homme", label: "Homme" },
+  { value: "femme", label: "Femme" },
+  { value: "non-specifie", label: "Non spécifié" },
+];
+
+const SPORT_LEVEL_OPTIONS = [
+  { value: 1, label: "Sédentaire", description: "Activité physique très faible, aucun entraînement régulier." },
+  { value: 2, label: "Débutant absolu", description: "Commence tout juste une activité sportive, peu d’expérience." },
+  { value: 3, label: "Débutant régulier", description: "Pratique légère 1 à 2 fois par semaine, encore en phase d’apprentissage." },
+  { value: 4, label: "Loisir occasionnel", description: "Activité de loisir sans objectif particulier, rythme irrégulier." },
+  { value: 5, label: "Loisir sérieux", description: "Pratique structurée 2 à 3 fois par semaine, objectifs personnels simples." },
+  { value: 6, label: "Intermédiaire", description: "Bon niveau d’endurance, séances régulières avec planification basique." },
+  { value: 7, label: "Avancé", description: "S’entraîne fréquemment avec planification, vise des performances mesurées." },
+  { value: 8, label: "Expert", description: "Suit un programme exigeant avec encadrement ou suivi précis des données." },
+  { value: 9, label: "Compétiteur élite amateur", description: "Participe à des compétitions de haut niveau, gros volume d’entraînement." },
+  { value: 10, label: "Professionnel", description: "Athlète professionnel ou semi-pro avec calendrier compétitif intense." },
+];
+
 type PageProps = {
   searchParams?: Record<string, string | string[] | undefined>;
 };
@@ -40,6 +59,100 @@ const getNullableText = (value: FormDataEntryValue | null) => {
   }
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
+};
+
+const sportLevelLabel = (level: number | null | undefined) => {
+  if (typeof level !== "number") {
+    return null;
+  }
+  const match = SPORT_LEVEL_OPTIONS.find((option) => option.value === level);
+  return match ? `${level} — ${match.label}` : String(level);
+};
+
+const genderLabel = (value: string | null | undefined) => {
+  if (!value) {
+    return null;
+  }
+  const match = GENDER_OPTIONS.find((option) => option.value === value);
+  if (match) {
+    return match.label;
+  }
+  const legacyLabels: Record<string, string> = {
+    "non-binaire": "Non binaire",
+    "transgenre": "Transgenre",
+    "prefere-ne-pas-dire": "Préfère ne pas répondre",
+    autre: "Autre",
+  };
+  return legacyLabels[value] ?? value;
+};
+
+const formatHeight = (value: number | null | undefined) => {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return null;
+  }
+  return `${value} cm`;
+};
+
+const formatWeight = (value: string | number | null | undefined) => {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  const numeric =
+    typeof value === "string"
+      ? Number.parseFloat(value)
+      : typeof value === "number"
+      ? value
+      : Number.NaN;
+  if (Number.isNaN(numeric)) {
+    return null;
+  }
+  const hasDecimals = Math.abs(numeric % 1) > Number.EPSILON;
+  return `${numeric.toLocaleString("fr-FR", {
+    minimumFractionDigits: hasDecimals ? 2 : 0,
+    maximumFractionDigits: hasDecimals ? 2 : 0,
+  })} kg`;
+};
+
+const calculateAge = (value: string | null | undefined) => {
+  if (!value || typeof value !== "string") {
+    return null;
+  }
+  const [yearStr, monthStr, dayStr] = value.split("-");
+  const year = Number.parseInt(yearStr ?? "", 10);
+  const month = Number.parseInt(monthStr ?? "", 10);
+  const day = Number.parseInt(dayStr ?? "", 10);
+  if (
+    Number.isNaN(year) ||
+    Number.isNaN(month) ||
+    Number.isNaN(day) ||
+    month < 1 ||
+    month > 12 ||
+    day < 1 ||
+    day > 31
+  ) {
+    return null;
+  }
+  const birthDate = new Date(Date.UTC(year, month - 1, day));
+  if (Number.isNaN(birthDate.getTime())) {
+    return null;
+  }
+  const today = new Date();
+  let age = today.getUTCFullYear() - birthDate.getUTCFullYear();
+  const hasBirthdayPassed =
+    today.getUTCMonth() > birthDate.getUTCMonth() ||
+    (today.getUTCMonth() === birthDate.getUTCMonth() && today.getUTCDate() >= birthDate.getUTCDate());
+  if (!hasBirthdayPassed) {
+    age -= 1;
+  }
+  return age >= 0 ? age : null;
+};
+
+const formatAge = (value: string | null | undefined) => {
+  const age = calculateAge(value);
+  if (age === null) {
+    return null;
+  }
+  return `${age} ans`;
 };
 
 async function ensureLocalUser(stackUser: NonNullable<Awaited<ReturnType<typeof stackServerApp.getUser>>>) {
@@ -160,72 +273,9 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
     stackUser.signedUpAt instanceof Date ? stackUser.signedUpAt : stackUser.signedUpAt ? new Date(stackUser.signedUpAt) : null;
   const statusMessage = normalizeSearchParam(searchParams?.status) === "updated" ? "Profil mis à jour avec succès 🎉" : null;
   const computedAge = calculateAge(localUser?.birthDate ?? null);
-  const formattedAge = computedAge !== null ? `${computedAge} ans` : null;
-  const genderOptions = [
-    { value: "homme", label: "Homme" },
-    { value: "femme", label: "Femme" },
-    { value: "non-specifie", label: "Non spécifié" },
-  ];
-  const sportLevelOptions = [
-    { value: 1, label: "Sédentaire", description: "Activité physique très faible, aucun entraînement régulier." },
-    { value: 2, label: "Débutant absolu", description: "Commence tout juste une activité sportive, peu d’expérience." },
-    { value: 3, label: "Débutant régulier", description: "Pratique légère 1 à 2 fois par semaine, encore en phase d’apprentissage." },
-    { value: 4, label: "Loisir occasionnel", description: "Activité de loisir sans objectif particulier, rythme irrégulier." },
-    { value: 5, label: "Loisir sérieux", description: "Pratique structurée 2 à 3 fois par semaine, objectifs personnels simples." },
-    { value: 6, label: "Intermédiaire", description: "Bon niveau d’endurance, séances régulières avec planification basique." },
-    { value: 7, label: "Avancé", description: "S’entraîne fréquemment avec planification, vise des performances mesurées." },
-    { value: 8, label: "Expert", description: "Suit un programme exigeant avec encadrement ou suivi précis des données." },
-    { value: 9, label: "Compétiteur élite amateur", description: "Participe à des compétitions de haut niveau, gros volume d’entraînement." },
-    { value: 10, label: "Professionnel", description: "Athlète professionnel ou semi-pro avec calendrier compétitif intense." },
-  ];
-  const sportLevelLabel = (level: number | null | undefined) => {
-    if (typeof level !== "number") {
-      return null;
-    }
-    const match = sportLevelOptions.find((option) => option.value === level);
-    return match ? `${level} — ${match.label}` : String(level);
-  };
-  const genderLabel = (value: string | null | undefined) => {
-    if (!value) {
-      return null;
-    }
-    const match = genderOptions.find((option) => option.value === value);
-    if (match) {
-      return match.label;
-    }
-    const legacyLabels: Record<string, string> = {
-      "non-binaire": "Non binaire",
-      "transgenre": "Transgenre",
-      "prefere-ne-pas-dire": "Préfère ne pas répondre",
-      autre: "Autre",
-    };
-    return legacyLabels[value] ?? value;
-  };
-  const formatHeight = (value: number | null | undefined) => {
-    if (typeof value !== "number" || Number.isNaN(value)) {
-      return null;
-    }
-    return `${value} cm`;
-  };
-const formatWeight = (value: string | number | null | undefined) => {
-  if (value === null || value === undefined) {
-    return null;
-  }
-  const numeric =
-      typeof value === "string"
-        ? Number.parseFloat(value)
-        : typeof value === "number"
-        ? value
-        : Number.NaN;
-    if (Number.isNaN(numeric)) {
-      return null;
-    }
-  const hasDecimals = Math.abs(numeric % 1) > Number.EPSILON;
-  return `${numeric.toLocaleString("fr-FR", {
-    minimumFractionDigits: hasDecimals ? 2 : 0,
-    maximumFractionDigits: hasDecimals ? 2 : 0,
-  })} kg`;
-};
+  const formattedAge = formatAge(localUser?.birthDate ?? null);
+  const genderOptions = GENDER_OPTIONS;
+  const sportLevelOptions = SPORT_LEVEL_OPTIONS;
 const calculateAge = (value: string | null | undefined) => {
   if (!value || typeof value !== "string") {
     return null;
