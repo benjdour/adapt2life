@@ -327,35 +327,40 @@ export async function POST(request: NextRequest) {
       choices?: Array<{ message?: { content?: unknown } }>;
     };
 
-    const extractMessageContent = (message: { content?: unknown } | undefined): string | null => {
+    const extractMessageContent = (message: { content?: unknown; reasoning?: unknown } | undefined): string | null => {
       if (!message) {
         return null;
       }
-      const { content } = message;
-      if (typeof content === "string") {
-        return content;
-      }
-      if (Array.isArray(content)) {
-        return content
-          .map((part) => {
-            if (part === null || part === undefined) {
-              return "";
-            }
-            if (typeof part === "string") {
-              return part;
-            }
-            if (typeof part === "object" && "text" in part && typeof part.text === "string") {
-              return part.text;
-            }
-            if (typeof part === "object" && "content" in part && typeof (part as { content: unknown }).content === "string") {
-              return (part as { content: string }).content;
-            }
-            return "";
-          })
-          .filter((segment) => segment.trim().length > 0)
-          .join("\n");
-      }
-      return null;
+
+      const collectSegments = (value: unknown): string[] => {
+        if (!value) {
+          return [];
+        }
+        if (typeof value === "string") {
+          return [value];
+        }
+        if (Array.isArray(value)) {
+          return value.flatMap(collectSegments);
+        }
+        if (typeof value === "object") {
+          const record = value as Record<string, unknown>;
+          if (typeof record.text === "string") {
+            return [record.text];
+          }
+          if (typeof record.content === "string") {
+            return [record.content];
+          }
+          return Object.values(record).flatMap(collectSegments);
+        }
+        return [];
+      };
+
+      const segments = [
+        ...collectSegments(message.reasoning),
+        ...collectSegments(message.content),
+      ].map((segment) => segment.trim());
+
+      return segments.filter((segment) => segment.length > 0).join("\n\n");
     };
 
     const plan = extractMessageContent(completionJson.choices?.[0]?.message)?.trim();
