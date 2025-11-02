@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Metadata } from "next";
 import { redirect } from "next/navigation";
 
@@ -34,6 +35,13 @@ export default async function TrainingGeneratorPage() {
           Plus tu renseignes de détails (disponibilités, matériel, blessures, objectifs précis), plus le plan proposé sera pertinent. Tu
           peux regénérer le plan à volonté en ajustant les paramètres.
         </p>
+
+        <Link
+          href="/"
+          className="inline-flex items-center justify-center rounded-md border border-white/20 bg-white/5 px-5 py-2 text-sm font-semibold text-white transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/80"
+        >
+          Retour à l’accueil
+        </Link>
       </section>
 
       <TrainingPlanGeneratorForm />

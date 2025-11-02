@@ -209,6 +209,8 @@ export async function POST(request: NextRequest) {
       inferredWeightKg = await fetchLatestGarminWeightKg(localUser.id);
     }
 
+    const { goal, constraints, availability, preferences } = parsed.data;
+
     const profileLines = [
       `Nom complet: ${localUser?.name ?? stackUser.displayName ?? "Inconnu"}`,
       `Genre: ${localUser?.gender ?? "Non spécifié"}`,
@@ -220,11 +222,10 @@ export async function POST(request: NextRequest) {
           ? `${inferredWeightKg.toFixed(2)} kg`
           : localUser?.weightKg ?? "Non renseigné"
       }`,
+      `CAPACITÉ À S’ENTRAÎNER AUJOURD’HUI: ${goal}`,
     ]
       .filter(Boolean)
       .join("\n");
-
-    const { goal, constraints, availability, preferences } = parsed.data;
 
     const userPrompt = [
       "Tu es un coach sportif professionnel. Génère un plan d’entraînement hebdomadaire structuré.",
