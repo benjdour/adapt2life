@@ -1,0 +1,42 @@
+import { Metadata } from "next";
+import { redirect } from "next/navigation";
+
+import { TrainingPlanGeneratorForm } from "@/components/TrainingPlanGeneratorForm";
+import { stackServerApp } from "@/stack/server";
+
+export const metadata: Metadata = {
+  title: "Adapt2Life — Générateur d’entraînement",
+};
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+export default async function TrainingGeneratorPage() {
+  const stackUser = await stackServerApp.getUser({ or: "return-null", tokenStore: "nextjs-cookie" });
+
+  if (!stackUser) {
+    redirect("/handler/sign-in?redirect=/generateur-entrainement");
+  }
+
+  return (
+    <div className="mx-auto flex min-h-[70vh] max-w-4xl flex-col gap-8 px-6 py-12 text-white">
+      <header className="space-y-3">
+        <p className="text-sm uppercase tracking-wide text-emerald-400">Coaching IA</p>
+        <h1 className="text-3xl font-semibold">Générateur d’entraînement</h1>
+        <p className="text-sm text-white/70">
+          Décris ton objectif et tes contraintes : Adapt2Life te conçoit un plan d’entraînement personnalisé en quelques secondes,
+          optimisé grâce à OpenRouter.
+        </p>
+      </header>
+
+      <section className="space-y-3">
+        <p className="text-sm text-white/70">
+          Plus tu renseignes de détails (disponibilités, matériel, blessures, objectifs précis), plus le plan proposé sera pertinent. Tu
+          peux regénérer le plan à volonté en ajustant les paramètres.
+        </p>
+      </section>
+
+      <TrainingPlanGeneratorForm />
+    </div>
+  );
+}

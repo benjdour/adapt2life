@@ -39,6 +39,12 @@ export default async function Home() {
             >
               Voir les données Garmin
             </Link>
+            <Link
+              href="/generateur-entrainement"
+              className="inline-flex h-11 w-full items-center justify-center rounded-md border border-emerald-500/60 bg-emerald-500/10 font-semibold text-emerald-100 transition hover:bg-emerald-500/20 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-emerald-300"
+            >
+              Générateur d’entraînement
+            </Link>
             <form action="/handler/sign-out" method="post" className="inline-flex w-full">
               <input type="hidden" name="redirect" value="/" />
               <button
