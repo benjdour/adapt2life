@@ -242,7 +242,11 @@ export async function POST(request: NextRequest) {
       "Ajoute des recommandations générales (échauffement, récupération, nutrition) en fin de plan.",
     ].join("\n");
 
-    const appUrl = process.env.APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+    const inferredOrigin =
+      request.headers.get("origin") ??
+      request.headers.get("referer") ??
+      `${request.headers.get("x-forwarded-proto") ?? "https"}://${request.headers.get("host") ?? "localhost"}`;
+    const appUrl = process.env.APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? inferredOrigin ?? "http://localhost:3000";
 
     const candidateModels = [
       "anthropic/claude-3.5-haiku-20241022",
