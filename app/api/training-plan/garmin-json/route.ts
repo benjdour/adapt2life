@@ -238,6 +238,23 @@ const parseJsonFromMessage = (message: { content?: unknown } | null | undefined)
           // ignore
         }
       }
+      if (typeof record.role === "string" && (record.role === "assistant" || record.role === "model")) {
+        if (typeof record.content === "string") {
+          try {
+            return JSON.parse(record.content);
+          } catch {
+            // ignore invalid JSON strings
+          }
+        }
+        if (Array.isArray(record.content)) {
+          for (const item of record.content) {
+            const nested = search(item);
+            if (nested !== null) {
+              return nested;
+            }
+          }
+        }
+      }
       if (record.content !== undefined) {
         const nested = search(record.content);
         if (nested !== null) {
