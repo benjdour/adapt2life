@@ -423,7 +423,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const parsedBody = REQUEST_SCHEMA.safeParse(body);
     if (!parsedBody.success) {
-      const message = parsedBody.error.errors.map((item) => item.message).join(" ");
+      const message = parsedBody.error.issues.map((issue) => issue.message).join(" ");
       return NextResponse.json({ error: message || "Requête invalide." }, { status: 400 });
     }
 
