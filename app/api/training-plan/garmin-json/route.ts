@@ -66,127 +66,6 @@ const GARMIN_WORKOUT_VALIDATOR = z.object({
     .min(1),
 });
 
-const GARMIN_RESPONSE_SCHEMA = {
-  type: "object",
-  additionalProperties: false,
-  required: [
-    "ownerId",
-    "workoutName",
-    "description",
-    "sport",
-    "estimatedDurationInSecs",
-    "estimatedDistanceInMeters",
-    "poolLength",
-    "poolLengthUnit",
-    "workoutProvider",
-    "workoutSourceId",
-    "isSessionTransitionEnabled",
-    "segments",
-  ],
-  properties: {
-    ownerId: { type: "integer" },
-    workoutName: { type: "string" },
-    description: { anyOf: [{ type: "string" }, { type: "null" }] },
-    sport: { type: "string" },
-    estimatedDurationInSecs: { anyOf: [{ type: "integer" }, { type: "null" }] },
-    estimatedDistanceInMeters: { anyOf: [{ type: "number" }, { type: "null" }] },
-    poolLength: { anyOf: [{ type: "number" }, { type: "null" }] },
-    poolLengthUnit: {
-      anyOf: [{ enum: ["METER", "YARD"] }, { type: "null" }],
-    },
-    workoutProvider: { type: "string" },
-    workoutSourceId: { type: "string" },
-    isSessionTransitionEnabled: { type: "boolean" },
-    segments: {
-      type: "array",
-      minItems: 1,
-      items: {
-        type: "object",
-        additionalProperties: false,
-        required: [
-          "segmentOrder",
-          "sport",
-          "poolLength",
-          "poolLengthUnit",
-          "estimatedDurationInSecs",
-          "estimatedDistanceInMeters",
-          "steps",
-        ],
-        properties: {
-          segmentOrder: { type: "integer" },
-          sport: { type: "string" },
-          poolLength: { anyOf: [{ type: "number" }, { type: "null" }] },
-          poolLengthUnit: {
-            anyOf: [{ enum: ["METER", "YARD"] }, { type: "null" }],
-          },
-          estimatedDurationInSecs: { anyOf: [{ type: "integer" }, { type: "null" }] },
-          estimatedDistanceInMeters: { anyOf: [{ type: "number" }, { type: "null" }] },
-          steps: {
-            type: "array",
-            minItems: 1,
-            items: {
-              type: "object",
-              additionalProperties: false,
-              required: [
-                "type",
-                "stepOrder",
-                "intensity",
-                "description",
-                "durationType",
-                "durationValue",
-                "durationValueType",
-                "targetType",
-                "targetValue",
-                "targetValueLow",
-                "targetValueHigh",
-                "targetValueType",
-                "secondaryTargetType",
-                "secondaryTargetValue",
-                "secondaryTargetValueLow",
-                "secondaryTargetValueHigh",
-                "secondaryTargetValueType",
-                "strokeType",
-                "drillType",
-                "equipmentType",
-                "exerciseCategory",
-                "exerciseName",
-                "weightValue",
-                "weightDisplayUnit",
-              ],
-              properties: {
-                type: { const: "WorkoutStep" },
-                stepOrder: { type: "integer" },
-                intensity: { enum: ["WARMUP", "COOLDOWN", "RECOVERY", "ACTIVE", "MAIN"] },
-                description: { type: "string" },
-                durationType: { enum: ["TIME", "DISTANCE", "OPEN"] },
-                durationValue: { anyOf: [{ type: "number" }, { type: "null" }] },
-                durationValueType: { anyOf: [{ type: "string" }, { type: "null" }] },
-                targetType: { anyOf: [{ type: "string" }, { type: "null" }] },
-                targetValue: { anyOf: [{ type: "number" }, { type: "null" }] },
-                targetValueLow: { anyOf: [{ type: "number" }, { type: "null" }] },
-                targetValueHigh: { anyOf: [{ type: "number" }, { type: "null" }] },
-                targetValueType: { anyOf: [{ type: "string" }, { type: "null" }] },
-                secondaryTargetType: { anyOf: [{ type: "string" }, { type: "null" }] },
-                secondaryTargetValue: { anyOf: [{ type: "number" }, { type: "null" }] },
-                secondaryTargetValueLow: { anyOf: [{ type: "number" }, { type: "null" }] },
-                secondaryTargetValueHigh: { anyOf: [{ type: "number" }, { type: "null" }] },
-                secondaryTargetValueType: { anyOf: [{ type: "string" }, { type: "null" }] },
-                strokeType: { anyOf: [{ type: "string" }, { type: "null" }] },
-                drillType: { anyOf: [{ type: "string" }, { type: "null" }] },
-                equipmentType: { anyOf: [{ type: "string" }, { type: "null" }] },
-                exerciseCategory: { anyOf: [{ type: "string" }, { type: "null" }] },
-                exerciseName: { anyOf: [{ type: "string" }, { type: "null" }] },
-                weightValue: { anyOf: [{ type: "number" }, { type: "null" }] },
-                weightDisplayUnit: { anyOf: [{ type: "string" }, { type: "null" }] },
-              },
-            },
-          },
-        },
-      },
-    },
-  },
-};
-
 const SYSTEM_PROMPT = [
   "Tu es un assistant spécialisé dans la conversion de plans d'entraînement en JSON conforme à la Training API de Garmin.",
   "Tu dois produire un objet JSON strictement compatible avec le schéma fourni.",
@@ -456,17 +335,14 @@ export async function POST(request: NextRequest) {
         model: "openai/gpt-5-mini",
         temperature: 0.2,
         max_tokens: 4096,
-        response_format: {
-          type: "json_schema",
-          json_schema: {
-            name: "garmin_workout",
-            schema: GARMIN_RESPONSE_SCHEMA,
-          },
-        },
         messages: [
           {
             role: "system",
-            content: SYSTEM_PROMPT,
+            content: [
+              SYSTEM_PROMPT,
+              "",
+              "Réponds uniquement avec un objet JSON valide. Aucune explication ou texte en dehors du JSON.",
+            ].join("\n"),
           },
           {
             role: "user",
@@ -481,6 +357,10 @@ export async function POST(request: NextRequest) {
       if (completionResponse.status === 429) {
         return NextResponse.json({ error: "Le service d’IA est temporairement indisponible." }, { status: 429 });
       }
+      console.error("garmin-json: OpenRouter error", {
+        status: completionResponse.status,
+        payload: errorPayload,
+      });
       return NextResponse.json(
         { error: "Génération du JSON échouée sur OpenRouter.", details: errorPayload },
         { status: completionResponse.status },
