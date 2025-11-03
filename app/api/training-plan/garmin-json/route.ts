@@ -5,6 +5,7 @@ import { z } from "zod";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { stackServerApp } from "@/stack/server";
+import { ADAPT2LIFE_GARMIN_JSON_PROMPT } from "@/lib/prompts/adapt2lifeGarminJsonPrompt";
 
 const REQUEST_SCHEMA = z.object({
   plan: z.string().min(1, "Le plan est obligatoire."),
@@ -66,207 +67,6 @@ const GARMIN_WORKOUT_VALIDATOR = z.object({
     .min(1),
 });
 
-const SYSTEM_PROMPT = [
-  "Tu es un assistant spécialisé dans la conversion de plans d'entraînement en JSON conforme à la Training API de Garmin.",
-  "Tu dois produire un objet JSON strictement compatible avec le schéma fourni.",
-  "Le JSON représente un seul segment (workout monosport).",
-  "Convertis toutes les durées en secondes et toutes les distances en mètres.",
-  "Développe les répétitions (ne crée pas de WorkoutRepeatStep).",
-  "Respecte la casse exacte des champs (WARMUP, TIME, OPEN, etc.).",
-  "Utilise toujours les valeurs nulles explicites quand aucun renseignement n’est disponible.",
-  "N’ajoute aucune propriété en dehors du schéma.",
-  "Réponds uniquement avec le JSON au format validé par le schéma.",
-  "Le JSON doit être valide (guillemets doubles, aucune virgule superflue, pas de commentaires ni de texte hors JSON).",
-].join("\n");
-
-const REFERENCE_JSON = `{
-  "ownerId": 12345,
-  "workoutName": "Exemple tempo course à pied",
-  "description": "Séance de course à pied tempo",
-  "sport": "RUNNING",
-  "estimatedDurationInSecs": 3600,
-  "estimatedDistanceInMeters": null,
-  "poolLength": null,
-  "poolLengthUnit": null,
-  "workoutProvider": "Adapt2Life",
-  "workoutSourceId": "adapt2life",
-  "isSessionTransitionEnabled": false,
-  "segments": [
-    {
-      "segmentOrder": 1,
-      "sport": "RUNNING",
-      "poolLength": null,
-      "poolLengthUnit": null,
-      "estimatedDurationInSecs": 3600,
-      "estimatedDistanceInMeters": null,
-      "steps": [
-        {
-          "type": "WorkoutStep",
-          "stepOrder": 1,
-          "intensity": "WARMUP",
-          "description": "10 min footing facile (Z1-Z2)",
-          "durationType": "TIME",
-          "durationValue": 600,
-          "durationValueType": null,
-          "targetType": "OPEN",
-          "targetValue": null,
-          "targetValueLow": null,
-          "targetValueHigh": null,
-          "targetValueType": null,
-          "secondaryTargetType": null,
-          "secondaryTargetValue": null,
-          "secondaryTargetValueLow": null,
-          "secondaryTargetValueHigh": null,
-          "secondaryTargetValueType": null,
-          "strokeType": null,
-          "drillType": null,
-          "equipmentType": null,
-          "exerciseCategory": null,
-          "exerciseName": null,
-          "weightValue": null,
-          "weightDisplayUnit": null
-        },
-        {
-          "type": "WorkoutStep",
-          "stepOrder": 2,
-          "intensity": "ACTIVE",
-          "description": "3 min tempo (Z3 bas)",
-          "durationType": "TIME",
-          "durationValue": 180,
-          "durationValueType": null,
-          "targetType": "HEART_RATE",
-          "targetValue": null,
-          "targetValueLow": 3,
-          "targetValueHigh": 3,
-          "targetValueType": null,
-          "secondaryTargetType": null,
-          "secondaryTargetValue": null,
-          "secondaryTargetValueLow": null,
-          "secondaryTargetValueHigh": null,
-          "secondaryTargetValueType": null,
-          "strokeType": null,
-          "drillType": null,
-          "equipmentType": null,
-          "exerciseCategory": null,
-          "exerciseName": null,
-          "weightValue": null,
-          "weightDisplayUnit": null
-        },
-        {
-          "type": "WorkoutStep",
-          "stepOrder": 3,
-          "intensity": "COOLDOWN",
-          "description": "5 min retour au calme",
-          "durationType": "TIME",
-          "durationValue": 300,
-          "durationValueType": null,
-          "targetType": "OPEN",
-          "targetValue": null,
-          "targetValueLow": null,
-          "targetValueHigh": null,
-          "targetValueType": null,
-          "secondaryTargetType": null,
-          "secondaryTargetValue": null,
-          "secondaryTargetValueLow": null,
-          "secondaryTargetValueHigh": null,
-          "secondaryTargetValueType": null,
-          "strokeType": null,
-          "drillType": null,
-          "equipmentType": null,
-          "exerciseCategory": null,
-          "exerciseName": null,
-          "weightValue": null,
-          "weightDisplayUnit": null
-        }
-      ]
-    }
-  ]
-}`;
-
-const PLAN_INSTRUCTIONS = [
-  "Utilise l'identifiant ownerId fourni.",
-  "Déduis le sport principal à partir du plan (RUNNING, CYCLING, LAP_SWIMMING, etc.).",
-  "Crée un seul segment avec toutes les étapes dans l'ordre du plan.",
-  "Convertis chaque bloc temporel en secondes (ex: 8 min -> 480).",
-  "Convertis chaque distance en mètres (ex: 400 m -> 400).",
-  "Pour les répétitions (ex: 3 x 30 s), duplique les steps correspondants autant de fois que nécessaire.",
-  "Quand une cible de puissance est exprimée en pourcentage de FTP, utilise targetType POWER et targetValueLow / targetValueHigh en pourcentage.",
-  "Pour les zones cardiaques (Z1 à Z5), utilise targetType HEART_RATE et exprime la plage via targetValueLow / targetValueHigh.",
-  "Pour une cadence donnée (rpm), utilise secondaryTargetType CADENCE avec targetValueLow / High.",
-  "Mets les champs poolLength et poolLengthUnit à null sauf pour la natation (utilise la valeur fournie ou laisse null si inconnue).",
-  "Assure-toi que workoutProvider et workoutSourceId valent \"Adapt2Life\".",
-  "Laisse strokeType, drillType, equipmentType, exerciseCategory, exerciseName, weightValue et weightDisplayUnit à null.",
-  "Si une information est absente, renseigne null plutôt qu'une chaîne vide.",
-  "Respecte strictement la structure du schéma et renvoie uniquement le JSON final.",
-].join("\n");
-
-const parseJsonFromMessage = (message: { content?: unknown } | null | undefined): unknown | null => {
-  if (!message) {
-    return null;
-  }
-
-  const search = (value: unknown): unknown | null => {
-    if (!value) {
-      return null;
-    }
-    if (typeof value === "string") {
-      try {
-        return JSON.parse(value);
-      } catch {
-        return null;
-      }
-    }
-    if (typeof value === "object") {
-      if (Array.isArray(value)) {
-        for (const item of value) {
-          const result = search(item);
-          if (result !== null) {
-            return result;
-          }
-        }
-        return null;
-      }
-
-      const record = value as Record<string, unknown>;
-      if (record.json && typeof record.json === "object") {
-        return record.json;
-      }
-      if (typeof record.text === "string") {
-        try {
-          return JSON.parse(record.text);
-        } catch {
-          // ignore
-        }
-      }
-      if (typeof record.role === "string" && (record.role === "assistant" || record.role === "model")) {
-        if (typeof record.content === "string") {
-          try {
-            return JSON.parse(record.content);
-          } catch {
-            // ignore invalid JSON strings
-          }
-        }
-        if (Array.isArray(record.content)) {
-          for (const item of record.content) {
-            const nested = search(item);
-            if (nested !== null) {
-              return nested;
-            }
-          }
-        }
-      }
-      if (record.content !== undefined) {
-        const nested = search(record.content);
-        if (nested !== null) {
-          return nested;
-        }
-      }
-    }
-    return null;
-  };
-
-  return search(message.content ?? message);
-};
 
 async function ensureLocalUser(stackUser: NonNullable<Awaited<ReturnType<typeof stackServerApp.getUser>>>) {
   const [existingUser] = await db
@@ -338,22 +138,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: message || "Requête invalide." }, { status: 400 });
     }
 
-    const userPrompt = [
-      "Plan en Markdown à convertir :",
-      '"""',
-      parsedBody.data.plan,
-      '"""',
-      "",
-      `ownerId à utiliser : ${localUser.id}`,
-      "",
-      "Rappels importants :",
-      PLAN_INSTRUCTIONS,
-      "",
-      "Exemple de structure attendue :",
-      "```json",
-      REFERENCE_JSON,
-      "```",
-    ].join("\n");
+    const userPrompt = parsedBody.data.plan;
 
     const completionResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
@@ -364,14 +149,14 @@ export async function POST(request: NextRequest) {
         "X-Title": "Adapt2Life",
       },
       body: JSON.stringify({
-        model: "openai/gpt-5-mini",
+        model: "openai/gpt-5",
         temperature: 0.2,
         max_tokens: 4096,
         messages: [
           {
             role: "system",
             content: [
-              SYSTEM_PROMPT,
+              ADAPT2LIFE_GARMIN_JSON_PROMPT,
               "",
               "Réponds uniquement avec un objet JSON valide. Aucune explication ou texte en dehors du JSON.",
             ].join("\n"),
@@ -403,23 +188,29 @@ export async function POST(request: NextRequest) {
       choices?: Array<{ message?: { content?: unknown } }>;
     };
 
-    const message = completionJson.choices?.[0]?.message ?? null;
-    const rawJson = parseJsonFromMessage(message);
-
-    if (!rawJson) {
-      console.error("garmin-json: unable to parse JSON from OpenRouter response", {
-        message,
+    const rawContent = completionJson.choices?.[0]?.message?.content;
+    if (typeof rawContent !== "string") {
+      console.error("garmin-json: OpenRouter response missing string content", {
+        message: completionJson.choices?.[0]?.message,
       });
       return NextResponse.json(
-        {
-          error: "Réponse OpenRouter invalide : aucun JSON détecté.",
-          details: message ?? null,
-        },
+        { error: "Réponse OpenRouter invalide : contenu absent." },
         { status: 502 },
       );
     }
 
-    const validated = GARMIN_WORKOUT_VALIDATOR.safeParse(rawJson);
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(rawContent);
+    } catch (parseError) {
+      console.error("garmin-json: unable to parse OpenRouter content", { rawContent, parseError });
+      return NextResponse.json(
+        { error: "Réponse OpenRouter invalide : JSON non reconnu." },
+        { status: 502 },
+      );
+    }
+
+    const validated = GARMIN_WORKOUT_VALIDATOR.safeParse(parsed);
     if (!validated.success) {
       console.error("garmin-json: validation failed", validated.error.format());
       return NextResponse.json(
@@ -428,7 +219,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ workout: validated.data });
+    const workout = {
+      ...validated.data,
+      ownerId: localUser.id,
+      workoutProvider: "Adapt2Life",
+      workoutSourceId: "Adapt2Life",
+    };
+
+    return NextResponse.json({ workout });
   } catch (error) {
     console.error("Erreur lors de la génération du JSON Garmin :", error);
     return NextResponse.json({ error: "Erreur interne lors de la génération du JSON Garmin." }, { status: 500 });
