@@ -1,5 +1,4 @@
 import { Fragment, ReactNode, createElement } from "react";
-import type { ReactHTML } from "react";
 
 type MarkdownPlanProps = {
   content: string;
@@ -74,7 +73,7 @@ export function MarkdownPlan({ content, className }: MarkdownPlanProps) {
       flushList();
       const level = headingMatch[1].length;
       const headingText = headingMatch[2];
-      const headingTag = (`h${Math.min(level + 1, 6)}` as unknown) as keyof ReactHTML;
+      const headingTag = `h${Math.min(level + 1, 6)}` as keyof HTMLElementTagNameMap;
       const headingClass = `font-semibold text-emerald-100 ${level <= 2 ? "mt-6 text-lg" : "mt-4 text-base"}`;
 
       nodes.push(
