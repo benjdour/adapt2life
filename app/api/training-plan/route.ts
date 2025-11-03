@@ -509,8 +509,18 @@ const extractPlanFromMessage = (message: { content?: unknown } | undefined): { p
 };
 
 const cleanTextPlan = (raw: string): string => {
-  let cleaned = raw;
-  cleaned = cleaned.replace(/(^|\n)\*\*[^*\n]*(plan|séance|workout)[^*\n]*\*\*/gi, "\n");
+  const normalized = raw.trim();
+  const hasStructuredSections =
+    normalized.includes("## 🔥 Échauffement") &&
+    normalized.includes("## 💪 Corps de la séance") &&
+    normalized.includes("## 🧘 Retour au calme");
+
+  if (hasStructuredSections) {
+    return normalized;
+  }
+
+  let cleaned = normalized;
+  cleaned = cleaned.replace(/(^|\n)\*\*[^*\n]*\b(plan|séance|workout)\b[^*\n]*\*\*/gi, "\n");
   cleaned = cleaned.replace(/(^|\n)(Je|I) (?:peux|can) [^\.\!\?]*[\.\!\?]/gi, "\n");
   cleaned = cleaned.replace(/(^|\n)Il (?:convient|serait|pourrait) [^\.\!\?]*[\.\!\?]/gi, "\n");
   const lines = cleaned

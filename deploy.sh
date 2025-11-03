@@ -19,20 +19,13 @@ git commit -m "🚀 Déploiement automatique"
 git push origin main
 
 echo "🌐 Déploiement sur Vercel..."
-DEPLOY_URL=$(vercel deploy --prod --confirm --token $VERCEL_TOKEN)
+DEPLOY_OUTPUT=$(vercel deploy --prod --yes --wait --token "$VERCEL_TOKEN" --timeout 10m)
+echo "$DEPLOY_OUTPUT"
 
-echo "🕵️ Surveillance du déploiement..."
-DEPLOY_ID=$(vercel inspect $DEPLOY_URL --token $VERCEL_TOKEN | grep "Deployment ID" | awk '{print $3}')
+PRODUCTION_URL=$(echo "$DEPLOY_OUTPUT" | awk '/^Production:/ {print $2}' | tail -n 1)
 
-STATUS="BUILDING"
-while [ "$STATUS" == "BUILDING" ] || [ "$STATUS" == "QUEUED" ]; do
-  STATUS=$(vercel inspect $DEPLOY_ID --token $VERCEL_TOKEN | grep "State" | awk '{print $2}')
-  echo "⏳ État du déploiement : $STATUS"
-  sleep 10
-done
-
-if [ "$STATUS" == "READY" ]; then
-  echo "✅ Déploiement réussi : $DEPLOY_URL"
+if [ -z "$PRODUCTION_URL" ]; then
+  echo "⚠️ Impossible de déterminer l’URL de production depuis la sortie de Vercel."
 else
-  echo "❌ Échec du déploiement : état = $STATUS"
+  echo "✅ Déploiement réussi : $PRODUCTION_URL"
 fi

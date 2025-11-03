@@ -2,6 +2,8 @@
 
 import { FormEvent, useState } from "react";
 
+import { MarkdownPlan } from "@/components/MarkdownPlan";
+
 type TrainingPlanResponse = {
   plan: string;
 };
@@ -85,7 +87,7 @@ export function TrainingPlanGeneratorForm() {
       {plan ? (
         <div className="space-y-4 rounded-2xl border border-white/10 bg-white/5 p-6 text-sm leading-relaxed text-white">
           <h2 className="text-lg font-semibold text-emerald-200">Plan d’entraînement personnalisé</h2>
-          <pre className="whitespace-pre-wrap break-words text-white/90">{plan}</pre>
+          <MarkdownPlan content={plan} className="text-sm leading-relaxed" />
         </div>
       ) : null}
     </div>
