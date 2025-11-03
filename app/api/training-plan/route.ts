@@ -630,25 +630,17 @@ const buildWorkoutDebugJson = (markdown: string): string | null => {
     return null;
   }
 
+  const workoutPayload = buildGarminWorkoutPayload(parsed);
   const { sections } = parsed;
-  const warmup = sections.warmup ?? [];
-  const main = sections.main ?? [];
-  const cooldown = sections.cooldown ?? [];
-  const advice = sections.advice ?? [];
-  const reasoning = sections.reasoning ?? [];
 
   const payload = {
     title: parsed.title,
     objective: parsed.objective,
     estimatedDuration: parsed.duration,
-    workout: {
-      warmup,
-      main,
-      cooldown,
-    },
+    garminWorkout: workoutPayload,
     coachNotes: {
-      advice,
-      reasoning,
+      advice: sections.advice ?? [],
+      reasoning: sections.reasoning ?? [],
     },
     rawSections: sections,
   };
@@ -658,6 +650,279 @@ const buildWorkoutDebugJson = (markdown: string): string | null => {
   } catch {
     return null;
   }
+};
+
+type ParsedDuration =
+  | {
+      durationType: "TIME";
+      durationValue: number;
+      durationValueType: null;
+    }
+  | {
+      durationType: "DISTANCE";
+      durationValue: number;
+      durationValueType: "METER";
+    }
+  | {
+      durationType: "OPEN";
+      durationValue: null;
+      durationValueType: null;
+    };
+
+const durationMatchers: Array<{
+  regex: RegExp;
+  handler: (value: number) => ParsedDuration;
+}> = [
+  {
+    regex: /(\d+(?:[.,]\d+)?)\s*(?:minutes?|mins?|mn)\b/i,
+    handler: (value) => ({
+      durationType: "TIME",
+      durationValue: Math.round(value * 60),
+      durationValueType: null,
+    }),
+  },
+  {
+    regex: /(\d+(?:[.,]\d+)?)\s*(?:secondes?|secs?|s)\b/i,
+    handler: (value) => ({
+      durationType: "TIME",
+      durationValue: Math.round(value),
+      durationValueType: null,
+    }),
+  },
+  {
+    regex: /(\d+(?:[.,]\d+)?)\s*(?:kilom[eè]tres?|km)\b/i,
+    handler: (value) => ({
+      durationType: "DISTANCE",
+      durationValue: Math.round(value * 1000),
+      durationValueType: "METER",
+    }),
+  },
+  {
+    regex: /(\d+(?:[.,]\d+)?)\s*(?:m(?:etres?)?)\b/i,
+    handler: (value) => ({
+      durationType: "DISTANCE",
+      durationValue: Math.round(value),
+      durationValueType: "METER",
+    }),
+  },
+];
+
+const extractDuration = (text: string): ParsedDuration => {
+  const normalized = text.normalize("NFKD").replace(STRIP_DIACRITICS_REGEX, " ");
+
+  for (const matcher of durationMatchers) {
+    const match = normalized.match(matcher.regex);
+    if (!match) {
+      continue;
+    }
+    const raw = match[1].replace(",", ".");
+    const value = Number.parseFloat(raw);
+    if (!Number.isFinite(value)) {
+      continue;
+    }
+    const parsed = matcher.handler(value);
+    if (parsed.durationValue === null || parsed.durationValue <= 0) {
+      continue;
+    }
+    return parsed;
+  }
+
+  return {
+    durationType: "OPEN",
+    durationValue: null,
+    durationValueType: null,
+  };
+};
+
+const inferSectionIntensity = (sectionKey: string, text: string): "WARMUP" | "COOLDOWN" | "RECOVERY" | "ACTIVE" => {
+  if (sectionKey === "warmup") {
+    return "WARMUP";
+  }
+  if (sectionKey === "cooldown") {
+    return "COOLDOWN";
+  }
+  const normalized = text.normalize("NFKD").replace(STRIP_DIACRITICS_REGEX, "").toLowerCase();
+  if (normalized.includes("repos") || normalized.includes("recup")) {
+    return "RECOVERY";
+  }
+  return "ACTIVE";
+};
+
+const inferSportFromContext = (context: string): string => {
+  const normalized = context.normalize("NFKD").replace(STRIP_DIACRITICS_REGEX, "").toLowerCase();
+  const entries: Array<{ sport: string; patterns: RegExp[] }> = [
+    {
+      sport: "RUNNING",
+      patterns: [/\b(run|course|footing|jog|semi|marathon|trail)\b/],
+    },
+    {
+      sport: "CYCLING",
+      patterns: [/\b(velo|cycling|bike|cyclisme)\b/],
+    },
+    {
+      sport: "LAP_SWIMMING",
+      patterns: [/\b(natation|swim|piscine|nage)\b/],
+    },
+    {
+      sport: "STRENGTH_TRAINING",
+      patterns: [/\b(force|muscu|renfo|strength|halteres|halt[eè]res)\b/],
+    },
+    {
+      sport: "CARDIO_TRAINING",
+      patterns: [/\b(cardio|hiit|fractionne|interval)\b/],
+    },
+    {
+      sport: "YOGA",
+      patterns: [/\b(yoga)\b/],
+    },
+    {
+      sport: "PILATES",
+      patterns: [/\b(pilates)\b/],
+    },
+  ];
+
+  for (const entry of entries) {
+    if (entry.patterns.some((pattern) => pattern.test(normalized))) {
+      return entry.sport;
+    }
+  }
+
+  return "GENERIC";
+};
+
+type GarminWorkoutStep = {
+  type: "WorkoutStep";
+  stepOrder: number;
+  intensity: "WARMUP" | "COOLDOWN" | "RECOVERY" | "ACTIVE";
+  description: string | null;
+  durationType: ParsedDuration["durationType"];
+  durationValue: ParsedDuration["durationValue"];
+  durationValueType: ParsedDuration["durationValueType"];
+  targetType: "OPEN";
+  targetValue: null;
+  targetValueLow: null;
+  targetValueHigh: null;
+  targetValueType: null;
+  secondaryTargetType: null;
+  secondaryTargetValue: null;
+  secondaryTargetValueLow: null;
+  secondaryTargetValueHigh: null;
+  secondaryTargetValueType: null;
+  strokeType: null;
+  drillType: null;
+  equipmentType: null;
+  exerciseCategory: null;
+  exerciseName: null;
+  weightValue: null;
+  weightDisplayUnit: null;
+  repeatType?: undefined;
+  repeatValue?: undefined;
+  steps?: undefined;
+  skipLastRestStep?: undefined;
+};
+
+type GarminWorkoutSegment = {
+  segmentOrder: number;
+  sport: string;
+  poolLength: null;
+  poolLengthUnit: null;
+  estimatedDurationInSecs: number | null;
+  estimatedDistanceInMeters: number | null;
+  steps: GarminWorkoutStep[];
+};
+
+type GarminWorkoutPayload = {
+  workoutName: string;
+  description: string | null;
+  sport: string;
+  workoutProvider: string;
+  workoutSourceId: string;
+  isSessionTransitionEnabled: boolean;
+  estimatedDurationInSecs: number | null;
+  estimatedDistanceInMeters: number | null;
+  poolLength: null;
+  poolLengthUnit: null;
+  segments: GarminWorkoutSegment[];
+};
+
+const buildGarminWorkoutPayload = (parsed: ParsedWorkoutSections): GarminWorkoutPayload => {
+  const { title, objective, sections } = parsed;
+  const contextSource = [title, objective, ...Object.values(sections).flat()].filter(Boolean).join(" ");
+  const sport = inferSportFromContext(contextSource);
+
+  let stepOrder = 1;
+  let totalDurationSeconds = 0;
+  let totalDistanceMeters = 0;
+
+  const mapSectionSteps = (sectionKey: string, lines: string[]): GarminWorkoutStep[] => {
+    return lines.map((line) => {
+      const duration = extractDuration(line);
+      if (duration.durationType === "TIME") {
+        totalDurationSeconds += duration.durationValue;
+      } else if (duration.durationType === "DISTANCE") {
+        totalDistanceMeters += duration.durationValue;
+      }
+
+      const step: GarminWorkoutStep = {
+        type: "WorkoutStep",
+        stepOrder,
+        intensity: inferSectionIntensity(sectionKey, line),
+        description: line.length > 512 ? `${line.slice(0, 509)}...` : line,
+        durationType: duration.durationType,
+        durationValue: duration.durationValue,
+        durationValueType: duration.durationValueType,
+        targetType: "OPEN",
+        targetValue: null,
+        targetValueLow: null,
+        targetValueHigh: null,
+        targetValueType: null,
+        secondaryTargetType: null,
+        secondaryTargetValue: null,
+        secondaryTargetValueLow: null,
+        secondaryTargetValueHigh: null,
+        secondaryTargetValueType: null,
+        strokeType: null,
+        drillType: null,
+        equipmentType: null,
+        exerciseCategory: null,
+        exerciseName: null,
+        weightValue: null,
+        weightDisplayUnit: null,
+      };
+      stepOrder += 1;
+      return step;
+    });
+  };
+
+  const warmupSteps = mapSectionSteps("warmup", sections.warmup ?? []);
+  const mainSteps = mapSectionSteps("main", sections.main ?? []);
+  const cooldownSteps = mapSectionSteps("cooldown", sections.cooldown ?? []);
+
+  const segmentSteps = [...warmupSteps, ...mainSteps, ...cooldownSteps];
+
+  const segment: GarminWorkoutSegment = {
+    segmentOrder: 1,
+    sport,
+    poolLength: null,
+    poolLengthUnit: null,
+    estimatedDurationInSecs: segmentSteps.length > 0 ? totalDurationSeconds || null : null,
+    estimatedDistanceInMeters: segmentSteps.length > 0 ? totalDistanceMeters || null : null,
+    steps: segmentSteps,
+  };
+
+  return {
+    workoutName: title ?? "Séance Adapt2Life",
+    description: objective ?? null,
+    sport,
+    workoutProvider: "Adapt2Life",
+    workoutSourceId: "adapt2life",
+    isSessionTransitionEnabled: false,
+    estimatedDurationInSecs: segment.estimatedDurationInSecs,
+    estimatedDistanceInMeters: segment.estimatedDistanceInMeters,
+    poolLength: null,
+    poolLengthUnit: null,
+    segments: segmentSteps.length > 0 ? [segment] : [],
+  };
 };
 
     let completionResponse: Response | null = null;
