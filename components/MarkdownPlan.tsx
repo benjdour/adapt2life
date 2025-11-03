@@ -48,6 +48,9 @@ export function MarkdownPlan({ content, className }: MarkdownPlanProps) {
   const nodes: ReactNode[] = [];
 
   let pendingListItems: ReactNode[] = [];
+  let inCodeBlock = false;
+  let codeFenceLang = "";
+  let codeLines: string[] = [];
 
   const flushList = () => {
     if (pendingListItems.length > 0) {
@@ -60,8 +63,42 @@ export function MarkdownPlan({ content, className }: MarkdownPlanProps) {
     }
   };
 
+  const flushCodeBlock = () => {
+    if (!inCodeBlock) {
+      return;
+    }
+    nodes.push(
+      <pre
+        key={`code-${nodes.length}`}
+        className="overflow-x-auto rounded-lg border border-white/10 bg-emerald-950/70 p-4 text-xs text-emerald-100"
+      >
+        <code data-language={codeFenceLang || undefined}>{codeLines.join("\n")}</code>
+      </pre>,
+    );
+    inCodeBlock = false;
+    codeFenceLang = "";
+    codeLines = [];
+  };
+
   lines.forEach((line, index) => {
     const trimmed = line.trim();
+
+    if (/^```/.test(trimmed)) {
+      if (!inCodeBlock) {
+        flushList();
+        inCodeBlock = true;
+        codeFenceLang = trimmed.slice(3).trim();
+        codeLines = [];
+      } else {
+        flushCodeBlock();
+      }
+      return;
+    }
+
+    if (inCodeBlock) {
+      codeLines.push(line);
+      return;
+    }
 
     if (!trimmed) {
       flushList();
@@ -90,6 +127,7 @@ export function MarkdownPlan({ content, className }: MarkdownPlanProps) {
 
     if (/^---+$/.test(trimmed)) {
       flushList();
+      flushCodeBlock();
       nodes.push(<hr key={`hr-${nodes.length}`} className="border-emerald-500/40" />);
       return;
     }
@@ -103,6 +141,7 @@ export function MarkdownPlan({ content, className }: MarkdownPlanProps) {
   });
 
   flushList();
+  flushCodeBlock();
 
   return <div className={`space-y-4 ${className ?? ""}`}>{nodes}</div>;
 }

@@ -535,6 +535,131 @@ const cleanTextPlan = (raw: string): string => {
   return result.length > 0 ? result : raw.trim();
 };
 
+const STRIP_DIACRITICS_REGEX = /[\u0300-\u036f]/g;
+
+const normalizeHeadingKey = (heading: string): string => {
+  const normalized = heading
+    .normalize("NFKD")
+    .replace(STRIP_DIACRITICS_REGEX, "")
+    .toLowerCase();
+
+  if (normalized.includes("echauffement")) {
+    return "warmup";
+  }
+  if (normalized.includes("corps")) {
+    return "main";
+  }
+  if (normalized.includes("retour")) {
+    return "cooldown";
+  }
+  if (normalized.includes("conseils")) {
+    return "advice";
+  }
+  if (normalized.includes("raisonnement")) {
+    return "reasoning";
+  }
+  return normalized.replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "");
+};
+
+type ParsedWorkoutSections = {
+  title: string | null;
+  objective: string | null;
+  duration: string | null;
+  sections: Record<string, string[]>;
+};
+
+const parseWorkoutSectionsFromMarkdown = (markdown: string): ParsedWorkoutSections | null => {
+  if (!markdown.trim()) {
+    return null;
+  }
+
+  const titleMatch = markdown.match(/^\s*#\s+(.+)\s*$/m);
+  const objectiveMatch = markdown.match(/\*\*Objectif principal\s*:\*\*\s*(.+)/i);
+  const durationMatch = markdown.match(/\*\*Durée totale estimée\s*:\*\*\s*(.+)/i);
+
+  const sections: Record<string, string[]> = {};
+  let currentKey: string | null = null;
+
+  const pushToSection = (key: string, value: string) => {
+    const cleaned = value.replace(/^[•\-–]\s*/, "").trim();
+    if (!cleaned) {
+      return;
+    }
+    if (!sections[key]) {
+      sections[key] = [];
+    }
+    sections[key].push(cleaned);
+  };
+
+  const lines = markdown.split(/\r?\n/);
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      continue;
+    }
+    if (/^---+$/.test(trimmed)) {
+      currentKey = null;
+      continue;
+    }
+
+    if (/^##\s+/.test(trimmed)) {
+      const heading = trimmed.replace(/^##\s+/, "").trim();
+      currentKey = normalizeHeadingKey(heading);
+      if (!sections[currentKey]) {
+        sections[currentKey] = [];
+      }
+      continue;
+    }
+
+    if (currentKey) {
+      pushToSection(currentKey, trimmed);
+    }
+  }
+
+  return {
+    title: titleMatch ? titleMatch[1].trim() : null,
+    objective: objectiveMatch ? objectiveMatch[1].trim() : null,
+    duration: durationMatch ? durationMatch[1].trim() : null,
+    sections,
+  };
+};
+
+const buildWorkoutDebugJson = (markdown: string): string | null => {
+  const parsed = parseWorkoutSectionsFromMarkdown(markdown);
+  if (!parsed) {
+    return null;
+  }
+
+  const { sections } = parsed;
+  const warmup = sections.warmup ?? [];
+  const main = sections.main ?? [];
+  const cooldown = sections.cooldown ?? [];
+  const advice = sections.advice ?? [];
+  const reasoning = sections.reasoning ?? [];
+
+  const payload = {
+    title: parsed.title,
+    objective: parsed.objective,
+    estimatedDuration: parsed.duration,
+    workout: {
+      warmup,
+      main,
+      cooldown,
+    },
+    coachNotes: {
+      advice,
+      reasoning,
+    },
+    rawSections: sections,
+  };
+
+  try {
+    return JSON.stringify(payload, null, 2);
+  } catch {
+    return null;
+  }
+};
+
     let completionResponse: Response | null = null;
     let lastErrorPayload: string | null = null;
 
@@ -641,7 +766,13 @@ const cleanTextPlan = (raw: string): string => {
       );
     }
 
-    return NextResponse.json({ plan: finalPlan });
+    const debugJson = buildWorkoutDebugJson(finalPlan);
+    const planWithDebug =
+      debugJson !== null
+        ? `${finalPlan.trim()}\n\n---\n\n\`\`\`json\n${debugJson}\n\`\`\`\n`
+        : finalPlan;
+
+    return NextResponse.json({ plan: planWithDebug });
   } catch (error) {
     console.error("Erreur lors de la génération du plan :", error);
     return NextResponse.json({ error: "Erreur interne lors de la génération du plan." }, { status: 500 });
