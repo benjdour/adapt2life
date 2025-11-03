@@ -22,7 +22,13 @@ echo "🌐 Déploiement sur Vercel..."
 DEPLOY_OUTPUT=$(vercel deploy --prod --yes --token "$VERCEL_TOKEN")
 echo "$DEPLOY_OUTPUT"
 
-PRODUCTION_URL=$(echo "$DEPLOY_OUTPUT" | awk '/^Production:/ {print $2}' | tail -n 1)
+CLEAN_OUTPUT=$(printf '%s\n' "$DEPLOY_OUTPUT" | sed -E 's/\x1B\[[0-9;]*m//g')
+
+PRODUCTION_URL=$(printf '%s\n' "$CLEAN_OUTPUT" | awk '/^Production:/ {print $2}' | tail -n 1)
+
+if [ -z "$PRODUCTION_URL" ]; then
+  PRODUCTION_URL=$(printf '%s\n' "$CLEAN_OUTPUT" | grep -Eo 'https://[a-z0-9.-]+\.vercel\.app' | tail -n 1)
+fi
 
 if [ -z "$PRODUCTION_URL" ]; then
   echo "⚠️ Impossible de déterminer l’URL de production depuis la sortie de Vercel."
