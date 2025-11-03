@@ -76,6 +76,7 @@ const SYSTEM_PROMPT = [
   "Utilise toujours les valeurs nulles explicites quand aucun renseignement n’est disponible.",
   "N’ajoute aucune propriété en dehors du schéma.",
   "Réponds uniquement avec le JSON au format validé par le schéma.",
+  "Le JSON doit être valide (guillemets doubles, aucune virgule superflue, pas de commentaires ni de texte hors JSON).",
 ].join("\n");
 
 const REFERENCE_JSON = `{
@@ -195,6 +196,7 @@ const PLAN_INSTRUCTIONS = [
   "Mets les champs poolLength et poolLengthUnit à null sauf pour la natation (utilise la valeur fournie ou laisse null si inconnue).",
   "Assure-toi que workoutProvider et workoutSourceId valent \"Adapt2Life\".",
   "Laisse strokeType, drillType, equipmentType, exerciseCategory, exerciseName, weightValue et weightDisplayUnit à null.",
+  "Si une information est absente, renseigne null plutôt qu'une chaîne vide.",
   "Respecte strictement la structure du schéma et renvoie uniquement le JSON final.",
 ].join("\n");
 
@@ -203,16 +205,30 @@ const parseJsonFromMessage = (message: { content?: unknown } | null | undefined)
     return null;
   }
 
-  if (Array.isArray(message.content)) {
-    for (const part of message.content) {
-      if (!part || typeof part !== "object") {
-        continue;
+  const search = (value: unknown): unknown | null => {
+    if (!value) {
+      return null;
+    }
+    if (typeof value === "string") {
+      try {
+        return JSON.parse(value);
+      } catch {
+        return null;
       }
-      const record = part as Record<string, unknown>;
-      if (record.type === "output_json" && record.json) {
-        return record.json;
+    }
+    if (typeof value === "object") {
+      if (Array.isArray(value)) {
+        for (const item of value) {
+          const result = search(item);
+          if (result !== null) {
+            return result;
+          }
+        }
+        return null;
       }
-      if (record.json) {
+
+      const record = value as Record<string, unknown>;
+      if (record.json && typeof record.json === "object") {
         return record.json;
       }
       if (typeof record.text === "string") {
@@ -222,18 +238,17 @@ const parseJsonFromMessage = (message: { content?: unknown } | null | undefined)
           // ignore
         }
       }
+      if (record.content !== undefined) {
+        const nested = search(record.content);
+        if (nested !== null) {
+          return nested;
+        }
+      }
     }
-  }
+    return null;
+  };
 
-  if (typeof message.content === "string") {
-    try {
-      return JSON.parse(message.content);
-    } catch {
-      return null;
-    }
-  }
-
-  return null;
+  return search(message.content ?? message);
 };
 
 async function ensureLocalUser(stackUser: NonNullable<Awaited<ReturnType<typeof stackServerApp.getUser>>>) {
@@ -375,8 +390,14 @@ export async function POST(request: NextRequest) {
     const rawJson = parseJsonFromMessage(message);
 
     if (!rawJson) {
+      console.error("garmin-json: unable to parse JSON from OpenRouter response", {
+        message,
+      });
       return NextResponse.json(
-        { error: "Réponse OpenRouter invalide : aucun JSON détecté." },
+        {
+          error: "Réponse OpenRouter invalide : aucun JSON détecté.",
+          details: message ?? null,
+        },
         { status: 502 },
       );
     }
