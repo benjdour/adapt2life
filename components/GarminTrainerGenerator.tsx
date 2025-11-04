@@ -3,7 +3,7 @@
 import { FormEvent, useState } from "react";
 
 type GenerateTrainingResponse = {
-  trainingJson: unknown;
+  trainingJson?: unknown;
   raw: string;
   parseError?: string;
 };

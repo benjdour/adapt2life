@@ -243,32 +243,22 @@ export async function POST(request: NextRequest) {
 
   const completionJson = (await completionResponse.json()) as OpenRouterResponse;
   const messageText = extractMessageText(completionJson.choices?.[0]);
-  if (!messageText) {
-    return NextResponse.json(
-      {
-        error: "Réponse vide ou illisible renvoyée par le modèle.",
-        details: completionJson,
-      },
-      { status: 502 },
-    );
+
+  let rawContent: string;
+  if (messageText && messageText.trim()) {
+    rawContent = messageText.trim();
+  } else {
+    rawContent = JSON.stringify(completionJson, null, 2);
   }
 
-  const trimmedMessage = messageText.trim();
-
+  let parsedJson: unknown | undefined;
   try {
-    const parsedJson = JSON.parse(trimmedMessage) as unknown;
-    return NextResponse.json({ trainingJson: parsedJson, raw: trimmedMessage });
-  } catch (parseError) {
-    const parseErrorMessage =
-      parseError instanceof Error ? parseError.message : "Erreur de parsing JSON inconnue.";
-    return NextResponse.json(
-      {
-        error:
-          "Le modèle a renvoyé un contenu qui n’est pas un JSON valide. Vérifie le prompt ou réessaie avec un autre exemple.",
-        raw: trimmedMessage,
-        parseError: parseErrorMessage,
-      },
-      { status: 502 },
-    );
+    parsedJson = JSON.parse(rawContent);
+  } catch {
+    parsedJson = undefined;
   }
+
+  return NextResponse.json(
+    parsedJson === undefined ? { raw: rawContent } : { trainingJson: parsedJson, raw: rawContent },
+  );
 }
