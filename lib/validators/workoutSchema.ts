@@ -3,6 +3,7 @@ import { z } from "zod";
 const ownerIdSchema = z.union([
   z.string().uuid(),
   z.string().regex(/^[a-f0-9]{32}$/i, "ownerId doit être un UUID ou un hash 32 caractères"),
+  z.number().int(),
 ]);
 
 export const IntensityEnum = z.enum(["ACTIVE", "REST", "WARMUP", "COOLDOWN", "INTERVAL", "RECOVERY", "MAIN"]);

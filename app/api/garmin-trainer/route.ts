@@ -344,6 +344,113 @@ const REQUIRED_STEP_KEYS = [
 
 type StepRecord = Record<string, unknown>;
 
+const canonicalizeForComparison = (value: unknown): unknown => {
+  if (Array.isArray(value)) {
+    return value.map((item) => canonicalizeForComparison(item));
+  }
+  if (value && typeof value === "object") {
+    const entries = Object.entries(value as Record<string, unknown>).filter(
+      ([key]) => key !== "stepOrder" && key !== "stepId",
+    );
+    const sortedEntries = entries.sort(([a], [b]) => a.localeCompare(b));
+    const normalized: Record<string, unknown> = {};
+    for (const [key, raw] of sortedEntries) {
+      normalized[key] = canonicalizeForComparison(raw);
+    }
+    return normalized;
+  }
+  return value;
+};
+
+const stepsAreEquivalent = (a: StepRecord, b: StepRecord): boolean => {
+  const canonicalA = canonicalizeForComparison(a);
+  const canonicalB = canonicalizeForComparison(b);
+  return JSON.stringify(canonicalA) === JSON.stringify(canonicalB);
+};
+
+const cloneStep = (step: StepRecord): StepRecord => {
+  const cloned: StepRecord = {};
+  for (const [key, value] of Object.entries(step)) {
+    if (Array.isArray(value)) {
+      cloned[key] = value.map((item) => (item && typeof item === "object" ? cloneStep(item as StepRecord) : item));
+    } else if (value && typeof value === "object") {
+      cloned[key] = cloneStep(value as StepRecord);
+    } else {
+      cloned[key] = value;
+    }
+  }
+  return cloned;
+};
+
+const compressConsecutivePatterns = (steps: StepRecord[]): StepRecord[] => {
+  const result: StepRecord[] = [];
+  let index = 0;
+
+  while (index < steps.length) {
+    let bestPatternLength = 0;
+    let bestRepeatCount = 1;
+    let bestPattern: StepRecord[] | null = null;
+
+    const remaining = steps.length - index;
+    for (let patternLength = 1; patternLength <= Math.floor(remaining / 2); patternLength += 1) {
+      const patternSlice = steps.slice(index, index + patternLength);
+      let repeatCount = 1;
+
+      while (true) {
+        const start = index + repeatCount * patternLength;
+        if (start + patternLength > steps.length) {
+          break;
+        }
+        const candidateSlice = steps.slice(start, start + patternLength);
+        const matches = patternSlice.every((patternStep, stepIndex) =>
+          stepsAreEquivalent(patternStep, candidateSlice[stepIndex]),
+        );
+        if (!matches) {
+          break;
+        }
+        repeatCount += 1;
+      }
+
+      if (repeatCount > 1 && patternLength * repeatCount > bestPatternLength * bestRepeatCount) {
+        bestPatternLength = patternLength;
+        bestRepeatCount = repeatCount;
+        bestPattern = patternSlice;
+      }
+    }
+
+    if (bestPattern && bestRepeatCount > 1) {
+      const templateStep = cloneStep(steps[index]);
+      const nestedSteps = bestPattern.map((step) => cloneStep(step));
+      templateStep.type = "WorkoutRepeatStep";
+      templateStep.steps = nestedSteps;
+      templateStep.repeatType = "REPEAT_COUNT";
+      templateStep.repeatValue = bestRepeatCount;
+      templateStep.durationType = null;
+      templateStep.durationValue = null;
+      templateStep.durationValueType = null;
+      templateStep.targetType = templateStep.targetType ?? "OPEN";
+      templateStep.targetValue = null;
+      templateStep.targetValueLow = null;
+      templateStep.targetValueHigh = null;
+      templateStep.targetValueType = null;
+      templateStep.secondaryTargetType = null;
+      templateStep.secondaryTargetValue = null;
+      templateStep.secondaryTargetValueLow = null;
+      templateStep.secondaryTargetValueHigh = null;
+      templateStep.secondaryTargetValueType = null;
+      templateStep.skipLastRestStep = Boolean(templateStep.skipLastRestStep);
+
+      result.push(templateStep);
+      index += bestPatternLength * bestRepeatCount;
+    } else {
+      result.push(steps[index]);
+      index += 1;
+    }
+  }
+
+  return result;
+};
+
 const ensureStepDefaults = (
   stepValue: unknown,
   options: { parentIsRepeat: boolean },
@@ -470,7 +577,18 @@ const enforceWorkoutConventions = (value: unknown): Record<string, unknown> => {
       typeof baseSegment.estimatedDistanceInMeters === "number" ? baseSegment.estimatedDistanceInMeters : 0;
 
     const rawSteps = Array.isArray(baseSegment.steps) ? baseSegment.steps : [];
-    const processedSteps = rawSteps.map((step) => ensureStepDefaults(step, { parentIsRepeat: false }));
+    const compressedSteps = compressConsecutivePatterns(rawSteps.map((step) => (step && typeof step === "object" ? (step as StepRecord) : {})));
+    const processedSteps = compressedSteps.map((step) => ensureStepDefaults(step, { parentIsRepeat: false }));
+    processedSteps.forEach((step, index) => {
+      step.stepOrder = index + 1;
+      if (Array.isArray(step.steps)) {
+        step.steps.forEach((nestedStep, nestedIndex) => {
+          if (nestedStep && typeof nestedStep === "object") {
+            (nestedStep as StepRecord).stepOrder = nestedIndex + 1;
+          }
+        });
+      }
+    });
     enforcedSegment.steps = processedSteps;
 
     const segmentDuration = processedSteps.reduce((total, stepRecord) => total + computeStepDuration(stepRecord), 0);
