@@ -15,9 +15,21 @@ const FALLBACK_SYSTEM_PROMPT =
   "Tu es un assistant spécialisé dans la préparation d’entraînements Garmin pour Adapt2Life. " +
   "Analyse l’exemple fourni et applique fidèlement les instructions du prompt utilisateur.";
 
+type OpenRouterToolCall = {
+  type?: string;
+  function?: {
+    name?: string;
+    arguments?: string;
+  };
+};
+
 type OpenRouterChoice = {
   message?: {
     content?: unknown;
+    function_call?: {
+      arguments?: string;
+    };
+    tool_calls?: OpenRouterToolCall[];
   };
 };
 
@@ -73,22 +85,32 @@ const extractMessageText = (choice: OpenRouterChoice | undefined): string | null
     return null;
   }
 
-  const { content } = choice.message;
-  if (typeof content === "string") {
-    const trimmed = content.trim();
-    return trimmed.length > 0 ? trimmed : null;
-  }
+  const segments: string[] = [];
 
-  if (Array.isArray(content)) {
-    const segments = flattenContent(content)
+  const pushContent = (value: unknown) => {
+    const flattened = flattenContent(value)
       .map((segment) => segment.trim())
       .filter(Boolean);
-    if (segments.length > 0) {
-      return segments.join("\n\n");
+    segments.push(...flattened);
+  };
+
+  pushContent(choice.message.content);
+
+  const functionArgs = choice.message.function_call?.arguments;
+  if (typeof functionArgs === "string" && functionArgs.trim()) {
+    segments.push(functionArgs.trim());
+  }
+
+  if (Array.isArray(choice.message.tool_calls)) {
+    for (const call of choice.message.tool_calls) {
+      const args = call.function?.arguments;
+      if (typeof args === "string" && args.trim()) {
+        segments.push(args.trim());
+      }
     }
   }
 
-  return null;
+  return segments.length > 0 ? segments.join("\n\n") : null;
 };
 
 const buildFinalPrompt = (template: string, example: string): string => {
