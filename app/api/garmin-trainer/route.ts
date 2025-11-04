@@ -1,7 +1,12 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { NextRequest, NextResponse } from "next/server";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
+
+import { db } from "@/db";
+import { users } from "@/db/schema";
+import { stackServerApp } from "@/stack/server";
 
 const REQUEST_SCHEMA = z.object({
   exampleMarkdown: z
@@ -145,6 +150,65 @@ const loadPromptTemplate = async (): Promise<string | null> => {
   }
 };
 
+const ensureLocalUserId = async (stackUserId: string, stackUserEmail?: string | null, stackUserName?: string | null) => {
+  const [existing] = await db.select({ id: users.id }).from(users).where(eq(users.stackId, stackUserId)).limit(1);
+  if (existing) {
+    return existing.id;
+  }
+
+  const fallbackEmail = stackUserEmail && stackUserEmail.trim().length > 0 ? stackUserEmail : `${stackUserId}@adapt2life.local`;
+  const [inserted] = await db
+    .insert(users)
+    .values({
+      stackId: stackUserId,
+      email: fallbackEmail,
+      name: stackUserName ?? null,
+    })
+    .returning({ id: users.id });
+
+  return inserted?.id ?? null;
+};
+
+const resolveOwnerContext = async (
+  request: NextRequest,
+): Promise<{ ownerId: string | null; ownerInstruction: string; requireWarning: boolean }> => {
+  try {
+    const stackUser = await stackServerApp.getUser({ or: "return-null", tokenStore: request });
+    if (!stackUser) {
+      return {
+        ownerId: null,
+        ownerInstruction:
+          "Aucun utilisateur identifié : renseigne \"ownerId\": null et ajoute dans la description la mention \"(ownerId non défini — utilisateur non identifié)\".",
+        requireWarning: true,
+      };
+    }
+
+    const localId = await ensureLocalUserId(stackUser.id, stackUser.primaryEmail, stackUser.displayName);
+    if (localId !== null && localId !== undefined) {
+      const ownerIdString = String(localId);
+      return {
+        ownerId: ownerIdString,
+        ownerInstruction: `Utilise strictement \"ownerId\": \"${ownerIdString}\" (premier champ du JSON) et ne modifie jamais cette valeur.`,
+        requireWarning: false,
+      };
+    }
+
+    return {
+      ownerId: null,
+      ownerInstruction:
+        "Aucun utilisateur identifié : renseigne \"ownerId\": null et ajoute dans la description la mention \"(ownerId non défini — utilisateur non identifié)\".",
+      requireWarning: true,
+    };
+  } catch {
+    return {
+      ownerId: null,
+      ownerInstruction:
+        "Aucun utilisateur identifié : renseigne \"ownerId\": null et ajoute dans la description la mention \"(ownerId non défini — utilisateur non identifié)\".",
+      requireWarning: true,
+    };
+  }
+};
+
 export async function POST(request: NextRequest) {
   let body: unknown;
   try {
@@ -189,7 +253,8 @@ export async function POST(request: NextRequest) {
     `${request.headers.get("x-forwarded-proto") ?? "https"}://${request.headers.get("host") ?? "localhost"}`;
   const referer = process.env.APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? inferredOrigin ?? "http://localhost:3000";
 
-  const userPrompt = buildFinalPrompt(promptTemplate, exampleMarkdown);
+  const { ownerInstruction } = await resolveOwnerContext(request);
+  const userPrompt = [ownerInstruction, buildFinalPrompt(promptTemplate, exampleMarkdown)].join("\n\n");
 
   const completionResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
