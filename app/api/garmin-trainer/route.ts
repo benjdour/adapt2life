@@ -232,6 +232,34 @@ const resolveOwnerContext = async (
   }
 };
 
+const normalizeWorkoutPayload = (value: unknown): unknown => {
+  if (Array.isArray(value)) {
+    return value.map((item) => normalizeWorkoutPayload(item));
+  }
+
+  if (value && typeof value === "object") {
+    const entries = Object.entries(value as Record<string, unknown>);
+    const sanitized: Record<string, unknown> = {};
+
+    for (const [key, raw] of entries) {
+      if (raw === null || raw === undefined) {
+        continue;
+      }
+
+      if (key === "intensity" && raw === "REST") {
+        sanitized[key] = "COOLDOWN";
+        continue;
+      }
+
+      sanitized[key] = normalizeWorkoutPayload(raw);
+    }
+
+    return sanitized;
+  }
+
+  return value;
+};
+
 export async function POST(request: NextRequest) {
   const ownerContext = await resolveOwnerContext(request);
 
@@ -386,13 +414,15 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const validation = workoutSchema.safeParse(workout);
+    const normalizedWorkout = normalizeWorkoutPayload(workout) as Record<string, unknown>;
+
+    const validation = workoutSchema.safeParse(normalizedWorkout);
     if (!validation.success) {
       return NextResponse.json(
         {
           error: "L’entraînement généré ne respecte pas le schéma attendu.",
           issues: validation.error.issues,
-          raw: JSON.stringify(workout, null, 2),
+          raw: JSON.stringify(normalizedWorkout, null, 2),
         },
         { status: 422 },
       );
