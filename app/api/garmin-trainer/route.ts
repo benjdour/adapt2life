@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -96,6 +98,31 @@ const buildFinalPrompt = (template: string, example: string): string => {
   return `${template.trim()}\n\n---\nExemple d’entraînement (Markdown) :\n${example}`;
 };
 
+const GARMIN_PROMPT_FILENAME = "docs/garmin_trainer_prompt.txt";
+
+let cachedPromptTemplate: string | null | undefined;
+
+const loadPromptTemplate = async (): Promise<string | null> => {
+  if (cachedPromptTemplate !== undefined) {
+    return cachedPromptTemplate;
+  }
+
+  const envPrompt = process.env.GARMIN_TRAINER_PROMPT;
+  if (envPrompt && envPrompt.trim()) {
+    cachedPromptTemplate = envPrompt;
+    return cachedPromptTemplate;
+  }
+
+  try {
+    const fileBuffer = await readFile(resolve(process.cwd(), GARMIN_PROMPT_FILENAME));
+    cachedPromptTemplate = fileBuffer.toString("utf8").trim();
+    return cachedPromptTemplate || null;
+  } catch {
+    cachedPromptTemplate = null;
+    return null;
+  }
+};
+
 export async function POST(request: NextRequest) {
   let body: unknown;
   try {
@@ -120,12 +147,12 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const promptTemplate = process.env.GARMIN_TRAINER_PROMPT;
+  const promptTemplate = await loadPromptTemplate();
   if (!promptTemplate) {
     return NextResponse.json(
       {
         error:
-          "GARMIN_TRAINER_PROMPT manquant côté serveur. Ajoute le prompt à utiliser dans la variable d’environnement GARMIN_TRAINER_PROMPT.",
+          "Prompt Garmin introuvable. Ajoute la variable d’environnement GARMIN_TRAINER_PROMPT ou place un fichier docs/garmin_trainer_prompt.txt sur le serveur.",
       },
       { status: 500 },
     );
