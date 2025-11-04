@@ -241,6 +241,8 @@ const normalizeWorkoutPayload = (value: unknown): unknown => {
     const entries = Object.entries(value as Record<string, unknown>);
     const sanitized: Record<string, unknown> = {};
 
+    let hasNestedSteps = false;
+
     for (const [key, raw] of entries) {
       if (raw === null || raw === undefined) {
         continue;
@@ -264,6 +266,12 @@ const normalizeWorkoutPayload = (value: unknown): unknown => {
         continue;
       }
 
+      if (key === "steps" && Array.isArray(normalized) && normalized.length > 0) {
+        hasNestedSteps = true;
+        sanitized[key] = normalized;
+        continue;
+      }
+
       sanitized[key] = normalized;
     }
 
@@ -271,6 +279,35 @@ const normalizeWorkoutPayload = (value: unknown): unknown => {
       const maybeDistance = sanitized["estimatedDistanceInMeters"];
       if (typeof maybeDistance !== "number") {
         sanitized["estimatedDistanceInMeters"] = 0;
+      }
+
+      if (!("poolLength" in sanitized)) {
+        sanitized.poolLength = null;
+      }
+      if (!("poolLengthUnit" in sanitized)) {
+        sanitized.poolLengthUnit = null;
+      }
+    }
+
+    if ("type" in sanitized && sanitized.type === "WorkoutStep" && hasNestedSteps) {
+      sanitized.type = "WorkoutRepeatStep";
+      if (!("repeatType" in sanitized)) {
+        sanitized.repeatType = "REPEAT_COUNT";
+      }
+      if (!("repeatValue" in sanitized)) {
+        sanitized.repeatValue = 1;
+      }
+    }
+
+    if ("segments" in sanitized) {
+      if (!("poolLength" in sanitized)) {
+        sanitized.poolLength = null;
+      }
+      if (!("poolLengthUnit" in sanitized)) {
+        sanitized.poolLengthUnit = null;
+      }
+      if (!("estimatedDistanceInMeters" in sanitized) || typeof sanitized.estimatedDistanceInMeters !== "number") {
+        sanitized.estimatedDistanceInMeters = 0;
       }
     }
 
