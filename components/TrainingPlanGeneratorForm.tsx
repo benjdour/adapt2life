@@ -82,8 +82,9 @@ const [garminWorkout, setGarminWorkout] = useState<string | null>(null);
         throw new Error(payload.error ?? "Impossible de générer le JSON Garmin.");
       }
 
-      const data = (await response.json()) as { workoutJson?: string };
+      const data = (await response.json()) as { workoutJson?: string; warning?: string | null };
       setGarminWorkout(data.workoutJson ?? null);
+      setGarminError(data.warning ?? null);
     } catch (garminGenerationError) {
       setGarminError(
         garminGenerationError instanceof Error
