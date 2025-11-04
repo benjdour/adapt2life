@@ -11,7 +11,7 @@ const workoutStepSchema = z.object({
   repeatValue: z.number().nullable(),
   skipLastRestStep: z.boolean(),
   steps: z.null(),
-  intensity: z.enum(["WARMUP", "INTERVAL", "MAIN", "RECOVERY", "COOLDOWN"]),
+  intensity: z.enum(["WARMUP", "MAIN", "INTERVAL", "RECOVERY", "COOLDOWN", "ACTIVE"]),
   description: z.string(),
   durationType: z.literal("TIME").nullable(),
   durationValue: z.number().nullable(),
@@ -75,7 +75,7 @@ const workoutRepeatStepSchema = z.object({
  */
 const segmentSchema = z.object({
   segmentOrder: z.number(),
-  sport: z.literal("CYCLING"),
+  sport: z.enum(["CYCLING", "RUNNING", "SWIMMING", "STRENGTH", "YOGA", "OTHER"]),
   estimatedDurationInSecs: z.number(),
   estimatedDistanceInMeters: z.number().nullable(),
   poolLength: z.number().nullable(),
@@ -87,7 +87,7 @@ const segmentSchema = z.object({
  * 🧠 Entraînement complet : Workout
  */
 export const workoutSchema = z.object({
-  ownerId: z.string().uuid().or(z.string().length(32)).nullable(), // UUID ou hash MD5-like
+  ownerId: z.string().uuid().or(z.string().length(32)), // UUID ou hash MD5-like
   workoutName: z.string(),
   description: z.string(),
   sport: z.literal("CYCLING"),
