@@ -13,7 +13,7 @@ export function TrainingPlanGeneratorForm() {
   const [plan, setPlan] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [garminWorkout, setGarminWorkout] = useState<string | null>(null);
+const [garminWorkout, setGarminWorkout] = useState<string | null>(null);
   const [garminError, setGarminError] = useState<string | null>(null);
   const [isGarminLoading, setIsGarminLoading] = useState(false);
 
@@ -82,8 +82,8 @@ export function TrainingPlanGeneratorForm() {
         throw new Error(payload.error ?? "Impossible de générer le JSON Garmin.");
       }
 
-      const data = (await response.json()) as { workout: unknown };
-      setGarminWorkout(JSON.stringify(data.workout, null, 2));
+      const data = (await response.json()) as { workoutJson?: string };
+      setGarminWorkout(data.workoutJson ?? null);
     } catch (garminGenerationError) {
       setGarminError(
         garminGenerationError instanceof Error
