@@ -2,15 +2,14 @@
 
 import { FormEvent, useState } from "react";
 
-import { MarkdownPlan } from "@/components/MarkdownPlan";
-
 type GenerateTrainingResponse = {
-  trainingMarkdown: string;
+  trainingJson: unknown;
+  raw: string;
 };
 
 export function GarminTrainerGenerator() {
   const [exampleMarkdown, setExampleMarkdown] = useState("");
-  const [generatedTraining, setGeneratedTraining] = useState<string | null>(null);
+  const [rawResult, setRawResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -24,7 +23,7 @@ export function GarminTrainerGenerator() {
     }
 
     setError(null);
-    setGeneratedTraining(null);
+    setRawResult(null);
     setIsLoading(true);
 
     try {
@@ -36,15 +35,15 @@ export function GarminTrainerGenerator() {
         body: JSON.stringify({ exampleMarkdown: trimmedExample }),
       });
 
-      const data = (await response.json().catch(() => null)) as { trainingMarkdown?: string; error?: string } | null;
+      const data = (await response.json().catch(() => null)) as GenerateTrainingResponse & { error?: string } | null;
 
-      if (!response.ok || !data || typeof data.trainingMarkdown !== "string") {
+      if (!response.ok || !data || typeof data.raw !== "string") {
         const message =
           data?.error ?? "Impossible de générer l’entraînement pour le moment. Merci de réessayer plus tard.";
         throw new Error(message);
       }
 
-      setGeneratedTraining(data.trainingMarkdown);
+      setRawResult(data.raw);
     } catch (generationError) {
       setError(generationError instanceof Error ? generationError.message : "Erreur inconnue.");
     } finally {
@@ -67,8 +66,6 @@ export function GarminTrainerGenerator() {
           className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-left text-sm text-white placeholder:text-white/40 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/60"
         />
 
-        {error ? <p className="text-sm text-red-300">{error}</p> : null}
-
         <button
           type="submit"
           disabled={isLoading}
@@ -76,14 +73,18 @@ export function GarminTrainerGenerator() {
         >
           {isLoading ? "Génération en cours..." : "Générer l’entraînement"}
         </button>
-      </form>
 
-      {generatedTraining ? (
-        <div className="space-y-4 rounded-2xl border border-white/15 bg-white/5 p-6 text-left text-sm leading-relaxed text-white">
-          <h2 className="text-lg font-semibold text-emerald-200">Entraînement généré</h2>
-          <MarkdownPlan content={generatedTraining} className="text-sm leading-relaxed" />
-        </div>
-      ) : null}
+        {error ? <p className="text-sm text-red-300">{error}</p> : null}
+
+        {rawResult ? (
+          <div className="space-y-3 rounded-xl border border-white/15 bg-black/40 p-4 text-left text-sm text-white">
+            <h2 className="text-base font-semibold text-emerald-200">Résultat brut</h2>
+            <pre className="max-h-[32rem] overflow-auto whitespace-pre-wrap break-words font-mono text-xs leading-relaxed text-emerald-100/80">
+              {rawResult}
+            </pre>
+          </div>
+        ) : null}
+      </form>
     </div>
   );
 }

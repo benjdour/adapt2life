@@ -204,5 +204,19 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  return NextResponse.json({ trainingMarkdown: messageText });
+  const trimmedMessage = messageText.trim();
+
+  try {
+    const parsedJson = JSON.parse(trimmedMessage) as unknown;
+    return NextResponse.json({ trainingJson: parsedJson, raw: trimmedMessage });
+  } catch {
+    return NextResponse.json(
+      {
+        error:
+          "Le modèle a renvoyé un contenu qui n’est pas un JSON valide. Vérifie le prompt ou réessaie avec un autre exemple.",
+        raw: trimmedMessage,
+      },
+      { status: 502 },
+    );
+  }
 }
