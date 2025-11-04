@@ -183,15 +183,12 @@ const resolveOwnerContext = async (
       };
     }
 
-    const localId = await ensureLocalUserId(stackUser.id, stackUser.primaryEmail, stackUser.displayName);
-    if (localId !== null && localId !== undefined) {
-      const ownerIdString = String(localId);
-      return {
-        ownerId: ownerIdString,
-        ownerInstruction: `Utilise strictement \"ownerId\": \"${ownerIdString}\" (premier champ du JSON) et ne modifie jamais cette valeur.`,
-        requireWarning: false,
-      };
-    }
+    await ensureLocalUserId(stackUser.id, stackUser.primaryEmail, stackUser.displayName);
+    return {
+      ownerId: stackUser.id,
+      ownerInstruction: `Utilise strictement \"ownerId\": \"${stackUser.id}\" (premier champ du JSON) et ne modifie jamais cette valeur.`,
+      requireWarning: false,
+    };
 
     return {
       ownerId: null,
