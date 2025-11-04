@@ -12,6 +12,177 @@ const REQUEST_SCHEMA = z.object({
 });
 
 
+const GARMIN_JSON_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: [
+    "ownerId",
+    "workoutName",
+    "description",
+    "sport",
+    "estimatedDurationInSecs",
+    "estimatedDistanceInMeters",
+    "poolLength",
+    "poolLengthUnit",
+    "workoutProvider",
+    "workoutSourceId",
+    "isSessionTransitionEnabled",
+    "segments",
+  ],
+  properties: {
+    ownerId: { anyOf: [{ type: "integer" }, { type: "null" }] },
+    workoutName: { type: "string" },
+    description: { type: "string" },
+    sport: {
+      enum: [
+        "RUNNING",
+        "CYCLING",
+        "LAP_SWIMMING",
+        "STRENGTH_TRAINING",
+        "CARDIO_TRAINING",
+        "YOGA",
+        "PILATES",
+        "MULTI_SPORT",
+      ],
+    },
+    estimatedDurationInSecs: { anyOf: [{ type: "integer" }, { type: "null" }] },
+    estimatedDistanceInMeters: { anyOf: [{ type: "number" }, { type: "null" }] },
+    poolLength: { anyOf: [{ type: "number" }, { type: "null" }] },
+    poolLengthUnit: { anyOf: [{ type: "string" }, { type: "null" }] },
+    workoutProvider: { type: "string" },
+    workoutSourceId: { type: "string" },
+    isSessionTransitionEnabled: { type: "boolean" },
+    segments: {
+      type: "array",
+      minItems: 1,
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: [
+          "segmentOrder",
+          "sport",
+          "estimatedDurationInSecs",
+          "estimatedDistanceInMeters",
+          "poolLength",
+          "poolLengthUnit",
+          "steps",
+        ],
+        properties: {
+          segmentOrder: { type: "integer" },
+          sport: { type: "string" },
+          estimatedDurationInSecs: { anyOf: [{ type: "integer" }, { type: "null" }] },
+          estimatedDistanceInMeters: { anyOf: [{ type: "number" }, { type: "null" }] },
+          poolLength: { anyOf: [{ type: "number" }, { type: "null" }] },
+          poolLengthUnit: { anyOf: [{ type: "string" }, { type: "null" }] },
+          steps: {
+            type: "array",
+            minItems: 1,
+            items: {
+              type: "object",
+              additionalProperties: false,
+              required: [
+                "type",
+                "stepId",
+                "stepOrder",
+                "repeatType",
+                "repeatValue",
+                "skipLastRestStep",
+                "steps",
+                "intensity",
+                "description",
+                "durationType",
+                "durationValue",
+                "durationValueType",
+                "equipmentType",
+                "exerciseCategory",
+                "exerciseName",
+                "weightValue",
+                "weightDisplayUnit",
+                "targetType",
+                "targetValue",
+                "targetValueLow",
+                "targetValueHigh",
+                "targetValueType",
+                "secondaryTargetType",
+                "secondaryTargetValue",
+                "secondaryTargetValueLow",
+                "secondaryTargetValueHigh",
+                "secondaryTargetValueType",
+                "strokeType",
+                "drillType",
+              ],
+              properties: {
+                type: { enum: ["WorkoutStep", "WorkoutRepeatStep"] },
+                stepId: { anyOf: [{ type: "integer" }, { type: "null" }] },
+                stepOrder: { type: "integer" },
+                repeatType: { anyOf: [{ type: "string" }, { type: "null" }] },
+                repeatValue: { anyOf: [{ type: "number" }, { type: "null" }] },
+                skipLastRestStep: { type: "boolean" },
+                steps: {
+                  anyOf: [
+                    { type: "null" },
+                    {
+                      type: "array",
+                      items: { $ref: "#" },
+                    },
+                  ],
+                },
+                intensity: {
+                  enum: ["REST", "WARMUP", "COOLDOWN", "RECOVERY", "ACTIVE", "INTERVAL", "MAIN"],
+                },
+                description: { type: "string" },
+                durationType: { enum: ["TIME", "DISTANCE", "REPS"] },
+                durationValue: { anyOf: [{ type: "number" }, { type: "null" }] },
+                durationValueType: { anyOf: [{ type: "string" }, { type: "null" }] },
+                equipmentType: { anyOf: [{ type: "string" }, { type: "null" }] },
+                exerciseCategory: { anyOf: [{ type: "string" }, { type: "null" }] },
+                exerciseName: { anyOf: [{ type: "string" }, { type: "null" }] },
+                weightValue: { anyOf: [{ type: "number" }, { type: "null" }] },
+                weightDisplayUnit: { anyOf: [{ type: "string" }, { type: "null" }] },
+                targetType: {
+                  anyOf: [
+                    {
+                      enum: [
+                        "OPEN",
+                        "SPEED",
+                        "HEART_RATE",
+                        "POWER",
+                        "CADENCE",
+                        "GRADE",
+                        "RESISTANCE",
+                        "POWER_3S",
+                        "POWER_10S",
+                        "POWER_30S",
+                        "POWER_LAP",
+                        "SPEED_LAP",
+                        "HEART_RATE_LAP",
+                        "PACE",
+                      ],
+                    },
+                    { type: "null" },
+                  ],
+                },
+                targetValue: { anyOf: [{ type: "number" }, { type: "null" }] },
+                targetValueLow: { anyOf: [{ type: "number" }, { type: "null" }] },
+                targetValueHigh: { anyOf: [{ type: "number" }, { type: "null" }] },
+                targetValueType: { anyOf: [{ enum: ["PERCENT"] }, { type: "null" }] },
+                secondaryTargetType: { anyOf: [{ type: "string" }, { type: "null" }] },
+                secondaryTargetValue: { anyOf: [{ type: "number" }, { type: "null" }] },
+                secondaryTargetValueLow: { anyOf: [{ type: "number" }, { type: "null" }] },
+                secondaryTargetValueHigh: { anyOf: [{ type: "number" }, { type: "null" }] },
+                secondaryTargetValueType: { anyOf: [{ type: "string" }, { type: "null" }] },
+                strokeType: { anyOf: [{ type: "string" }, { type: "null" }] },
+                drillType: { anyOf: [{ type: "string" }, { type: "null" }] },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+};
+
+
 async function ensureLocalUser(stackUser: NonNullable<Awaited<ReturnType<typeof stackServerApp.getUser>>>) {
   const [existingUser] = await db
     .select({
@@ -96,6 +267,13 @@ export async function POST(request: NextRequest) {
         model: "openai/gpt-5",
         temperature: 0.2,
         max_tokens: 4096,
+        response_format: {
+          type: "json_schema",
+          json_schema: {
+            name: "garmin_workout",
+            schema: GARMIN_JSON_SCHEMA,
+          },
+        },
         messages: [
           {
             role: "system",
@@ -145,7 +323,7 @@ export async function POST(request: NextRequest) {
 
     let parsed: unknown;
     try {
-      parsed = JSON.parse(rawContent);
+      parsed = JSON.parse(rawContent.trim());
     } catch (parseError) {
       console.error("garmin-json: unable to parse OpenRouter content", { rawContent, parseError });
       return NextResponse.json(
