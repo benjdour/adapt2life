@@ -82,6 +82,8 @@ export const ADAPT2LIFE_GARMIN_JSON_PROMPT = [
 "- Pour un WorkoutRepeatStep, le champ \"steps\" contient uniquement la liste des sous-étapes (objects de type WorkoutStep) ; ne pas imbriquer un workout complet.",
 "- N'utilise jamais les guillemets doubles \" \" à l'intérieur des valeurs : écris 30 s, 1 min, etc. Si un guillemet est indispensable, échappe-le (\\\").",
 "- Limite chaque description textuelle à 180 caractères maximum (phrases courtes).",
+"- Utilise uniquement des caractères ASCII simples : remplace les apostrophes typographiques et tirets longs par des apostrophes simples ' et des tirets -.",
+"- Termine toujours le JSON complet par le caractère } (aucune coupure ou omission).",
 "- Aucune clé supplémentaire non listée dans la documentation.",
 "- La sortie finale doit être un JSON unique valide.",
   "",

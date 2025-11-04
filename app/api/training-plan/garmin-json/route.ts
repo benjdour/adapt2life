@@ -348,11 +348,11 @@ export async function POST(request: NextRequest) {
     let warning: string | undefined;
     let lastRawContent: string | null = null;
 
-    for (let attempt = 0; attempt < 2; attempt += 1) {
+    for (let attempt = 0; attempt < 3; attempt += 1) {
       const additionalInstruction =
         attempt === 0
           ? null
-          : "La génération précédente était incomplète ou invalide. Réécris TOUT le JSON depuis le début, en respectant strictement le schéma et sans dépasser 4500 tokens.";
+          : "La génération précédente était incomplète ou invalide. Réécris TOUT le JSON depuis le début, en respectant strictement le schéma, avec des descriptions <= 120 caractères, uniquement des caractères ASCII simples et sans guillemets doubles non échappés. Reste concis pour ne pas dépasser les limites.";
 
       const result = await requestOpenRouter(additionalInstruction);
       if ("error" in result) {
