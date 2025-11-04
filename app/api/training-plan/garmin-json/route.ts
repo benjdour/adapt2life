@@ -132,73 +132,22 @@ export async function POST(request: NextRequest) {
       choices?: Array<{ message?: { content?: unknown } }>;
     };
 
-    const assistantMessage = completionJson.choices?.[0]?.message ?? null;
-    const rawContent = assistantMessage?.content;
-
-    const tryParseString = (value: string | null | undefined): unknown | null => {
-      if (!value) {
-        return null;
-      }
-      try {
-        return JSON.parse(value);
-      } catch {
-        return null;
-      }
-    };
-
-    const searchJson = (value: unknown): unknown | null => {
-      if (!value) {
-        return null;
-      }
-      if (typeof value === "string") {
-        return tryParseString(value);
-      }
-      if (Array.isArray(value)) {
-        for (const item of value) {
-          const result = searchJson(item);
-          if (result !== null) {
-            return result;
-          }
-        }
-        return null;
-      }
-      if (typeof value === "object") {
-        const record = value as Record<string, unknown>;
-        if (record.json && typeof record.json === "object") {
-          return record.json;
-        }
-        if (typeof record.text === "string") {
-          const parsed = tryParseString(record.text);
-          if (parsed !== null) {
-            return parsed;
-          }
-        }
-        if (typeof record.content === "string") {
-          const parsed = tryParseString(record.content);
-          if (parsed !== null) {
-            return parsed;
-          }
-        }
-        if (Array.isArray(record.content)) {
-          const nested = searchJson(record.content);
-          if (nested !== null) {
-            return nested;
-          }
-        }
-      }
-      return null;
-    };
-
-    let parsed: unknown = null;
-    if (typeof rawContent === "string" && rawContent.trim().length > 0) {
-      parsed = tryParseString(rawContent);
-    }
-    if (parsed === null) {
-      parsed = searchJson(assistantMessage);
+    const rawContent = completionJson.choices?.[0]?.message?.content;
+    if (typeof rawContent !== "string") {
+      console.error("garmin-json: OpenRouter response missing string content", {
+        message: completionJson.choices?.[0]?.message,
+      });
+      return NextResponse.json(
+        { error: "Réponse OpenRouter invalide : contenu absent." },
+        { status: 502 },
+      );
     }
 
-    if (parsed === null) {
-      console.error("garmin-json: unable to parse OpenRouter content", { assistantMessage });
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(rawContent);
+    } catch (parseError) {
+      console.error("garmin-json: unable to parse OpenRouter content", { rawContent, parseError });
       return NextResponse.json(
         { error: "Réponse OpenRouter invalide : JSON non reconnu." },
         { status: 502 },
