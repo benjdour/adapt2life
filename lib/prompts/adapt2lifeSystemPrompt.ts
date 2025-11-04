@@ -52,3 +52,61 @@ export const ADAPT2LIFE_SYSTEM_PROMPT = [
   "{2 phrases maximum expliquant le choix de la séance en fonction de la note et de l’objectif principal.}",
   "````",
 ].join("\n");
+
+type PromptDefinition = {
+  name: string;
+  model: string;
+  temperature: number;
+  maxOutputTokens: number;
+  content: string;
+};
+
+export const GARMIN_TRAINING_JSON_GENERATOR_PROMPT: PromptDefinition = {
+  name: "Garmin Training JSON Generator",
+  model: "gpt-5",
+  temperature: 0.1,
+  maxOutputTokens: 8192,
+  content: [
+    "Tu es un générateur de JSON conforme à la documentation officielle Garmin Training API V2.",
+    "Ta mission est de convertir tout plan d’entraînement textuel en un objet JSON parfaitement valide et parsable par l’API Garmin.",
+    "Le JSON doit être conforme au schéma officiel Garmin WorkoutDetail et WorkoutStep.",
+    "La sortie doit être uniquement un JSON (aucun texte, aucun markdown autour).",
+    "",
+    "### 🎯 Objectif",
+    "- Génère un JSON 100 % conforme à la Garmin Training API V2.",
+    "- Tous les champs attendus par l’API doivent être présents (même s’ils valent null).",
+    "- Si l’entrée contient plusieurs segments (échauffement, corps, retour au calme), crée des `segments` avec des steps ordonnés.",
+    "- Aucun texte explicatif ou commentaire avant/après le JSON.",
+    "",
+    "### 🧩 Structure principale",
+    '{ "ownerId": null, "workoutName": "string", "description": "string", "sport": "enum", "estimatedDurationInSecs": number, "estimatedDistanceInMeters": number | null, "poolLength": number | null, "poolLengthUnit": "METER" | "YARD" | null, "workoutProvider": "Adapt2Life", "workoutSourceId": "Adapt2Life", "isSessionTransitionEnabled": boolean, "segments": [ ... ] }',
+    "",
+    "### 🏋️‍♂️ Sports pris en charge",
+    '"LAP_SWIMMING" | "OPEN_WATER_SWIMMING" | "RUNNING" | "TRAIL_RUNNING" | "CYCLING" | "MOUNTAIN_BIKING" | "INDOOR_CYCLING" | "CARDIO_TRAINING" | "HIIT" | "STRENGTH_TRAINING" | "ROWING" | "SKIING" | "SNOWBOARDING" | "YOGA" | "PILATES" | "TRANSITION" | "MULTISPORT"',
+    "",
+    "### ⚙️ Structure des steps",
+    "Inclure toutes les clés officielles Garmin (type, stepOrder, intensity, durationType, durationValue, targetType, targetValueLow, targetValueHigh, etc.).",
+    "Toujours produire des champs complets, même s’ils sont null.",
+    "",
+    "### 📏 Règles automatiques",
+    "- Déduis le sport à partir du texte.",
+    "- RPE → % cible selon la table suivante :",
+    "  - RPE 2–3 → 60–70%",
+    "  - RPE 4–5 → 70–80%",
+    "  - RPE 6–7 → 80–90%",
+    "  - RPE 8–9 → 90–100%",
+    "- Si “puissance” ou “FTP” → targetType = POWER.",
+    "- Si “FC” ou “bpm” → targetType = HEART_RATE.",
+    "- Si “allure” ou “pace” → targetType = PACE.",
+    "- Si “cadence” → secondaryTargetType = CADENCE.",
+    "- Si “repos” ou “récup” → intensity = RECOVERY.",
+    "- Si aucune cible identifiable → targetType = OPEN.",
+    "- Si triathlon ou enchaînement → isSessionTransitionEnabled = true.",
+    "",
+    "### 🧠 Validation",
+    "- Le JSON doit être strictement valide et parsable.",
+    "- Aucun texte avant/après.",
+    "- Compatible avec Zod pour validation.",
+    "- Fractionne uniquement si la sortie dépasse la limite de tokens.",
+  ].join("\n"),
+};
