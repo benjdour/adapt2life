@@ -129,14 +129,10 @@ Chaque section doit inclure "steps": [...].
 - Si la distance totale peut être estimée à partir des steps, additionne toutes les valeurs `durationValue` dont `durationType` est `DISTANCE`.
 - Remplis toujours `targetValueLow` et `targetValueHigh` lorsqu’une zone (Z1–Z5, RPE, FTP) est détectée.
 
-# 🔐 Gestion automatique du ownerId (Adapt2Life)
-- Récupère le `userId` Adapt2Life (Stack ID) depuis la base de données (Drizzle / PostgreSQL).
-- Si disponible → place exactement cette valeur dans `ownerId` (premier champ du JSON, juste avant `workoutName`).
-- Si aucune entrée liée n’est trouvée → mets `ownerId` à `null` et ajoute dans `description` la mention `(ownerId non défini — utilisateur non identifié)`.
-- Ne jamais inventer, reformater ou modifier la valeur.
-
-Exemple :
-Entrée `{ "userId": "3fa85f64-5717-4562-b3fc-2c963f66afa6", ... }` → sortie `"ownerId": "3fa85f64-5717-4562-b3fc-2c963f66afa6"`
+# 🔐 Gestion automatique du ownerId
+- Lors d’une création de workout, laisse toujours `ownerId` à `null` (Garmin attribuera la valeur appropriée).
+- `ownerId` doit rester le premier champ du JSON, juste avant `workoutName`.
+- N’ajoute pas d’avertissement quand la valeur vaut `null`, sauf indication contraire.
 
 ---
 
