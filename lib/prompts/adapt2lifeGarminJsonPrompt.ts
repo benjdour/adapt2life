@@ -80,6 +80,8 @@ export const ADAPT2LIFE_GARMIN_JSON_PROMPT = [
 "- Les champs inutilisés doivent rester null.",
 '- Si plusieurs sports sont présents, mettre "sport": "MULTI_SPORT" et créer un segment par discipline.',
 "- Pour un WorkoutRepeatStep, le champ \"steps\" contient uniquement la liste des sous-étapes (objects de type WorkoutStep) ; ne pas imbriquer un workout complet.",
+"- N'utilise jamais les guillemets doubles \" \" à l'intérieur des valeurs : écris 30 s, 1 min, etc. Si un guillemet est indispensable, échappe-le (\\\").",
+"- Limite chaque description textuelle à 180 caractères maximum (phrases courtes).",
 "- Aucune clé supplémentaire non listée dans la documentation.",
 "- La sortie finale doit être un JSON unique valide.",
   "",

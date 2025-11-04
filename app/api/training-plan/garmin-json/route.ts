@@ -253,113 +253,147 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: message || "Requête invalide." }, { status: 400 });
     }
 
-    const userPrompt = parsedBody.data.plan;
+    const baseSystemPrompt = [
+      ADAPT2LIFE_GARMIN_JSON_PROMPT,
+      "",
+      "Réponds uniquement avec un objet JSON valide. Aucune explication ou texte en dehors du JSON.",
+    ].join("\n");
 
-    const completionResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${openRouterKey}`,
-        "HTTP-Referer": process.env.APP_URL ?? "http://localhost:3000",
-        "X-Title": "Adapt2Life",
-      },
-      body: JSON.stringify({
-        model: "openai/gpt-5",
-        temperature: 0.2,
-        max_tokens: 4096,
-        response_format: {
-          type: "json_schema",
-          json_schema: {
-            name: "garmin_workout",
-            schema: GARMIN_JSON_SCHEMA,
-          },
+    const requestOpenRouter = async (additionalUserInstructions: string | null) => {
+      const messages = [
+        {
+          role: "system" as const,
+          content: baseSystemPrompt,
         },
-        messages: [
-          {
-            role: "system",
-            content: [
-              ADAPT2LIFE_GARMIN_JSON_PROMPT,
-              "",
-              "Réponds uniquement avec un objet JSON valide. Aucune explication ou texte en dehors du JSON.",
-            ].join("\n"),
-          },
-          {
-            role: "user",
-            content: userPrompt,
-          },
-        ],
-      }),
-    });
+        {
+          role: "user" as const,
+          content: additionalUserInstructions
+            ? `${parsedBody.data.plan}\n\nNOTE IMPORTANTE : ${additionalUserInstructions}`
+            : parsedBody.data.plan,
+        },
+      ];
 
-    if (!completionResponse.ok) {
-      const errorPayload = await completionResponse.text();
-      if (completionResponse.status === 429) {
-        return NextResponse.json({ error: "Le service d’IA est temporairement indisponible." }, { status: 429 });
-      }
-      console.error("garmin-json: OpenRouter error", {
-        status: completionResponse.status,
-        payload: errorPayload,
+      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${openRouterKey}`,
+          "HTTP-Referer": process.env.APP_URL ?? "http://localhost:3000",
+          "X-Title": "Adapt2Life",
+        },
+        body: JSON.stringify({
+          model: "openai/gpt-5",
+          temperature: 0.1,
+          max_tokens: 6000,
+          response_format: {
+            type: "json_schema",
+            json_schema: {
+              name: "garmin_workout",
+              schema: GARMIN_JSON_SCHEMA,
+            },
+          },
+          messages,
+        }),
       });
-      return NextResponse.json(
-        { error: "Génération du JSON échouée sur OpenRouter.", details: errorPayload },
-        { status: completionResponse.status },
-      );
-    }
 
-    const completionJson = (await completionResponse.json()) as {
-      choices?: Array<{
-        message?: { content?: unknown };
-        finish_reason?: string | null;
-      }>;
+      if (!response.ok) {
+        const errorPayload = await response.text();
+        if (response.status === 429) {
+          return {
+            error: NextResponse.json(
+              { error: "Le service d’IA est temporairement indisponible." },
+              { status: 429 },
+            ),
+          } as const;
+        }
+        console.error("garmin-json: OpenRouter error", {
+          status: response.status,
+          payload: errorPayload,
+        });
+        return {
+          error: NextResponse.json(
+            { error: "Génération du JSON échouée sur OpenRouter.", details: errorPayload },
+            { status: response.status },
+          ),
+        } as const;
+      }
+
+      const completionJson = (await response.json()) as {
+        choices?: Array<{
+          message?: { content?: unknown };
+          finish_reason?: string | null;
+        }>;
+      };
+
+      const rawContent = completionJson.choices?.[0]?.message?.content;
+      if (typeof rawContent !== "string") {
+        console.error("garmin-json: OpenRouter response missing string content", {
+          message: completionJson.choices?.[0]?.message,
+        });
+        return {
+          error: NextResponse.json(
+            { error: "Réponse OpenRouter invalide : contenu absent." },
+            { status: 502 },
+          ),
+        } as const;
+      }
+
+      return {
+        trimmedContent: rawContent.trim(),
+        finishReason: completionJson.choices?.[0]?.finish_reason ?? null,
+      } as const;
     };
 
-    const rawContent = completionJson.choices?.[0]?.message?.content;
-    if (typeof rawContent !== "string") {
-      console.error("garmin-json: OpenRouter response missing string content", {
-        message: completionJson.choices?.[0]?.message,
-      });
-      return NextResponse.json(
-        { error: "Réponse OpenRouter invalide : contenu absent." },
-        { status: 502 },
-      );
-    }
-
-    const trimmedContent = rawContent.trim();
-
-    let workoutJson = trimmedContent;
+    let finalWorkoutJson: string | null = null;
     let warning: string | undefined;
+    let lastRawContent: string | null = null;
 
-    const finishReason = completionJson.choices?.[0]?.finish_reason ?? null;
-    if (finishReason === "length") {
-      warning =
-        "La réponse de l’IA a été interrompue avant la fin (finish_reason = length). Le JSON est probablement incomplet.";
-    }
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const additionalInstruction =
+        attempt === 0
+          ? null
+          : "La génération précédente était incomplète ou invalide. Réécris TOUT le JSON depuis le début, en respectant strictement le schéma et sans dépasser 4500 tokens.";
 
-    try {
-      const parsed = JSON.parse(trimmedContent);
-      if (parsed && typeof parsed === "object") {
-        const workout = {
-          ...(parsed as Record<string, unknown>),
-          ownerId: localUser.id,
-          workoutProvider: "Adapt2Life",
-          workoutSourceId: "Adapt2Life",
-        };
-        workoutJson = JSON.stringify(workout, null, 2);
-      } else {
+      const result = await requestOpenRouter(additionalInstruction);
+      if ("error" in result) {
+        return result.error;
+      }
+
+      const { trimmedContent, finishReason } = result;
+      lastRawContent = trimmedContent;
+
+      if (finishReason === "length") {
+        warning =
+          "La réponse de l’IA a été interrompue avant la fin (finish_reason = length). Le JSON est probablement incomplet.";
+      }
+
+      try {
+        const parsed = JSON.parse(trimmedContent);
+        if (parsed && typeof parsed === "object") {
+          const workout = {
+            ...(parsed as Record<string, unknown>),
+            ownerId: localUser.id,
+            workoutProvider: "Adapt2Life",
+            workoutSourceId: "Adapt2Life",
+          };
+          finalWorkoutJson = JSON.stringify(workout, null, 2);
+          break;
+        }
         console.error("garmin-json: parsed content is not an object", { parsed });
         warning = warning ?? "Le JSON généré n’a pas la structure attendue.";
+      } catch (parseError) {
+        console.error("garmin-json: unable to parse OpenRouter content", {
+          parseError,
+          preview: trimmedContent.slice(0, 2000),
+        });
+        warning = warning ?? "Impossible de lire la réponse de l’IA (JSON invalide).";
       }
-    } catch (parseError) {
-      console.error("garmin-json: unable to parse OpenRouter content", {
-        parseError,
-        preview: trimmedContent.slice(0, 2000),
-      });
-      warning =
-        warning ??
-        "Impossible de lire la réponse de l’IA (JSON invalide). Le résultat brut est affiché mais peut être incomplet.";
     }
 
-    return NextResponse.json({ workoutJson, warning: warning ?? null });
+    return NextResponse.json({
+      workoutJson: finalWorkoutJson ?? lastRawContent ?? null,
+      warning: warning ?? null,
+    });
   } catch (error) {
     console.error("Erreur lors de la génération du JSON Garmin :", error);
     return NextResponse.json({ error: "Erreur interne lors de la génération du JSON Garmin." }, { status: 500 });
