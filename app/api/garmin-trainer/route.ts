@@ -258,12 +258,15 @@ export async function POST(request: NextRequest) {
   try {
     const parsedJson = JSON.parse(trimmedMessage) as unknown;
     return NextResponse.json({ trainingJson: parsedJson, raw: trimmedMessage });
-  } catch {
+  } catch (parseError) {
+    const parseErrorMessage =
+      parseError instanceof Error ? parseError.message : "Erreur de parsing JSON inconnue.";
     return NextResponse.json(
       {
         error:
           "Le modèle a renvoyé un contenu qui n’est pas un JSON valide. Vérifie le prompt ou réessaie avec un autre exemple.",
         raw: trimmedMessage,
+        parseError: parseErrorMessage,
       },
       { status: 502 },
     );

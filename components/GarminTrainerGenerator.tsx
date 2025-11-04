@@ -5,6 +5,7 @@ import { FormEvent, useState } from "react";
 type GenerateTrainingResponse = {
   trainingJson: unknown;
   raw: string;
+  parseError?: string;
 };
 
 export function GarminTrainerGenerator() {
@@ -45,7 +46,9 @@ export function GarminTrainerGenerator() {
       if (!response.ok) {
         const message =
           data?.error ?? "Impossible de générer l’entraînement pour le moment. Merci de réessayer plus tard.";
-        setError(message);
+        const parseHint =
+          data?.parseError && data.parseError.trim().length > 0 ? `\nDétail: ${data.parseError.trim()}` : "";
+        setError(`${message}${parseHint}`);
         return;
       }
 
