@@ -242,7 +242,32 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const completionJson = (await completionResponse.json()) as OpenRouterResponse;
+  const completionPayload = await completionResponse.text();
+  let completionJson: OpenRouterResponse | null = null;
+  let parseErrorMessage: string | null = null;
+
+  if (completionPayload) {
+    try {
+      completionJson = JSON.parse(completionPayload) as OpenRouterResponse;
+    } catch (parseError) {
+      completionJson = null;
+      parseErrorMessage =
+        parseError instanceof Error ? parseError.message : "Erreur de parsing JSON inconnue.";
+    }
+  }
+
+  if (!completionJson) {
+    return NextResponse.json(
+      {
+        raw: completionPayload,
+        parseError:
+          parseErrorMessage ??
+          "Impossible d’interpréter la réponse d’OpenRouter comme JSON. Consulte le champ 'raw' pour inspecter le contenu brut.",
+      },
+      { status: 200 },
+    );
+  }
+
   const messageText = extractMessageText(completionJson.choices?.[0]);
 
   let rawContent: string;
