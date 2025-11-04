@@ -5,9 +5,14 @@ const ownerIdSchema = z.union([
   z.string().regex(/^[a-f0-9]{32}$/i, "ownerId doit être un UUID ou un hash 32 caractères"),
 ]);
 
-export const IntensityEnum = z.enum(["WARMUP", "MAIN", "INTERVAL", "RECOVERY", "COOLDOWN"]);
+export const IntensityEnum = z.enum(["ACTIVE", "REST", "WARMUP", "COOLDOWN", "INTERVAL", "RECOVERY", "MAIN"]);
 
-export const RepeatTypeEnum = z.enum(["REPEAT_COUNT", "REPEAT_UNTIL_STOP"]);
+export const RepeatTypeEnum = z.enum([
+  "REPEAT_COUNT",
+  "REPEAT_UNTIL_STEPS_CMPLT",
+  "REPEAT_UNTIL_TIME",
+  "REPEAT_UNTIL_DISTANCE",
+]);
 
 export const DurationTypeEnum = z.enum([
   "TIME",
@@ -29,33 +34,36 @@ export const SecondaryTargetTypeEnum = z.enum(["POWER", "HEART_RATE", "CADENCE",
 
 export const SegmentSportEnum = z.enum(["CYCLING", "RUNNING", "SWIMMING", "STRENGTH", "YOGA", "OTHER"]);
 
-const baseStepFields = {
-  stepId: z.string().optional(),
+const optionalNullable = <T extends z.ZodTypeAny>(schema: T) => schema.nullable().optional();
+
+const baseStepFields: Record<string, z.ZodTypeAny> = {
+  stepId: optionalNullable(z.string()),
   stepOrder: z.number(),
-  repeatValue: z.number().optional(),
-  skipLastRestStep: z.boolean().optional(),
-  intensity: IntensityEnum.optional(),
-  description: z.string().optional(),
-  durationType: DurationTypeEnum.optional(),
-  durationValue: z.number().optional(),
-  durationValueType: z.enum(["PERCENT"]).optional(),
-  equipmentType: z.string().optional(),
-  exerciseCategory: z.string().optional(),
-  exerciseName: z.string().optional(),
-  weightValue: z.number().optional(),
-  weightDisplayUnit: z.enum(["KILOGRAM", "POUND"]).optional(),
-  targetType: TargetTypeEnum.optional(),
-  targetValue: z.number().optional(),
-  targetValueLow: z.number().optional(),
-  targetValueHigh: z.number().optional(),
-  targetValueType: z.enum(["PERCENT"]).optional(),
-  secondaryTargetType: SecondaryTargetTypeEnum.optional(),
-  secondaryTargetValue: z.number().optional(),
-  secondaryTargetValueLow: z.number().optional(),
-  secondaryTargetValueHigh: z.number().optional(),
-  secondaryTargetValueType: z.enum(["PERCENT"]).optional(),
-  strokeType: z.string().optional(),
-  drillType: z.string().optional(),
+  repeatType: optionalNullable(RepeatTypeEnum),
+  repeatValue: optionalNullable(z.number()),
+  skipLastRestStep: optionalNullable(z.boolean()),
+  intensity: optionalNullable(IntensityEnum),
+  description: optionalNullable(z.string()),
+  durationType: optionalNullable(DurationTypeEnum),
+  durationValue: optionalNullable(z.number()),
+  durationValueType: optionalNullable(z.enum(["PERCENT"])),
+  equipmentType: optionalNullable(z.string()),
+  exerciseCategory: optionalNullable(z.string()),
+  exerciseName: optionalNullable(z.string()),
+  weightValue: optionalNullable(z.number()),
+  weightDisplayUnit: optionalNullable(z.enum(["KILOGRAM", "POUND"])),
+  targetType: optionalNullable(TargetTypeEnum),
+  targetValue: optionalNullable(z.number()),
+  targetValueLow: optionalNullable(z.number()),
+  targetValueHigh: optionalNullable(z.number()),
+  targetValueType: optionalNullable(z.enum(["PERCENT"])),
+  secondaryTargetType: optionalNullable(SecondaryTargetTypeEnum),
+  secondaryTargetValue: optionalNullable(z.number()),
+  secondaryTargetValueLow: optionalNullable(z.number()),
+  secondaryTargetValueHigh: optionalNullable(z.number()),
+  secondaryTargetValueType: optionalNullable(z.enum(["PERCENT"])),
+  strokeType: optionalNullable(z.string()),
+  drillType: optionalNullable(z.string()),
 };
 
 export const StepSchema: z.ZodTypeAny = z.lazy(() =>
@@ -64,7 +72,7 @@ export const StepSchema: z.ZodTypeAny = z.lazy(() =>
       .object({
         type: z.literal("WorkoutStep"),
         ...baseStepFields,
-        repeatType: RepeatTypeEnum.optional(),
+        steps: optionalNullable(z.array(StepSchema)),
       })
       .strict(),
     z
@@ -85,24 +93,24 @@ export const SegmentSchema = z
   .object({
     segmentOrder: z.number(),
     sport: SegmentSportEnum,
-    estimatedDurationInSecs: z.number().optional(),
-    estimatedDistanceInMeters: z.number().optional(),
-    poolLength: z.number().optional(),
-    poolLengthUnit: z.enum(["METER", "YARD"]).optional(),
+    estimatedDurationInSecs: optionalNullable(z.number()),
+    estimatedDistanceInMeters: optionalNullable(z.number()),
+    poolLength: optionalNullable(z.number()),
+    poolLengthUnit: optionalNullable(z.enum(["METER", "YARD"])),
     steps: z.array(StepSchema),
   })
   .strict();
 
 export const WorkoutSchema = z
   .object({
-    ownerId: ownerIdSchema.optional(),
+    ownerId: optionalNullable(ownerIdSchema),
     workoutName: z.string(),
-    description: z.string().optional(),
+    description: optionalNullable(z.string()),
     sport: SegmentSportEnum,
-    estimatedDurationInSecs: z.number().optional(),
-    estimatedDistanceInMeters: z.number().optional(),
-    poolLength: z.number().optional(),
-    poolLengthUnit: z.enum(["METER", "YARD"]).optional(),
+    estimatedDurationInSecs: optionalNullable(z.number()),
+    estimatedDistanceInMeters: optionalNullable(z.number()),
+    poolLength: optionalNullable(z.number()),
+    poolLengthUnit: optionalNullable(z.enum(["METER", "YARD"])),
     workoutProvider: z.string(),
     workoutSourceId: z.string(),
     isSessionTransitionEnabled: z.boolean(),

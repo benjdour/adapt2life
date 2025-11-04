@@ -246,12 +246,32 @@ const normalizeWorkoutPayload = (value: unknown): unknown => {
         continue;
       }
 
-      if (key === "intensity" && raw === "REST") {
-        sanitized[key] = "COOLDOWN";
+      const normalized = normalizeWorkoutPayload(raw);
+
+      if (key === "intensity" && typeof normalized === "string") {
+        if (normalized === "REST") {
+          sanitized[key] = "COOLDOWN";
+          continue;
+        }
+        if (normalized === "ACTIVE") {
+          sanitized[key] = "INTERVAL";
+          continue;
+        }
+      }
+
+      if (key === "type" && normalized === "WorkoutRepeatStep") {
+        sanitized[key] = "WorkoutStep";
         continue;
       }
 
-      sanitized[key] = normalizeWorkoutPayload(raw);
+      sanitized[key] = normalized;
+    }
+
+    if ("segmentOrder" in sanitized) {
+      const maybeDistance = sanitized["estimatedDistanceInMeters"];
+      if (typeof maybeDistance !== "number") {
+        sanitized["estimatedDistanceInMeters"] = 0;
+      }
     }
 
     return sanitized;
