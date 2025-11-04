@@ -36,14 +36,24 @@ export function GarminTrainerGenerator() {
       });
 
       const data = (await response.json().catch(() => null)) as GenerateTrainingResponse & { error?: string } | null;
+      const raw = data && typeof data.raw === "string" ? data.raw : null;
 
-      if (!response.ok || !data || typeof data.raw !== "string") {
-        const message =
-          data?.error ?? "Impossible de générer l’entraînement pour le moment. Merci de réessayer plus tard.";
-        throw new Error(message);
+      if (raw) {
+        setRawResult(raw);
       }
 
-      setRawResult(data.raw);
+      if (!response.ok) {
+        const message =
+          data?.error ?? "Impossible de générer l’entraînement pour le moment. Merci de réessayer plus tard.";
+        setError(message);
+        return;
+      }
+
+      if (!raw) {
+        throw new Error("Le serveur n’a pas renvoyé de JSON brut.");
+      }
+
+      setError(null);
     } catch (generationError) {
       setError(generationError instanceof Error ? generationError.message : "Erreur inconnue.");
     } finally {
