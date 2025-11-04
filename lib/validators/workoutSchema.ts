@@ -46,7 +46,7 @@ const baseStepFields: Record<string, z.ZodTypeAny> = {
   description: optionalNullable(z.string()),
   durationType: optionalNullable(DurationTypeEnum),
   durationValue: optionalNullable(z.number()),
-  durationValueType: optionalNullable(z.enum(["PERCENT"])),
+  durationValueType: optionalNullable(z.enum(["PERCENT", "SECOND"])),
   equipmentType: optionalNullable(z.string()),
   exerciseCategory: optionalNullable(z.string()),
   exerciseName: optionalNullable(z.string()),

@@ -317,6 +317,180 @@ const normalizeWorkoutPayload = (value: unknown): unknown => {
   return value;
 };
 
+const REQUIRED_STEP_KEYS = [
+  "stepId",
+  "repeatType",
+  "repeatValue",
+  "skipLastRestStep",
+  "steps",
+  "durationValueType",
+  "targetValue",
+  "targetValueLow",
+  "targetValueHigh",
+  "targetValueType",
+  "secondaryTargetType",
+  "secondaryTargetValue",
+  "secondaryTargetValueLow",
+  "secondaryTargetValueHigh",
+  "secondaryTargetValueType",
+  "strokeType",
+  "drillType",
+  "equipmentType",
+  "exerciseCategory",
+  "exerciseName",
+  "weightValue",
+  "weightDisplayUnit",
+];
+
+type StepRecord = Record<string, unknown>;
+
+const ensureStepDefaults = (
+  stepValue: unknown,
+  options: { parentIsRepeat: boolean },
+): StepRecord => {
+  const baseStep = (stepValue && typeof stepValue === "object" && !Array.isArray(stepValue)
+    ? (stepValue as StepRecord)
+    : {}) as StepRecord;
+
+  const result: StepRecord = { ...baseStep };
+
+  const rawSteps = Array.isArray(baseStep.steps) ? baseStep.steps : null;
+  const hasNestedSteps = Array.isArray(rawSteps) && rawSteps.length > 0;
+
+  if (hasNestedSteps) {
+    result.type = "WorkoutRepeatStep";
+    result.steps = rawSteps.map((nested) => ensureStepDefaults(nested, { parentIsRepeat: true }));
+    result.repeatType =
+      typeof baseStep.repeatType === "string" ? baseStep.repeatType : ("REPEAT_COUNT" as StepRecord["repeatType"]);
+    const repeatCount = Number(baseStep.repeatValue);
+    result.repeatValue = Number.isFinite(repeatCount) && repeatCount > 0 ? repeatCount : 1;
+  } else {
+    result.type = "WorkoutStep";
+    result.steps = null;
+    result.repeatType = null;
+    result.repeatValue = null;
+  }
+
+  result.stepId = typeof baseStep.stepId === "string" && baseStep.stepId.trim().length > 0 ? baseStep.stepId : null;
+
+  const skipRest = baseStep.skipLastRestStep;
+  result.skipLastRestStep = typeof skipRest === "boolean" ? skipRest : false;
+
+  if (result.durationType === "TIME") {
+    const duration = Number(baseStep.durationValue);
+    result.durationValue = Number.isFinite(duration) && duration >= 0 ? duration : 0;
+    result.durationValueType = "SECOND";
+  } else {
+    if (result.durationValue === undefined) {
+      result.durationValue = null;
+    }
+    result.durationValueType = result.durationValueType ?? null;
+  }
+
+  if (options.parentIsRepeat && (result.intensity === null || result.intensity === undefined || result.intensity === "COOLDOWN" || result.intensity === "REST")) {
+    result.intensity = "RECOVERY";
+  }
+
+  if (result.targetType === "OPEN" || result.targetType === null || result.targetType === undefined) {
+    result.targetType = result.targetType ?? "OPEN";
+    result.targetValue = null;
+    result.targetValueLow = null;
+    result.targetValueHigh = null;
+    result.targetValueType = null;
+    result.secondaryTargetType = null;
+    result.secondaryTargetValue = null;
+    result.secondaryTargetValueLow = null;
+    result.secondaryTargetValueHigh = null;
+    result.secondaryTargetValueType = null;
+  } else {
+    result.targetValue = result.targetValue ?? null;
+    result.targetValueLow = result.targetValueLow ?? null;
+    result.targetValueHigh = result.targetValueHigh ?? null;
+    result.targetValueType = result.targetValueType ?? null;
+    result.secondaryTargetType = result.secondaryTargetType ?? null;
+    result.secondaryTargetValue = result.secondaryTargetValue ?? null;
+    result.secondaryTargetValueLow = result.secondaryTargetValueLow ?? null;
+    result.secondaryTargetValueHigh = result.secondaryTargetValueHigh ?? null;
+    result.secondaryTargetValueType = result.secondaryTargetValueType ?? null;
+  }
+
+  result.strokeType = result.strokeType ?? null;
+  result.drillType = result.drillType ?? null;
+  result.equipmentType = result.equipmentType ?? null;
+  result.exerciseCategory = result.exerciseCategory ?? null;
+  result.exerciseName = result.exerciseName ?? null;
+  result.weightValue = result.weightValue ?? null;
+  result.weightDisplayUnit = result.weightDisplayUnit ?? null;
+
+  for (const key of REQUIRED_STEP_KEYS) {
+    if (!(key in result)) {
+      result[key] = null;
+    }
+  }
+
+  return result;
+};
+
+const computeStepDuration = (step: StepRecord): number => {
+  if (step.type === "WorkoutRepeatStep") {
+    const nestedSteps = Array.isArray(step.steps) ? (step.steps as StepRecord[]) : [];
+    const iterations = Number(step.repeatValue) > 0 ? Number(step.repeatValue) : 0;
+    const nestedDuration = nestedSteps.reduce((total, nested) => total + computeStepDuration(nested), 0);
+    return nestedDuration * iterations;
+  }
+
+  if (step.durationType === "TIME" && typeof step.durationValue === "number") {
+    return step.durationValue;
+  }
+
+  return 0;
+};
+
+const enforceWorkoutConventions = (value: unknown): Record<string, unknown> => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+
+  const initial = value as Record<string, unknown>;
+  const workout: Record<string, unknown> = { ...initial };
+
+  workout.poolLength = initial.poolLength ?? null;
+  workout.poolLengthUnit = initial.poolLengthUnit ?? null;
+  workout.estimatedDistanceInMeters = typeof initial.estimatedDistanceInMeters === "number" ? initial.estimatedDistanceInMeters : 0;
+
+  const rawSegments = Array.isArray(initial.segments) ? initial.segments : [];
+
+  const processedSegments = rawSegments.map((segment) => {
+    const baseSegment = (segment && typeof segment === "object" ? (segment as Record<string, unknown>) : {}) as Record<string, unknown>;
+    const enforcedSegment: Record<string, unknown> = { ...baseSegment };
+
+    enforcedSegment.poolLength = baseSegment.poolLength ?? null;
+    enforcedSegment.poolLengthUnit = baseSegment.poolLengthUnit ?? null;
+    enforcedSegment.estimatedDistanceInMeters =
+      typeof baseSegment.estimatedDistanceInMeters === "number" ? baseSegment.estimatedDistanceInMeters : 0;
+
+    const rawSteps = Array.isArray(baseSegment.steps) ? baseSegment.steps : [];
+    const processedSteps = rawSteps.map((step) => ensureStepDefaults(step, { parentIsRepeat: false }));
+    enforcedSegment.steps = processedSteps;
+
+    const segmentDuration = processedSteps.reduce((total, stepRecord) => total + computeStepDuration(stepRecord), 0);
+    enforcedSegment.estimatedDurationInSecs = segmentDuration;
+
+    return enforcedSegment;
+  });
+
+  workout.segments = processedSegments;
+
+  const totalDuration = processedSegments.reduce(
+    (sum, segment) => sum + (typeof segment.estimatedDurationInSecs === "number" ? (segment.estimatedDurationInSecs as number) : 0),
+    0,
+  );
+  workout.estimatedDurationInSecs = totalDuration;
+  workout.estimatedDistanceInMeters = 0;
+
+  return workout;
+};
+
 export async function POST(request: NextRequest) {
   const ownerContext = await resolveOwnerContext(request);
 
@@ -471,7 +645,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const normalizedWorkout = normalizeWorkoutPayload(workout) as Record<string, unknown>;
+    const normalizedWorkout = enforceWorkoutConventions(normalizeWorkoutPayload(workout)) as Record<string, unknown>;
 
     const validation = workoutSchema.safeParse(normalizedWorkout);
     if (!validation.success) {
