@@ -83,19 +83,7 @@ const [garminWorkout, setGarminWorkout] = useState<string | null>(null);
       }
 
       const data = (await response.json()) as { workoutJson?: string };
-      const workoutJson = data.workoutJson ?? null;
-      if (workoutJson) {
-        let formatted = workoutJson;
-        try {
-          const parsed = JSON.parse(workoutJson);
-          formatted = JSON.stringify(parsed, null, 2);
-        } catch {
-          // keep raw content when JSON.parse fails
-        }
-        setGarminWorkout(formatted);
-      } else {
-        setGarminWorkout(null);
-      }
+      setGarminWorkout(data.workoutJson ?? null);
     } catch (garminGenerationError) {
       setGarminError(
         garminGenerationError instanceof Error

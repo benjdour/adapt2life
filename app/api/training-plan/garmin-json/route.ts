@@ -244,7 +244,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Authentification requise." }, { status: 401 });
     }
 
-    await ensureLocalUser(stackUser);
+    const localUser = await ensureLocalUser(stackUser);
 
     const body = await request.json();
     const parsedBody = REQUEST_SCHEMA.safeParse(body);
@@ -321,7 +321,35 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ workoutJson: rawContent.trim() });
+    const trimmedContent = rawContent.trim();
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(trimmedContent);
+    } catch (parseError) {
+      console.error("garmin-json: unable to parse OpenRouter content", { trimmedContent, parseError });
+      return NextResponse.json(
+        { error: "Réponse OpenRouter invalide : JSON non reconnu." },
+        { status: 502 },
+      );
+    }
+
+    if (typeof parsed !== "object" || parsed === null) {
+      console.error("garmin-json: parsed content is not an object", { parsed });
+      return NextResponse.json(
+        { error: "Réponse OpenRouter invalide : structure inattendue." },
+        { status: 502 },
+      );
+    }
+
+    const workout = {
+      ...(parsed as Record<string, unknown>),
+      ownerId: localUser.id,
+      workoutProvider: "Adapt2Life",
+      workoutSourceId: "Adapt2Life",
+    };
+
+    return NextResponse.json({ workoutJson: JSON.stringify(workout, null, 2) });
   } catch (error) {
     console.error("Erreur lors de la génération du JSON Garmin :", error);
     return NextResponse.json({ error: "Erreur interne lors de la génération du JSON Garmin." }, { status: 500 });
