@@ -83,7 +83,19 @@ const [garminWorkout, setGarminWorkout] = useState<string | null>(null);
       }
 
       const data = (await response.json()) as { workoutJson?: string };
-      setGarminWorkout(data.workoutJson ?? null);
+      const workoutJson = data.workoutJson ?? null;
+      if (workoutJson) {
+        let formatted = workoutJson;
+        try {
+          const parsed = JSON.parse(workoutJson);
+          formatted = JSON.stringify(parsed, null, 2);
+        } catch {
+          // keep raw content when JSON.parse fails
+        }
+        setGarminWorkout(formatted);
+      } else {
+        setGarminWorkout(null);
+      }
     } catch (garminGenerationError) {
       setGarminError(
         garminGenerationError instanceof Error
@@ -141,7 +153,7 @@ const [garminWorkout, setGarminWorkout] = useState<string | null>(null);
           {garminWorkout ? (
             <div className="space-y-2 rounded-xl border border-white/10 bg-emerald-950/60 p-4">
               <h3 className="text-base font-semibold text-emerald-200">JSON Garmin (aperçu)</h3>
-              <pre className="max-h-[360px] overflow-auto whitespace-pre-wrap break-all text-xs text-emerald-100">
+              <pre className="max-h-[360px] overflow-auto whitespace-pre text-xs text-emerald-100">
                 {garminWorkout}
               </pre>
             </div>
