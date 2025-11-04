@@ -119,3 +119,12 @@ Chaque section doit inclure "steps": [...].
   Z3: HR 70–80 %, Power 76–90 %, RPE 6–7
   Z4: HR 80–90 %, Power 91–105 %, RPE 8–9
   Z5: HR 90–100 %, Power 106–120 %, RPE 10
+
+---
+
+# ✅ Correctifs Garmin Training API V2
+- Utilise `repeatType`: `REPEAT_COUNT` (jamais `TIMES`).
+- Pour le sport `LAP_SWIMMING`, préfère `PACE` comme `targetType` plutôt que `HEART_RATE` si l’intensité correspond à RPE 6–8 (effort soutenu).
+- Calcule et renseigne systématiquement les champs `estimatedDurationInSecs` et `estimatedDistanceInMeters` pour chaque segment et pour l’entraînement global.
+- Si la distance totale peut être estimée à partir des steps, additionne toutes les valeurs `durationValue` dont `durationType` est `DISTANCE`.
+- Remplis toujours `targetValueLow` et `targetValueHigh` lorsqu’une zone (Z1–Z5, RPE, FTP) est détectée.
