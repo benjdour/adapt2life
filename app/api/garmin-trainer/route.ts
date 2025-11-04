@@ -7,6 +7,7 @@ import { z } from "zod";
 import { db } from "@/db";
 import { garminConnections, users } from "@/db/schema";
 import { stackServerApp } from "@/stack/server";
+import { workoutSchema } from "@/schemas/garminTrainer.schema";
 
 const REQUEST_SCHEMA = z.object({
   exampleMarkdown: z
@@ -385,7 +386,20 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    rawContent = JSON.stringify(workout, null, 2);
+    const validation = workoutSchema.safeParse(workout);
+    if (!validation.success) {
+      return NextResponse.json(
+        {
+          error: "L’entraînement généré ne respecte pas le schéma attendu.",
+          issues: validation.error.issues,
+          raw: JSON.stringify(workout, null, 2),
+        },
+        { status: 422 },
+      );
+    }
+
+    parsedJson = validation.data;
+    rawContent = JSON.stringify(validation.data, null, 2);
   }
 
   return NextResponse.json(
