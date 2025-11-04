@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
 
   const validation = REQUEST_SCHEMA.safeParse(body);
   if (!validation.success) {
-    const firstError = validation.error.errors[0]?.message ?? "Données invalides.";
+    const firstError = validation.error.issues[0]?.message ?? "Données invalides.";
     return NextResponse.json({ error: firstError }, { status: 400 });
   }
 
