@@ -3,13 +3,10 @@ import { z } from "zod";
 
 const REQUEST_SCHEMA = z.object({
   exampleMarkdown: z
-    .string({
-      required_error: "Merci de fournir un exemple d’entraînement en Markdown.",
-      invalid_type_error: "Le contenu fourni doit être du texte en Markdown.",
-    })
-    .transform((value) => value.trim())
-    .refine((value) => value.length > 0, "Merci de fournir un exemple d’entraînement en Markdown.")
-    .refine((value) => value.length <= 20000, "L’exemple est trop volumineux (max 20 000 caractères)."),
+    .string()
+    .trim()
+    .min(1, "Merci de fournir un exemple d’entraînement en Markdown.")
+    .max(20000, "L’exemple est trop volumineux (max 20 000 caractères)."),
 });
 
 const FALLBACK_SYSTEM_PROMPT =
@@ -209,4 +206,3 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({ trainingMarkdown: messageText });
 }
-
