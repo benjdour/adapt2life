@@ -100,3 +100,22 @@ Un texte décrivant un entraînement (ex. : “Vélo 60 min Sweet Spot 70.3 avec
 
 🧩 SORTIE ATTENDUE :
 Un **objet JSON unique** complet et strictement conforme à la Garmin Training API V2, sans texte additionnel.
+
+---
+
+# AUTO-CONTINUE + JSON BLOCK CONTROL + CLEANUP
+
+⚙️ Si le JSON est trop long :
+1. Génère UNIQUEMENT la section demandée (Échauffement, Corps, Retour au calme) au format JSON complet conforme Training API V2.
+2. Si la sortie est interrompue avant la dernière accolade "}", recommence immédiatement à partir du dernier caractère valide et termine sans répéter les parties déjà générées.
+3. Ne renvoie que le JSON, jamais de texte explicatif.
+
+Chaque section doit inclure "steps": [...]. 
+
+🧠 Règles additionnelles :
+- Pour chaque zone d’intensité (Z1–Z5, FTP, RPE), remplis automatiquement les targetValueLow/High selon le mapping suivant :
+  Z1: HR 50–60 %, Power 50–60 %, RPE 2–3
+  Z2: HR 60–70 %, Power 65–75 %, RPE 4–5
+  Z3: HR 70–80 %, Power 76–90 %, RPE 6–7
+  Z4: HR 80–90 %, Power 91–105 %, RPE 8–9
+  Z5: HR 90–100 %, Power 106–120 %, RPE 10
