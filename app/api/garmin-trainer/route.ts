@@ -1,7 +1,12 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { NextRequest, NextResponse } from "next/server";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
+
+import { db } from "@/db";
+import { garminConnections, users } from "@/db/schema";
+import { stackServerApp } from "@/stack/server";
 
 const REQUEST_SCHEMA = z.object({
   exampleMarkdown: z
@@ -145,10 +150,90 @@ const loadPromptTemplate = async (): Promise<string | null> => {
   }
 };
 
-const resolveOwnerInstruction = () =>
-  "Pour cette requête de création Garmin, renseigne toujours \"ownerId\": null (premier champ du JSON) et n’invente aucune valeur.";
+const ensureLocalUser = async (
+  stackUserId: string,
+  stackUserEmail?: string | null,
+  stackUserName?: string | null,
+): Promise<{ id: number; stackId: string }> => {
+  const [existing] = await db
+    .select({ id: users.id, stackId: users.stackId })
+    .from(users)
+    .where(eq(users.stackId, stackUserId))
+    .limit(1);
+
+  if (existing) {
+    return existing;
+  }
+
+  const fallbackEmail = stackUserEmail && stackUserEmail.trim().length > 0 ? stackUserEmail : `${stackUserId}@adapt2life.local`;
+
+  const [inserted] = await db
+    .insert(users)
+    .values({
+      stackId: stackUserId,
+      email: fallbackEmail,
+      name: stackUserName ?? null,
+    })
+    .returning({ id: users.id, stackId: users.stackId });
+
+  if (!inserted) {
+    throw new Error("Impossible de créer l’utilisateur local Adapt2Life.");
+  }
+
+  return inserted;
+};
+
+const resolveOwnerContext = async (
+  request: NextRequest,
+): Promise<{ ownerId: string | null; ownerInstruction: string; requireWarning: boolean }> => {
+  try {
+    const stackUser = await stackServerApp.getUser({ or: "return-null", tokenStore: request });
+    if (!stackUser) {
+      return {
+        ownerId: null,
+        ownerInstruction:
+          "Aucun utilisateur identifié : renseigne \"ownerId\": null et ajoute dans la description la mention \"(ownerId non défini — utilisateur non identifié)\".",
+        requireWarning: true,
+      };
+    }
+
+    const localUser = await ensureLocalUser(stackUser.id, stackUser.primaryEmail, stackUser.displayName);
+
+    const garminRecord = await db
+      .select({ garminUserId: garminConnections.garminUserId })
+      .from(garminConnections)
+      .where(eq(garminConnections.userId, localUser.id))
+      .limit(1);
+
+    const garminUserId = garminRecord[0]?.garminUserId ?? null;
+
+    if (garminUserId) {
+      return {
+        ownerId: garminUserId,
+        ownerInstruction: `Utilise strictement \"ownerId\": \"${garminUserId}\" (premier champ du JSON) et ne modifie jamais cette valeur.`,
+        requireWarning: false,
+      };
+    }
+
+    return {
+      ownerId: null,
+      ownerInstruction:
+        "Identifiant Garmin introuvable : renseigne \"ownerId\": null et ajoute dans la description la mention \"(ownerId non défini — utilisateur non identifié)\".",
+      requireWarning: true,
+    };
+  } catch {
+    return {
+      ownerId: null,
+      ownerInstruction:
+        "Erreur d’identification : renseigne \"ownerId\": null et ajoute dans la description la mention \"(ownerId non défini — utilisateur non identifié)\".",
+      requireWarning: true,
+    };
+  }
+};
 
 export async function POST(request: NextRequest) {
+  const ownerContext = await resolveOwnerContext(request);
+
   let body: unknown;
   try {
     body = await request.json();
@@ -192,8 +277,7 @@ export async function POST(request: NextRequest) {
     `${request.headers.get("x-forwarded-proto") ?? "https"}://${request.headers.get("host") ?? "localhost"}`;
   const referer = process.env.APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? inferredOrigin ?? "http://localhost:3000";
 
-  const ownerInstruction = resolveOwnerInstruction();
-  const userPrompt = [ownerInstruction, buildFinalPrompt(promptTemplate, exampleMarkdown)].join("\n\n");
+  const userPrompt = [ownerContext.ownerInstruction, buildFinalPrompt(promptTemplate, exampleMarkdown)].join("\n\n");
 
   const completionResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
@@ -289,8 +373,19 @@ export async function POST(request: NextRequest) {
   }
 
   if (parsedJson && typeof parsedJson === "object" && !Array.isArray(parsedJson)) {
-    (parsedJson as Record<string, unknown>).ownerId = null;
-    rawContent = JSON.stringify(parsedJson, null, 2);
+    const workout = parsedJson as Record<string, unknown>;
+    workout.ownerId = ownerContext.ownerId;
+
+    if (ownerContext.requireWarning) {
+      const description = typeof workout.description === "string" ? workout.description : "";
+      if (!description.includes("(ownerId non défini — utilisateur non identifié)")) {
+        workout.description = description
+          ? `${description.trim()} (ownerId non défini — utilisateur non identifié)`
+          : "(ownerId non défini — utilisateur non identifié)";
+      }
+    }
+
+    rawContent = JSON.stringify(workout, null, 2);
   }
 
   return NextResponse.json(
