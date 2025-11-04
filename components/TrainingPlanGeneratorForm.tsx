@@ -13,16 +13,11 @@ export function TrainingPlanGeneratorForm() {
   const [plan, setPlan] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-const [garminWorkout, setGarminWorkout] = useState<string | null>(null);
-  const [garminError, setGarminError] = useState<string | null>(null);
-  const [isGarminLoading, setIsGarminLoading] = useState(false);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
     setPlan(null);
-    setGarminWorkout(null);
-    setGarminError(null);
 
     const trimmedPrompt = prompt.trim();
     if (!trimmedPrompt) {
@@ -56,43 +51,6 @@ const [garminWorkout, setGarminWorkout] = useState<string | null>(null);
       setError(submissionError instanceof Error ? submissionError.message : "Erreur inconnue.");
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleGenerateGarminWorkout = async () => {
-    if (!plan) {
-      return;
-    }
-
-    try {
-      setIsGarminLoading(true);
-      setGarminError(null);
-      setGarminWorkout(null);
-
-      const response = await fetch("/api/training-plan/garmin-json", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ plan }),
-      });
-
-      if (!response.ok) {
-        const payload = (await response.json().catch(() => ({}))) as { error?: string };
-        throw new Error(payload.error ?? "Impossible de générer le JSON Garmin.");
-      }
-
-      const data = (await response.json()) as { workoutJson?: string; warning?: string | null };
-      setGarminWorkout(data.workoutJson ?? null);
-      setGarminError(data.warning ?? null);
-    } catch (garminGenerationError) {
-      setGarminError(
-        garminGenerationError instanceof Error
-          ? garminGenerationError.message
-          : "Échec de la génération du JSON Garmin.",
-      );
-    } finally {
-      setIsGarminLoading(false);
     }
   };
 
@@ -130,23 +88,6 @@ const [garminWorkout, setGarminWorkout] = useState<string | null>(null);
         <div className="space-y-4 rounded-2xl border border-white/10 bg-white/5 p-6 text-sm leading-relaxed text-white">
           <h2 className="text-lg font-semibold text-emerald-200">Plan d’entraînement personnalisé</h2>
           <MarkdownPlan content={plan} className="text-sm leading-relaxed" />
-          <button
-            type="button"
-            onClick={handleGenerateGarminWorkout}
-            disabled={isGarminLoading}
-            className="inline-flex items-center justify-center rounded-md border border-emerald-500/60 bg-emerald-500/20 px-4 py-2 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-500/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300 disabled:cursor-wait disabled:opacity-60"
-          >
-            {isGarminLoading ? "Génération du JSON..." : "Générer l’entraînement Garmin"}
-          </button>
-          {garminError ? <p className="text-sm text-red-300">{garminError}</p> : null}
-          {garminWorkout ? (
-            <div className="space-y-2 rounded-xl border border-white/10 bg-emerald-950/60 p-4">
-              <h3 className="text-base font-semibold text-emerald-200">JSON Garmin (aperçu)</h3>
-              <pre className="max-h-[360px] overflow-auto whitespace-pre text-xs text-emerald-100">
-                {garminWorkout}
-              </pre>
-            </div>
-          ) : null}
         </div>
       ) : null}
     </div>
