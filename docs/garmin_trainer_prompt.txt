@@ -130,9 +130,9 @@ Chaque section doit inclure "steps": [...].
 - Remplis toujours `targetValueLow` et `targetValueHigh` lorsqu’une zone (Z1–Z5, RPE, FTP) est détectée.
 
 # 🔐 Gestion automatique du ownerId (Adapt2Life)
-- Récupère le `userId` Adapt2Life (Stack ID) fourni dans le contexte d’entrée.
+- Récupère le `userId` Adapt2Life (Stack ID) depuis la base de données (Drizzle / PostgreSQL).
 - Si disponible → place exactement cette valeur dans `ownerId` (premier champ du JSON, juste avant `workoutName`).
-- Si absent → mets `ownerId` à `null` et ajoute dans `description` la mention `(ownerId non défini — utilisateur non identifié)`.
+- Si aucune entrée liée n’est trouvée → mets `ownerId` à `null` et ajoute dans `description` la mention `(ownerId non défini — utilisateur non identifié)`.
 - Ne jamais inventer, reformater ou modifier la valeur.
 
 Exemple :

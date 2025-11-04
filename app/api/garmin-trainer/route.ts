@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "@/db";
-import { users } from "@/db/schema";
+import { garminConnections, users } from "@/db/schema";
 import { stackServerApp } from "@/stack/server";
 
 const REQUEST_SCHEMA = z.object({
@@ -150,10 +150,18 @@ const loadPromptTemplate = async (): Promise<string | null> => {
   }
 };
 
-const ensureLocalUserId = async (stackUserId: string, stackUserEmail?: string | null, stackUserName?: string | null) => {
-  const [existing] = await db.select({ id: users.id }).from(users).where(eq(users.stackId, stackUserId)).limit(1);
+const ensureLocalUser = async (
+  stackUserId: string,
+  stackUserEmail?: string | null,
+  stackUserName?: string | null,
+): Promise<{ id: number; stackId: string }> => {
+  const [existing] = await db
+    .select({ id: users.id, stackId: users.stackId })
+    .from(users)
+    .where(eq(users.stackId, stackUserId))
+    .limit(1);
   if (existing) {
-    return existing.id;
+    return existing;
   }
 
   const fallbackEmail = stackUserEmail && stackUserEmail.trim().length > 0 ? stackUserEmail : `${stackUserId}@adapt2life.local`;
@@ -164,9 +172,13 @@ const ensureLocalUserId = async (stackUserId: string, stackUserEmail?: string | 
       email: fallbackEmail,
       name: stackUserName ?? null,
     })
-    .returning({ id: users.id });
+    .returning({ id: users.id, stackId: users.stackId });
 
-  return inserted?.id ?? null;
+  if (!inserted) {
+    throw new Error("Impossible de créer l’utilisateur local Adapt2Life.");
+  }
+
+  return inserted;
 };
 
 const resolveOwnerContext = async (
@@ -183,11 +195,29 @@ const resolveOwnerContext = async (
       };
     }
 
-    await ensureLocalUserId(stackUser.id, stackUser.primaryEmail, stackUser.displayName);
+    const localUser = await ensureLocalUser(stackUser.id, stackUser.primaryEmail, stackUser.displayName);
+
+    const garminUserId = await db
+      .select({ garminUserId: garminConnections.garminUserId })
+      .from(garminConnections)
+      .where(eq(garminConnections.userId, localUser.id))
+      .limit(1)
+      .then((rows) => rows[0]?.garminUserId ?? null)
+      .catch(() => null);
+
+    if (garminUserId) {
+      return {
+        ownerId: garminUserId,
+        ownerInstruction: `Utilise strictement \"ownerId\": \"${garminUserId}\" (premier champ du JSON) et ne modifie jamais cette valeur.`,
+        requireWarning: false,
+      };
+    }
+
     return {
-      ownerId: stackUser.id,
-      ownerInstruction: `Utilise strictement \"ownerId\": \"${stackUser.id}\" (premier champ du JSON) et ne modifie jamais cette valeur.`,
-      requireWarning: false,
+      ownerId: null,
+      ownerInstruction:
+        "Aucun identifiant Garmin disponible : renseigne \"ownerId\": null et ajoute dans la description la mention \"(ownerId non défini — utilisateur non identifié)\".",
+      requireWarning: true,
     };
 
     return {
