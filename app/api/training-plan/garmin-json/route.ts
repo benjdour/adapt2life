@@ -11,62 +11,6 @@ const REQUEST_SCHEMA = z.object({
   plan: z.string().min(1, "Le plan est obligatoire."),
 });
 
-const GARMIN_WORKOUT_VALIDATOR = z.object({
-  ownerId: z.number().int().nonnegative(),
-  workoutName: z.string().min(1),
-  description: z.string().nullable(),
-  sport: z.string().min(1),
-  estimatedDurationInSecs: z.number().int().nullable(),
-  estimatedDistanceInMeters: z.number().nullable(),
-  poolLength: z.number().nullable(),
-  poolLengthUnit: z.union([z.literal("METER"), z.literal("YARD"), z.null()]),
-  workoutProvider: z.string().min(1),
-  workoutSourceId: z.string().min(1),
-  isSessionTransitionEnabled: z.boolean(),
-  segments: z
-    .array(
-      z.object({
-        segmentOrder: z.number().int().nonnegative(),
-        sport: z.string().min(1),
-        poolLength: z.number().nullable(),
-        poolLengthUnit: z.union([z.literal("METER"), z.literal("YARD"), z.null()]),
-        estimatedDurationInSecs: z.number().int().nullable(),
-        estimatedDistanceInMeters: z.number().nullable(),
-        steps: z
-          .array(
-            z.object({
-              type: z.literal("WorkoutStep"),
-              stepOrder: z.number().int().nonnegative(),
-              intensity: z.enum(["WARMUP", "COOLDOWN", "RECOVERY", "ACTIVE", "MAIN"]),
-              description: z.string().max(512),
-              durationType: z.enum(["TIME", "DISTANCE", "OPEN"]),
-              durationValue: z.number().nullable(),
-              durationValueType: z.string().nullable(),
-              targetType: z.string().nullable(),
-              targetValue: z.number().nullable(),
-              targetValueLow: z.number().nullable(),
-              targetValueHigh: z.number().nullable(),
-              targetValueType: z.string().nullable(),
-              secondaryTargetType: z.string().nullable(),
-              secondaryTargetValue: z.number().nullable(),
-              secondaryTargetValueLow: z.number().nullable(),
-              secondaryTargetValueHigh: z.number().nullable(),
-              secondaryTargetValueType: z.string().nullable(),
-              strokeType: z.string().nullable(),
-              drillType: z.string().nullable(),
-              equipmentType: z.string().nullable(),
-              exerciseCategory: z.string().nullable(),
-              exerciseName: z.string().nullable(),
-              weightValue: z.number().nullable(),
-              weightDisplayUnit: z.string().nullable(),
-            }),
-          )
-          .min(1),
-      }),
-    )
-    .min(1),
-});
-
 
 async function ensureLocalUser(stackUser: NonNullable<Awaited<ReturnType<typeof stackServerApp.getUser>>>) {
   const [existingUser] = await db
@@ -188,39 +132,89 @@ export async function POST(request: NextRequest) {
       choices?: Array<{ message?: { content?: unknown } }>;
     };
 
-    const rawContent = completionJson.choices?.[0]?.message?.content;
-    if (typeof rawContent !== "string") {
-      console.error("garmin-json: OpenRouter response missing string content", {
-        message: completionJson.choices?.[0]?.message,
-      });
-      return NextResponse.json(
-        { error: "Réponse OpenRouter invalide : contenu absent." },
-        { status: 502 },
-      );
+    const assistantMessage = completionJson.choices?.[0]?.message ?? null;
+    const rawContent = assistantMessage?.content;
+
+    const tryParseString = (value: string | null | undefined): unknown | null => {
+      if (!value) {
+        return null;
+      }
+      try {
+        return JSON.parse(value);
+      } catch {
+        return null;
+      }
+    };
+
+    const searchJson = (value: unknown): unknown | null => {
+      if (!value) {
+        return null;
+      }
+      if (typeof value === "string") {
+        return tryParseString(value);
+      }
+      if (Array.isArray(value)) {
+        for (const item of value) {
+          const result = searchJson(item);
+          if (result !== null) {
+            return result;
+          }
+        }
+        return null;
+      }
+      if (typeof value === "object") {
+        const record = value as Record<string, unknown>;
+        if (record.json && typeof record.json === "object") {
+          return record.json;
+        }
+        if (typeof record.text === "string") {
+          const parsed = tryParseString(record.text);
+          if (parsed !== null) {
+            return parsed;
+          }
+        }
+        if (typeof record.content === "string") {
+          const parsed = tryParseString(record.content);
+          if (parsed !== null) {
+            return parsed;
+          }
+        }
+        if (Array.isArray(record.content)) {
+          const nested = searchJson(record.content);
+          if (nested !== null) {
+            return nested;
+          }
+        }
+      }
+      return null;
+    };
+
+    let parsed: unknown = null;
+    if (typeof rawContent === "string" && rawContent.trim().length > 0) {
+      parsed = tryParseString(rawContent);
+    }
+    if (parsed === null) {
+      parsed = searchJson(assistantMessage);
     }
 
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(rawContent);
-    } catch (parseError) {
-      console.error("garmin-json: unable to parse OpenRouter content", { rawContent, parseError });
+    if (parsed === null) {
+      console.error("garmin-json: unable to parse OpenRouter content", { assistantMessage });
       return NextResponse.json(
         { error: "Réponse OpenRouter invalide : JSON non reconnu." },
         { status: 502 },
       );
     }
 
-    const validated = GARMIN_WORKOUT_VALIDATOR.safeParse(parsed);
-    if (!validated.success) {
-      console.error("garmin-json: validation failed", validated.error.format());
+    if (typeof parsed !== "object" || parsed === null) {
+      console.error("garmin-json: parsed content is not an object", { parsed });
       return NextResponse.json(
-        { error: "Le JSON généré n’est pas conforme au schéma attendu." },
+        { error: "Réponse OpenRouter invalide : structure inattendue." },
         { status: 502 },
       );
     }
 
     const workout = {
-      ...validated.data,
+      ...(parsed as Record<string, unknown>),
       ownerId: localUser.id,
       workoutProvider: "Adapt2Life",
       workoutSourceId: "Adapt2Life",
