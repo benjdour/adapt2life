@@ -20,7 +20,8 @@
     ],
     "paths": {
       "@/*": ["./*"],
-      "@/schemas/*": ["./src/schemas/*"]
+      "@/schemas/*": ["./src/schemas/*"],
+      "@/constants/*": ["./src/constants/*"]
     }
   },
   "include": [
