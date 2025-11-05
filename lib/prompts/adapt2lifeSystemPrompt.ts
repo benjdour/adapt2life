@@ -116,6 +116,7 @@ export const GARMIN_TRAINING_JSON_GENERATOR_PROMPT: PromptDefinition = {
     "- `secondaryTargetValueType` = 'PERCENT' uniquement pour les secondary targets HEART_RATE / POWER; sinon `null`.",
     "- Course à pied (RUNNING ou segment course d'un multi-sport) : une zone `Zx` impose `targetType = \"HEART_RATE\"` et `targetValue = x` (1-5).",
     "- Vélo (CYCLING ou segment vélo d'un multi-sport) : une zone `Zx` impose `targetType = \"POWER\"` et `targetValue = x` (1-7).",
+    "- Si le brief ou la description évoque une cadence cible (p. ex. \"85–95 tr/min\"), renseigne `secondaryTargetType = \"CADENCE\"` avec `secondaryTargetValueLow`/`High` correspondants; fais de même pour toute cible secondaire explicitement mentionnée.",
     "",
     "### Natation",
     "- `targetType` = `null` sur chaque `WorkoutStep`.",

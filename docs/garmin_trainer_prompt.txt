@@ -123,6 +123,7 @@ Valeurs autorisées : mêmes valeurs que `targetType` + `PACE_ZONE`, `SWIM_INSTR
 - `secondaryTargetType` doit être différent de `targetType`.
 - Hors natation, si `secondaryTargetType` est présent, `targetType` ne peut pas être `OPEN` ni `null`.
 - `secondaryTargetValueType` = `PERCENT` uniquement pour les secondary targets `HEART_RATE` / `POWER`; sinon laisse `null`.
+- Si la description ou le brief mentionne une cadence (ex. “85–95 tr/min”), ajoute `secondaryTargetType = "CADENCE"` avec `secondaryTargetValueLow`/`High` correspondants; applique la même règle pour toute autre cible secondaire explicitée.
 
 #### Natation
 - `targetType` = `null`. Utilise `secondaryTargetType = "PACE_ZONE"`, `"SWIM_INSTRUCTION"` ou `"SWIM_CSS_OFFSET"` selon le besoin.
