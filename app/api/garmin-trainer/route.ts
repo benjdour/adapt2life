@@ -419,6 +419,10 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
         if (segPoolUnit == null && typeof clone.poolLengthUnit === "string") {
           segment.poolLengthUnit = clone.poolLengthUnit;
         }
+        if (segment.poolLength == null || segment.poolLengthUnit == null) {
+          segment.poolLength = 25;
+          segment.poolLengthUnit = "METER";
+        }
       } else {
         segment.poolLength = null;
         segment.poolLengthUnit = null;
@@ -435,11 +439,18 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
       clone.poolLength = firstSwimWithLength.length;
       clone.poolLengthUnit = firstSwimWithLength.unit;
     }
+    if (clone.poolLength == null || clone.poolLengthUnit == null) {
+      clone.poolLength = 25;
+      clone.poolLengthUnit = "METER";
+    }
   } else if (clone.sport === "LAP_SWIMMING") {
     const preferred = swimSegmentPoolValues.find(({ length, unit }) => length != null && unit != null);
     if (preferred) {
       clone.poolLength = preferred.length;
       clone.poolLengthUnit = preferred.unit;
+    } else {
+      clone.poolLength = 25;
+      clone.poolLengthUnit = "METER";
     }
   } else {
     clone.poolLength = null;
