@@ -119,6 +119,7 @@ Valeurs autorisées : `REST`, `WARMUP`, `COOLDOWN`, `RECOVERY`, `ACTIVE`, `INTER
 - Le parent `WorkoutRepeatStep` doit laisser toutes les cibles (`targetType`, `secondaryTarget*`, etc.) à `null`. Place toute cible ou consigne de cadence/power dans les steps enfants uniquement.
 - N’insère jamais de step “tampon” sans durée du type “Blocs sweet spot…” : intègre ces textes dans la description du step d’effort existant ou dans les sous-steps concernés.
 - Quand la consigne mentionne explicitement plusieurs durées successives (ex. “30 s vélocité, 60 s facile”), crée les sous-steps correspondants avec leurs `durationType`/`durationValue` (idéalement via un `WorkoutRepeatStep`) ; ne laisse pas ces durées uniquement dans la description.
+- Ne crée pas de step autonome juste pour rappeler qu’il existe des répétitions (“3 répétitions…”) ou des touches de vélocité globales : ces informations doivent être portées par le `WorkoutRepeatStep` et/ou ses sous-steps. Supprime tout step qui n’apporte aucun `durationType`.
 
 #### Cibles principales (`targetType`)
 - Valeurs : `SPEED`, `HEART_RATE`, `OPEN`, `CADENCE`, `POWER`, `GRADE`, `RESISTANCE`, `POWER_3S`, `POWER_10S`, `POWER_30S`, `POWER_LAP`, `SPEED_LAP`, `HEART_RATE_LAP`, `PACE`.

@@ -433,7 +433,8 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
       }
     };
 
-    return steps.map((rawStep) => {
+    const normalizedSteps = steps
+      .map((rawStep) => {
       if (!rawStep || typeof rawStep !== "object") {
         return rawStep;
       }
@@ -502,7 +503,25 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
       ensureCadenceTargets(step);
 
       return step;
-    });
+    })
+      .filter((step) => {
+        if (!step || typeof step !== "object") {
+          return false;
+        }
+
+        const typed = step as Record<string, unknown>;
+        if (typed.type !== "WorkoutStep") {
+          return true;
+        }
+
+        if (typed.durationType == null || typed.durationValue == null) {
+          return false;
+        }
+
+        return true;
+      });
+
+    return normalizedSteps;
   };
 
   if (Array.isArray(clone.segments)) {
