@@ -370,6 +370,7 @@ export async function POST(request: NextRequest) {
     "- Respecte strictement la structure Markdown attendue (titres, listes, séparateurs).",
     "- Ajuste l’intensité, la durée et les conseils à la note de capacité du jour.",
     "- Si la séance concerne de la natation en piscine, exprime les intervalles en nombre de longueurs ou en distance (mètres), pas en temps chronométré.",
+    "- Pour la natation, exprime systématiquement les récupérations en secondes (ex. 20 s), jamais en respirations ou en métriques subjectives.",
   );
 
     const userPrompt = userPromptSegments.join("\n");
