@@ -454,6 +454,22 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
           step.skipLastRestStep = true;
         }
 
+        const targetKeys: Array<keyof typeof step> = [
+          "targetType",
+          "targetValue",
+          "targetValueLow",
+          "targetValueHigh",
+          "targetValueType",
+          "secondaryTargetType",
+          "secondaryTargetValue",
+          "secondaryTargetValueLow",
+          "secondaryTargetValueHigh",
+          "secondaryTargetValueType",
+        ];
+        for (const key of targetKeys) {
+          step[key] = null;
+        }
+
         if (typeof step.description === "string" && step.description.trim().length > 0) {
           let cleanedDescription = step.description.replace(repeatPrefixPattern, "");
           cleanedDescription = stripLeadingPunctuation(cleanedDescription).trim();
