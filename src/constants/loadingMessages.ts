@@ -1,4 +1,4 @@
-export const TRAINING_LOADING_MESSAGES = [
+export const TRAINING_LOADING_MESSAGES: string[] = [
   "🧠 Calcul des watts nécessaires pour vaincre ton canapé…",
   "🚴‍♂️ Je vérifie si ton vélo est prêt à souffrir…",
   "🥵 Synchronisation des gouttes de sueur prévues…",
@@ -19,4 +19,4 @@ export const TRAINING_LOADING_MESSAGES = [
   "🦵 Calcul du risque de courbatures demain matin…",
   "🧊 Refroidissement anticipé des mollets en prévision.",
   "🥇 Ajustement du mode “je ne lâche rien”.",
-] as const;
+];
