@@ -410,7 +410,9 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
       }
 
       if (type === "WorkoutRepeatStep" && Array.isArray(step.steps)) {
-        step.steps = normalizeSteps(step.steps, isSwim) as unknown[];
+        const repeatIntensity =
+          typeof step.intensity === "string" && step.intensity.trim().length > 0 ? step.intensity : segmentIntensity;
+        step.steps = normalizeSteps(step.steps, isSwim, repeatIntensity ?? null) as unknown[];
 
         if (isSwim) {
           step.skipLastRestStep = true;
