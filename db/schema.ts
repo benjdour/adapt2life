@@ -1,4 +1,4 @@
-import { index, integer, jsonb, numeric, pgTable, serial, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { index, integer, jsonb, numeric, pgTable, primaryKey, serial, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -86,5 +86,20 @@ export const garminWebhookEvents = pgTable(
   (table) => ({
     typeIndex: index("garmin_webhook_events_type_idx").on(table.type),
     userTypeIndex: index("garmin_webhook_events_user_type_idx").on(table.userId, table.type),
+  }),
+);
+
+export const userGeneratedArtifacts = pgTable(
+  "user_generated_artifacts",
+  {
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    trainingPlanMarkdown: text("training_plan_markdown"),
+    garminWorkoutJson: jsonb("garmin_workout_json"),
+    updatedAt: timestamp("updated_at").defaultNow().$onUpdate(() => new Date()),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.userId], name: "user_generated_artifacts_pk" }),
   }),
 );

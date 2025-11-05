@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { garminWebhookEvents, users } from "@/db/schema";
 import { stackServerApp } from "@/stack/server";
 import { ADAPT2LIFE_SYSTEM_PROMPT } from "@/lib/prompts/adapt2lifeSystemPrompt";
+import { saveTrainingPlanForUser } from "@/lib/services/userGeneratedArtifacts";
 
 const MAX_TEXT_LENGTH = 2000;
 
@@ -639,6 +640,14 @@ const cleanTextPlan = (raw: string): string => {
         { error: "Impossible de générer un plan d’entraînement pour le moment." },
         { status: 502 },
       );
+    }
+
+    try {
+      if (localUser?.id) {
+        await saveTrainingPlanForUser(localUser.id, finalPlan);
+      }
+    } catch (storageError) {
+      console.error("training-plan: unable to persist generated plan", storageError);
     }
 
     return NextResponse.json({ plan: finalPlan });

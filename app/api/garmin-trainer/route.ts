@@ -8,6 +8,7 @@ import { db } from "@/db";
 import { garminConnections, users } from "@/db/schema";
 import { stackServerApp } from "@/stack/server";
 import { workoutSchema } from "@/schemas/garminTrainer.schema";
+import { saveGarminWorkoutForUser } from "@/lib/services/userGeneratedArtifacts";
 
 const REQUEST_SCHEMA = z.object({
   exampleMarkdown: z
@@ -186,7 +187,7 @@ const ensureLocalUser = async (
 
 const resolveOwnerContext = async (
   request: NextRequest,
-): Promise<{ ownerId: string | null; ownerInstruction: string; requireWarning: boolean }> => {
+): Promise<{ ownerId: string | null; ownerInstruction: string; requireWarning: boolean; localUserId: number | null }> => {
   try {
     const stackUser = await stackServerApp.getUser({ or: "return-null", tokenStore: request });
     if (!stackUser) {
@@ -195,6 +196,7 @@ const resolveOwnerContext = async (
         ownerInstruction:
           "Aucun utilisateur identifié : renseigne \"ownerId\": null et ajoute dans la description la mention \"(ownerId non défini — utilisateur non identifié)\".",
         requireWarning: true,
+        localUserId: null,
       };
     }
 
@@ -213,6 +215,7 @@ const resolveOwnerContext = async (
         ownerId: garminUserId,
         ownerInstruction: `Utilise strictement \"ownerId\": \"${garminUserId}\" (premier champ du JSON) et ne modifie jamais cette valeur.`,
         requireWarning: false,
+        localUserId: localUser.id,
       };
     }
 
@@ -221,6 +224,7 @@ const resolveOwnerContext = async (
       ownerInstruction:
         "Identifiant Garmin introuvable : renseigne \"ownerId\": null et ajoute dans la description la mention \"(ownerId non défini — utilisateur non identifié)\".",
       requireWarning: true,
+      localUserId: localUser.id,
     };
   } catch {
     return {
@@ -228,6 +232,7 @@ const resolveOwnerContext = async (
       ownerInstruction:
         "Erreur d’identification : renseigne \"ownerId\": null et ajoute dans la description la mention \"(ownerId non défini — utilisateur non identifié)\".",
       requireWarning: true,
+      localUserId: null,
     };
   }
 };
@@ -635,6 +640,14 @@ export async function POST(request: NextRequest) {
 
     parsedJson = validation.data;
     rawContent = JSON.stringify(validation.data, null, 2);
+
+    if (ownerContext.localUserId) {
+      try {
+        await saveGarminWorkoutForUser(ownerContext.localUserId, validation.data as Record<string, unknown>);
+      } catch (storageError) {
+        console.error("garmin-trainer: unable to persist generated workout", storageError);
+      }
+    }
   }
 
   return NextResponse.json(
