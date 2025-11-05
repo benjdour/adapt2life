@@ -2,17 +2,25 @@
 
 import { FormEvent, useState } from "react";
 
+import type { GarminTrainerWorkout } from "@/schemas/garminTrainer.schema";
+
 type GenerateTrainingResponse = {
-  trainingJson?: unknown;
+  trainingJson?: GarminTrainerWorkout;
   raw: string;
   parseError?: string;
+  error?: string;
 };
 
 export function GarminTrainerGenerator() {
   const [exampleMarkdown, setExampleMarkdown] = useState("");
   const [rawResult, setRawResult] = useState<string | null>(null);
+  const [trainingJson, setTrainingJson] = useState<GarminTrainerWorkout | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isPushing, setIsPushing] = useState(false);
+  const [pushError, setPushError] = useState<string | null>(null);
+  const [pushSuccess, setPushSuccess] = useState<string | null>(null);
+  const [pushDetails, setPushDetails] = useState<string | null>(null);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -25,6 +33,10 @@ export function GarminTrainerGenerator() {
 
     setError(null);
     setRawResult(null);
+    setTrainingJson(null);
+    setPushError(null);
+    setPushSuccess(null);
+    setPushDetails(null);
     setIsLoading(true);
 
     try {
@@ -41,6 +53,11 @@ export function GarminTrainerGenerator() {
 
       if (raw) {
         setRawResult(raw);
+      }
+      if (data?.trainingJson) {
+        setTrainingJson(data.trainingJson);
+      } else {
+        setTrainingJson(null);
       }
 
       if (!response.ok) {
@@ -61,6 +78,68 @@ export function GarminTrainerGenerator() {
       setError(generationError instanceof Error ? generationError.message : "Erreur inconnue.");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handlePushToGarmin = async () => {
+    if (!trainingJson || isPushing) {
+      return;
+    }
+
+    setIsPushing(true);
+    setPushError(null);
+    setPushSuccess(null);
+    setPushDetails(null);
+
+    try {
+      const response = await fetch("/api/garmin-trainer/push", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ workout: trainingJson }),
+      });
+
+      const payload = (await response.json().catch(() => null)) as
+        | {
+            error?: string;
+            success?: boolean;
+            workoutId?: string | number | null;
+            garminResponse?: unknown;
+          }
+        | null;
+
+      if (!response.ok) {
+        const message =
+          payload && typeof payload.error === "string"
+            ? payload.error
+            : "Impossible d’envoyer l’entraînement à Garmin.";
+        setPushError(message);
+        if (payload?.garminResponse) {
+          setPushDetails(JSON.stringify(payload.garminResponse, null, 2));
+        }
+        return;
+      }
+
+      const successMessage =
+        payload?.workoutId !== undefined && payload.workoutId !== null
+          ? `Entraînement envoyé à Garmin (workoutId ${payload.workoutId}).`
+          : "Entraînement envoyé à Garmin.";
+
+      setPushSuccess(successMessage);
+
+      if (payload?.garminResponse) {
+        setPushDetails(JSON.stringify(payload.garminResponse, null, 2));
+      }
+    } catch (pushErrorInstance) {
+      setPushError(
+        pushErrorInstance instanceof Error
+          ? pushErrorInstance.message
+          : "Erreur inconnue lors de l’envoi à Garmin.",
+      );
+    } finally {
+      setIsPushing(false);
     }
   };
 
@@ -98,6 +177,35 @@ export function GarminTrainerGenerator() {
           </div>
         ) : null}
       </form>
+
+      {trainingJson ? (
+        <div className="space-y-3 rounded-xl border border-emerald-600/40 bg-emerald-950/40 p-4 text-left text-sm text-white">
+          <div className="space-y-1">
+            <h2 className="text-base font-semibold text-emerald-200">Synchroniser avec Garmin</h2>
+            <p className="text-xs text-white/70">
+              Vérifie que l’entraînement correspond à la documentation puis envoie-le vers ton compte Garmin connecté.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={handlePushToGarmin}
+            disabled={isPushing}
+            className="inline-flex h-11 w-full items-center justify-center rounded-md border border-emerald-400/60 bg-emerald-400/20 px-6 font-semibold text-white transition hover:bg-emerald-400/30 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-emerald-100 disabled:cursor-wait disabled:opacity-60"
+          >
+            {isPushing ? "Envoi vers Garmin..." : "Envoyer l’entraînement sur Garmin"}
+          </button>
+
+          {pushError ? <p className="text-xs text-red-300">{pushError}</p> : null}
+          {pushSuccess ? <p className="text-xs text-emerald-200">{pushSuccess}</p> : null}
+
+          {pushDetails ? (
+            <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-white/10 bg-black/40 p-3 font-mono text-[11px] leading-relaxed text-emerald-100/80">
+              {pushDetails}
+            </pre>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }
