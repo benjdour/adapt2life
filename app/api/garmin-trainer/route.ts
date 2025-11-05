@@ -316,7 +316,32 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
 
   const swimSegmentPoolValues: Array<{ length: number | null; unit: string | null }> = [];
 
-  const normalizeSteps = (steps: unknown, isSwim: boolean): unknown => {
+  const inferRepeatIntensity = (repeatStep: Record<string, unknown>): string => {
+    const childSteps = Array.isArray(repeatStep.steps) ? repeatStep.steps : [];
+    const firstChild = childSteps.find((child) => child && typeof child === "object" && (child as Record<string, unknown>).intensity);
+    if (firstChild && typeof (firstChild as Record<string, unknown>).intensity === "string") {
+      const childIntensity = ((firstChild as Record<string, unknown>).intensity as string).trim();
+      if (childIntensity) {
+        return childIntensity;
+      }
+    }
+
+    const effortChild = childSteps.find((child) => child && typeof child === "object" && (child as Record<string, unknown>).intensity !== "REST");
+    if (effortChild && typeof (effortChild as Record<string, unknown>).intensity === "string") {
+      const childIntensity = ((effortChild as Record<string, unknown>).intensity as string).trim();
+      if (childIntensity) {
+        return childIntensity;
+      }
+    }
+
+    return "ACTIVE";
+  };
+
+  const normalizeSteps = (
+    steps: unknown,
+    isSwim: boolean,
+    segmentIntensity: string | null,
+  ): unknown => {
     if (!Array.isArray(steps)) {
       return steps;
     }
@@ -380,11 +405,18 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
       const step = { ...(rawStep as Record<string, unknown>) };
       const type = step.type;
 
+      if (!step.intensity && typeof segmentIntensity === "string" && segmentIntensity.trim().length > 0) {
+        step.intensity = segmentIntensity;
+      }
+
       if (type === "WorkoutRepeatStep" && Array.isArray(step.steps)) {
         step.steps = normalizeSteps(step.steps, isSwim) as unknown[];
 
         if (isSwim) {
           step.skipLastRestStep = true;
+        }
+        if (!step.intensity) {
+          step.intensity = inferRepeatIntensity(step);
         }
       } else if (type === "WorkoutStep" && Array.isArray(step.steps)) {
         // Sécurité : un WorkoutStep ne doit pas embarquer steps enfants
@@ -406,8 +438,9 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
       const segment = { ...(rawSegment as Record<string, unknown>) };
       const sport = typeof segment.sport === "string" ? segment.sport : null;
       const isSwim = sport === "LAP_SWIMMING";
+      const segmentIntensity = typeof segment.intensity === "string" ? segment.intensity : null;
 
-      segment.steps = normalizeSteps(segment.steps, isSwim);
+    segment.steps = normalizeSteps(segment.steps, isSwim, segmentIntensity);
 
       if (isSwim) {
         const segPoolLength =
