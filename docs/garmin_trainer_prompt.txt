@@ -123,7 +123,8 @@ Valeurs autorisées : mêmes valeurs que `targetType` + `PACE_ZONE`, `SWIM_INSTR
 - `secondaryTargetType` doit être différent de `targetType`.
 - Hors natation, si `secondaryTargetType` est présent, `targetType` ne peut pas être `OPEN` ni `null`.
 - `secondaryTargetValueType` = `PERCENT` uniquement pour les secondary targets `HEART_RATE` / `POWER`; sinon laisse `null`.
-- Si la description ou le brief mentionne une cadence (ex. “85–95 tr/min”), ajoute `secondaryTargetType = "CADENCE"` avec `secondaryTargetValueLow`/`High` correspondants; applique la même règle pour toute autre cible secondaire explicitée.
+- Si la description ou le brief mentionne une cadence (ex. “85–95 tr/min”), ajoute une cible cadence : si aucune autre cible principale n’est définie, utilise `targetType = "CADENCE"` avec `targetValueLow`/`High`; sinon, bascule en cible secondaire (`secondaryTargetType = "CADENCE"`) pour conserver la cible principale.
+- Lorsque le brief décrit explicitement des répétitions (ex. `3 x (30 s ... + 30 s ...)`), modélise-les avec un `WorkoutRepeatStep` parent (`repeatValue = 3`) contenant les sous-steps correspondants, chacun avec sa durée et ses cibles. Le temps de repos doit être un `WorkoutStep` distinct (`targetType = "OPEN"`).
 
 #### Natation
 - `targetType` = `null`. Utilise `secondaryTargetType = "PACE_ZONE"`, `"SWIM_INSTRUCTION"` ou `"SWIM_CSS_OFFSET"` selon le besoin.

@@ -316,6 +316,57 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
       return steps;
     }
 
+    const ensureCadenceTargets = (step: Record<string, unknown>) => {
+      const description = typeof step.description === "string" ? step.description : "";
+      if (!description || !/cadence/i.test(description)) {
+        return;
+      }
+
+      const cadenceMatch = description.match(/cadence[^0-9]*(\d{2,3})(?:\D+(\d{2,3}))?/i);
+      if (!cadenceMatch) {
+        return;
+      }
+
+      const rawLow = cadenceMatch[1] ? Number.parseInt(cadenceMatch[1], 10) : NaN;
+      const rawHigh = cadenceMatch[2] ? Number.parseInt(cadenceMatch[2], 10) : NaN;
+
+      const low = Number.isFinite(rawLow) ? rawLow : null;
+      const high = Number.isFinite(rawHigh) ? rawHigh : null;
+
+      if (low == null && high == null) {
+        return;
+      }
+
+      const hasPrimary =
+        typeof step.targetType === "string" && step.targetType !== "" && step.targetType !== "OPEN";
+      const cadenceRange = {
+        low: low != null ? low : high,
+        high: high != null ? high : low,
+      };
+
+      if (!hasPrimary || step.targetType === "CADENCE") {
+        step.targetType = "CADENCE";
+        step.targetValue = null;
+        step.targetValueType = null;
+        step.targetValueLow = cadenceRange.low ?? null;
+        step.targetValueHigh = cadenceRange.high ?? cadenceRange.low ?? null;
+        step.secondaryTargetType = null;
+        step.secondaryTargetValue = null;
+        step.secondaryTargetValueLow = null;
+        step.secondaryTargetValueHigh = null;
+        step.secondaryTargetValueType = null;
+        return;
+      }
+
+      if (step.secondaryTargetType == null || step.secondaryTargetType === "CADENCE") {
+        step.secondaryTargetType = "CADENCE";
+        step.secondaryTargetValue = null;
+        step.secondaryTargetValueType = null;
+        step.secondaryTargetValueLow = cadenceRange.low ?? null;
+        step.secondaryTargetValueHigh = cadenceRange.high ?? cadenceRange.low ?? null;
+      }
+    };
+
     return steps.map((rawStep) => {
       if (!rawStep || typeof rawStep !== "object") {
         return rawStep;
@@ -334,6 +385,8 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
         // Sécurité : un WorkoutStep ne doit pas embarquer steps enfants
         step.steps = null;
       }
+
+      ensureCadenceTargets(step);
 
       return step;
     });
