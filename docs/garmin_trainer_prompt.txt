@@ -115,6 +115,7 @@ Valeurs autorisées : `REST`, `WARMUP`, `COOLDOWN`, `RECOVERY`, `ACTIVE`, `INTER
 - Respecte strictement la distance annoncée pour chaque répétition : ne fractionne pas un 50 m issu du brief en deux `WorkoutStep` de 25 m pour décrire des variantes; décris la combinaison (ex. “50 m : 25 m rattrapé + 25 m nage complète”) dans un seul step de 50 m.
 - Ne crée jamais de step d’effort sans `durationType`/`durationValue`. Si l’information n’est pas fournie dans le brief, ne crée pas le step.
 - Lorsqu’une consigne demande d’alterner des sensations (ex. “Alterne vélocité et très facile”) sans préciser la durée/distances de chaque alternance, conserve la durée globale du step et place cette consigne dans `description` au lieu de créer des sous-steps supplémentaires.
+- N’insère jamais de step “tampon” sans durée du type “Blocs sweet spot…” : intègre ces textes dans la description du step d’effort existant ou dans les sous-steps concernés.
 
 #### Cibles principales (`targetType`)
 - Valeurs : `SPEED`, `HEART_RATE`, `OPEN`, `CADENCE`, `POWER`, `GRADE`, `RESISTANCE`, `POWER_3S`, `POWER_10S`, `POWER_30S`, `POWER_LAP`, `SPEED_LAP`, `HEART_RATE_LAP`, `PACE`.
