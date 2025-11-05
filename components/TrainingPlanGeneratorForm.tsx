@@ -8,7 +8,11 @@ type TrainingPlanResponse = {
   plan: string;
 };
 
-export function TrainingPlanGeneratorForm() {
+type TrainingPlanGeneratorFormProps = {
+  onPlanGenerated?: (plan: string | null) => void;
+};
+
+export function TrainingPlanGeneratorForm({ onPlanGenerated }: TrainingPlanGeneratorFormProps) {
   const [prompt, setPrompt] = useState("");
   const [plan, setPlan] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -18,6 +22,7 @@ export function TrainingPlanGeneratorForm() {
     event.preventDefault();
     setError(null);
     setPlan(null);
+    onPlanGenerated?.(null);
 
     const trimmedPrompt = prompt.trim();
     if (!trimmedPrompt) {
@@ -27,6 +32,7 @@ export function TrainingPlanGeneratorForm() {
 
     try {
       setIsLoading(true);
+      onPlanGenerated?.(null);
       const response = await fetch("/api/training-plan", {
         method: "POST",
         headers: {
@@ -47,8 +53,10 @@ export function TrainingPlanGeneratorForm() {
 
       const data = (await response.json()) as TrainingPlanResponse;
       setPlan(data.plan);
+      onPlanGenerated?.(data.plan);
     } catch (submissionError) {
       setError(submissionError instanceof Error ? submissionError.message : "Erreur inconnue.");
+      onPlanGenerated?.(null);
     } finally {
       setIsLoading(false);
     }

@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import type { GarminTrainerWorkout } from "@/schemas/garminTrainer.schema";
 
@@ -11,8 +11,11 @@ type GenerateTrainingResponse = {
   error?: string;
 };
 
-export function GarminTrainerGenerator() {
-  const [exampleMarkdown, setExampleMarkdown] = useState("");
+type GarminTrainerGeneratorProps = {
+  sourceMarkdown: string | null;
+};
+
+export function GarminTrainerGenerator({ sourceMarkdown }: GarminTrainerGeneratorProps) {
   const [rawResult, setRawResult] = useState<string | null>(null);
   const [trainingJson, setTrainingJson] = useState<GarminTrainerWorkout | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -22,12 +25,30 @@ export function GarminTrainerGenerator() {
   const [pushSuccess, setPushSuccess] = useState<string | null>(null);
   const [pushDetails, setPushDetails] = useState<string | null>(null);
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  useEffect(() => {
+    setError(null);
+    setRawResult(null);
+    setTrainingJson(null);
+    setPushError(null);
+    setPushSuccess(null);
+    setPushDetails(null);
+  }, [sourceMarkdown]);
 
-    const trimmedExample = exampleMarkdown.trim();
+  const planPreview = useMemo(() => {
+    if (!sourceMarkdown) {
+      return null;
+    }
+    const trimmed = sourceMarkdown.trim();
+    if (trimmed.length === 0) {
+      return null;
+    }
+    return trimmed.length > 1200 ? `${trimmed.slice(0, 1200)}…` : trimmed;
+  }, [sourceMarkdown]);
+
+  const handleGenerateWorkout = async () => {
+    const trimmedExample = sourceMarkdown?.trim();
     if (!trimmedExample) {
-      setError("Merci de coller un exemple d’entraînement avant la génération.");
+      setError("Génère d’abord un plan d’entraînement ci-dessus pour alimenter la conversion Garmin.");
       return;
     }
 
@@ -153,25 +174,27 @@ export function GarminTrainerGenerator() {
 
   return (
     <div className="space-y-6">
-      <form
-        onSubmit={handleSubmit}
-        className="space-y-4"
-        aria-label="Générer un entraînement Garmin depuis un exemple"
-      >
-        <textarea
-          placeholder="Colle ici un exemple d’entraînement..."
-          rows={12}
-          value={exampleMarkdown}
-          onChange={(event) => setExampleMarkdown(event.target.value)}
-          className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-left text-sm text-white placeholder:text-white/40 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/60"
-        />
+      <div className="space-y-4">
+        <div className="rounded-xl border border-white/15 bg-black/30 p-4 text-left text-sm text-white">
+          <p className="text-sm font-semibold text-emerald-200">Plan utilisé pour la conversion</p>
+          {planPreview ? (
+            <pre className="mt-3 max-h-60 overflow-auto whitespace-pre-wrap break-words font-mono text-xs leading-relaxed text-emerald-100/80">
+              {planPreview}
+            </pre>
+          ) : (
+            <p className="mt-2 text-xs text-white/60">
+              Génère un plan via le formulaire ci-dessus pour pouvoir le convertir en entraînement Garmin.
+            </p>
+          )}
+        </div>
 
         <button
-          type="submit"
-          disabled={isLoading}
-          className="inline-flex h-11 w-full items-center justify-center rounded-md border border-emerald-400/60 bg-emerald-400/20 px-6 font-semibold text-white transition hover:bg-emerald-400/30 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-emerald-100 disabled:cursor-wait disabled:opacity-60"
+          type="button"
+          onClick={handleGenerateWorkout}
+          disabled={isLoading || !sourceMarkdown?.trim()}
+          className="inline-flex h-11 w-full items-center justify-center rounded-md border border-emerald-400/60 bg-emerald-400/20 px-6 font-semibold text-white transition hover:bg-emerald-400/30 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {isLoading ? "Génération en cours..." : "Générer l’entraînement"}
+          {isLoading ? "Conversion en cours..." : "Convertir le plan en JSON Garmin"}
         </button>
 
         {error ? <p className="text-sm text-red-300">{error}</p> : null}
@@ -184,7 +207,7 @@ export function GarminTrainerGenerator() {
             </pre>
           </div>
         ) : null}
-      </form>
+      </div>
 
       {trainingJson ? (
         <div className="space-y-3 rounded-xl border border-emerald-600/40 bg-emerald-950/40 p-4 text-left text-sm text-white">
