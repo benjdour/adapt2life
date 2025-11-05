@@ -82,6 +82,7 @@ export const GARMIN_TRAINING_JSON_GENERATOR_PROMPT: PromptDefinition = {
     "- Mono-sport : max 100 steps (steps simples + steps enfants).",
     "- `poolLength`/`poolLengthUnit` (YARD ou METER) uniquement si un segment est `LAP_SWIMMING`; toutes les valeurs natation doivent être identiques entre workout et segments.",
     "- `workoutProvider` / `workoutSourceId` : 20 caractères max (par défaut `Adapt2Life`).",
+    "- Le plan source est structuré en trois blocs : `🔥 Échauffement`, `💪 Corps de la séance`, `🧘 Retour au calme`. Les steps doivent être créés en respectant strictement cette structure (échauffement -> steps initiaux, corps -> steps principaux, retour au calme -> steps finaux).",
     "",
     "### Segments",
     "- `segmentOrder` commence à 1 et augmente de 1 en 1.",

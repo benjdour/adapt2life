@@ -55,7 +55,7 @@ export function GarminTrainerGenerator({ sourceMarkdown }: GarminTrainerGenerato
 
     const intervalId = window.setInterval(() => {
       setLoadingMessage((prev) => selectRandomMessage(prev));
-    }, 3000);
+    }, 5000);
 
     return () => {
       window.clearInterval(intervalId);

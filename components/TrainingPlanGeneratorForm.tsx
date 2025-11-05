@@ -39,7 +39,7 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated }: TrainingPlanGener
 
     const intervalId = window.setInterval(() => {
       setLoadingMessage((prev) => selectRandomMessage(prev));
-    }, 3000);
+    }, 5000);
 
     return () => window.clearInterval(intervalId);
   }, [isLoading]);
