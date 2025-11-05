@@ -346,6 +346,9 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
       return steps;
     }
 
+    const repeatPrefixPattern = /^\s*\d+\s*[x×]\s*/i;
+    const stripLeadingPunctuation = (value: string) => value.replace(/^[,;:-]+\s*/, "");
+
     const ensureCadenceTargets = (step: Record<string, unknown>) => {
       const description = typeof step.description === "string" ? step.description : "";
       if (!description || !/cadence/i.test(description)) {
@@ -417,6 +420,18 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
         if (isSwim) {
           step.skipLastRestStep = true;
         }
+
+        if (typeof step.description === "string" && step.description.trim().length > 0) {
+          let cleanedDescription = step.description.replace(repeatPrefixPattern, "");
+          cleanedDescription = stripLeadingPunctuation(cleanedDescription).trim();
+
+          if (cleanedDescription.length === 0) {
+            step.description = null;
+          } else {
+            step.description = cleanedDescription;
+          }
+        }
+
         if (!step.intensity) {
           step.intensity = inferRepeatIntensity(step);
         }

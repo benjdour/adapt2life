@@ -15,6 +15,29 @@ type GarminTrainerGeneratorProps = {
   sourceMarkdown: string | null;
 };
 
+const LOADING_MESSAGES = [
+  "🧠 Calcul des watts nécessaires pour vaincre ton canapé…",
+  "🚴‍♂️ Je vérifie si ton vélo est prêt à souffrir…",
+  "🥵 Synchronisation des gouttes de sueur prévues…",
+  "🏋️‍♀️ Téléchargement de la motivation… (ça peut prendre un moment)",
+  "⏳ Ajustement du karma sportif… patience, athlète !",
+  "💪 Chargement des quadriceps à 82 %…",
+  "🍌 Épluchage de la banane pré-entraînement…",
+  "😎 Vérification de ton niveau de badassitude…",
+  "🔥 Calibration de la douleur “qui fait du bien”…",
+  "🤖 L’IA s’étire avant de te proposer une séance.",
+  "🧘‍♂️ Respire… ton entraînement arrive, pas ton jugement dernier.",
+  "🎧 Choix de la playlist “Je vais transpirer élégamment”.",
+  "🩳 Vérification du short : prêt, propre, ou approximatif ?",
+  "🧩 Assemblage du plan parfait pour te faire dire “jamais plus”.",
+  "🧃 Mélange des électrolytes imaginaires…",
+  "🕺 Petit échauffement du code source…",
+  "🚀 Mise en orbite de ton mental de champion.",
+  "🦵 Calcul du risque de courbatures demain matin…",
+  "🧊 Refroidissement anticipé des mollets en prévision.",
+  "🥇 Ajustement du mode “je ne lâche rien”.",
+];
+
 export function GarminTrainerGenerator({ sourceMarkdown }: GarminTrainerGeneratorProps) {
   const [rawResult, setRawResult] = useState<string | null>(null);
   const [trainingJson, setTrainingJson] = useState<GarminTrainerWorkout | null>(null);
@@ -24,6 +47,7 @@ export function GarminTrainerGenerator({ sourceMarkdown }: GarminTrainerGenerato
   const [pushError, setPushError] = useState<string | null>(null);
   const [pushSuccess, setPushSuccess] = useState<string | null>(null);
   const [pushDetails, setPushDetails] = useState<string | null>(null);
+  const [loadingMessage, setLoadingMessage] = useState<string>(LOADING_MESSAGES[0]);
 
   useEffect(() => {
     setError(null);
@@ -33,6 +57,32 @@ export function GarminTrainerGenerator({ sourceMarkdown }: GarminTrainerGenerato
     setPushSuccess(null);
     setPushDetails(null);
   }, [sourceMarkdown]);
+
+  useEffect(() => {
+    if (!isLoading) {
+      setLoadingMessage(LOADING_MESSAGES[0]);
+      return;
+    }
+
+    const selectRandomMessage = (previous?: string | null) => {
+      if (LOADING_MESSAGES.length === 1) {
+        return LOADING_MESSAGES[0];
+      }
+      const candidates = LOADING_MESSAGES.filter((message) => message !== previous);
+      const index = Math.floor(Math.random() * candidates.length);
+      return candidates[index] ?? LOADING_MESSAGES[0];
+    };
+
+    setLoadingMessage((prev) => selectRandomMessage(prev));
+
+    const intervalId = window.setInterval(() => {
+      setLoadingMessage((prev) => selectRandomMessage(prev));
+    }, 2000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [isLoading]);
 
   const planPreview = useMemo(() => {
     if (!sourceMarkdown) {
@@ -194,7 +244,7 @@ export function GarminTrainerGenerator({ sourceMarkdown }: GarminTrainerGenerato
           disabled={isLoading || !sourceMarkdown?.trim()}
           className="inline-flex h-11 w-full items-center justify-center rounded-md border border-emerald-400/60 bg-emerald-400/20 px-6 font-semibold text-white transition hover:bg-emerald-400/30 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {isLoading ? "Conversion en cours..." : "Convertir le plan en JSON Garmin"}
+          {isLoading ? loadingMessage : "Convertir le plan en JSON Garmin"}
         </button>
 
         {error ? <p className="text-sm text-red-300">{error}</p> : null}
