@@ -232,6 +232,40 @@ const resolveOwnerContext = async (
   }
 };
 
+const sanitizeWorkoutValue = (value: unknown): unknown => {
+  if (Array.isArray(value)) {
+    return value.map((item) => sanitizeWorkoutValue(item));
+  }
+
+  if (value && typeof value === "object") {
+    const source = value as Record<string, unknown>;
+    const sanitized: Record<string, unknown> = {};
+
+    for (const [key, raw] of Object.entries(source)) {
+      const cleaned = sanitizeWorkoutValue(raw);
+      if (typeof cleaned === "string" && cleaned.trim().length === 0) {
+        sanitized[key] = null;
+      } else {
+        sanitized[key] = cleaned;
+      }
+    }
+
+    if (sanitized.type === "WorkoutRepeatStep") {
+      sanitized.durationType = null;
+      sanitized.durationValue = null;
+      sanitized.durationValueType = null;
+    }
+
+    return sanitized;
+  }
+
+  if (typeof value === "string" && value.trim().length === 0) {
+    return null;
+  }
+
+  return value;
+};
+
 export async function POST(request: NextRequest) {
   const ownerContext = await resolveOwnerContext(request);
 
@@ -390,13 +424,15 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const validation = workoutSchema.safeParse(workout);
+    const sanitizedWorkout = sanitizeWorkoutValue(workout) as Record<string, unknown>;
+
+    const validation = workoutSchema.safeParse(sanitizedWorkout);
     if (!validation.success) {
       return NextResponse.json(
         {
           error: "L’entraînement généré ne respecte pas le schéma attendu.",
           issues: validation.error.issues,
-          raw: JSON.stringify(workout, null, 2),
+          raw: JSON.stringify(sanitizedWorkout, null, 2),
         },
         { status: 422 },
       );
