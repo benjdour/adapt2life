@@ -113,6 +113,8 @@ Valeurs autorisées : `REST`, `WARMUP`, `COOLDOWN`, `RECOVERY`, `ACTIVE`, `INTER
 - Ne mélange jamais `targetValue` (zones 1–5 / 1–7) avec `targetValueLow`/`targetValueHigh`.
 - `targetValue` ne s'utilise qu'avec `HEART_RATE` (zones 1–5) ou `POWER` (zones 1–7).
 - Lorsque `targetValueLow`/`High` sont renseignés, `targetValueLow < targetValueHigh`.
+- Pour la course à pied (RUNNING) ou les segments course d'un multi-sport, si une zone `Zx` est demandée, utilise `targetType = "HEART_RATE"` avec `targetValue = x` (1–5).
+- Pour le vélo (CYCLING) ou les segments vélo d'un multi-sport, si une zone `Zx` est demandée, utilise `targetType = "POWER"` avec `targetValue = x` (1–7).
 
 #### Cibles secondaires (`secondaryTargetType`)
 Valeurs autorisées : mêmes valeurs que `targetType` + `PACE_ZONE`, `SWIM_INSTRUCTION` (1–10 via `secondaryTargetValueLow`), `SWIM_CSS_OFFSET` (offset -60 à 60 via `secondaryTargetValueLow`).  
