@@ -92,6 +92,7 @@ export const GARMIN_TRAINING_JSON_GENERATOR_PROMPT: PromptDefinition = {
     "",
     "### WorkoutStep",
     "- `intensity` in {REST, WARMUP, COOLDOWN, RECOVERY, ACTIVE, INTERVAL, MAIN}.",
+    "- Utilise `ACTIVE` pour les phases de travail; réserve `INTERVAL` aux cas explicitement requis par la documentation Garmin.",
     "- `durationType` in {TIME, DISTANCE, HR_LESS_THAN, HR_GREATER_THAN, CALORIES, OPEN, POWER_LESS_THAN, POWER_GREATER_THAN, TIME_AT_VALID_CDA, FIXED_REST, REPS, REPETITION_SWIM_CSS_OFFSET, FIXED_REPETITION}.",
     "- `durationValue` requis : TIME/DISTANCE/REPS/FIXED_REPETITION/FIXED_REST -> entier > 0 ; REPETITION_SWIM_CSS_OFFSET -> valeur entre -60 et 60.",
     "- `repeatType` et `repeatValue` doivent rester `null` (réservés aux blocs `WorkoutRepeatStep`).",

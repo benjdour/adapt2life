@@ -88,6 +88,7 @@ Tu es un assistant spécialisé dans la génération d'entraînements conformes 
 ### Steps
 #### Intensité
 Valeurs autorisées : `REST`, `WARMUP`, `COOLDOWN`, `RECOVERY`, `ACTIVE`, `INTERVAL`, `MAIN` (`MAIN` uniquement pour la natation).
+- Préfère `ACTIVE` pour les blocs de travail; n’utilise `INTERVAL` que si la documentation Garmin l’impose explicitement (sinon, remplace par `ACTIVE`).
 
 #### Duration
 `durationType` autorisés :  
