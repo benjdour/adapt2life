@@ -1,5 +1,12 @@
 import { z } from "zod";
 
+import type { GarminExerciseSport } from "@/constants/garminExerciseData";
+import {
+  SPORTS_REQUIRING_EXERCISE_METADATA,
+  hasGarminExerciseCategory,
+  isKnownGarminExercise,
+} from "@/constants/garminExerciseData";
+
 /** --- Enums Garmin --- */
 export const Sport = z.enum([
   "RUNNING",
@@ -111,7 +118,7 @@ const WorkoutStepSchema = z
     description: z.string().max(512).nullable(),
     durationType: DurationType,
     durationValue: z.number(),
-    durationValueType: nullable(z.string()),
+    durationValueType: nullable(z.enum(["PERCENT"])),
 
     equipmentType: nullable(EquipmentType),
     exerciseCategory: nullable(z.string()),
@@ -134,30 +141,67 @@ const WorkoutStepSchema = z
     strokeType: nullable(StrokeType),
     drillType: nullable(DrillType),
   })
+  .strict()
   /** Durée cohérente selon le type */
   .superRefine((s, ctx) => {
-    const value = s.durationValue;
-    if (value == null || Number.isNaN(value)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "durationValue est requis lorsque durationType est défini.",
-      });
-      return;
-    }
+    if (s.durationType === "OPEN") {
+      if (s.durationValue != null) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "durationType OPEN => durationValue doit être null.",
+        });
+      }
+      if (s.durationValueType != null) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "durationType OPEN => durationValueType doit être null.",
+        });
+      }
+    } else {
+      const value = s.durationValue;
+      if (value == null || Number.isNaN(value)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "durationValue est requis lorsque durationType est défini.",
+        });
+        return;
+      }
 
-    const positiveIntegerTypes = ["TIME", "DISTANCE", "REPS", "FIXED_REPETITION", "FIXED_REST"];
-    if (positiveIntegerTypes.includes(s.durationType) && (!Number.isInteger(value) || value <= 0)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: `${s.durationType} => durationValue doit être un entier positif.`,
-      });
-    }
+      const positiveIntegerTypes = ["TIME", "DISTANCE", "REPS", "FIXED_REPETITION", "FIXED_REST"];
+      if (positiveIntegerTypes.includes(s.durationType) && (!Number.isInteger(value) || value <= 0)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `${s.durationType} => durationValue doit être un entier positif.`,
+        });
+      }
 
-    if (s.durationType === "REPETITION_SWIM_CSS_OFFSET" && (value < -60 || value > 60)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "REPETITION_SWIM_CSS_OFFSET => durationValue doit être compris entre -60 et 60.",
-      });
+      if (s.durationType === "REPETITION_SWIM_CSS_OFFSET" && (value < -60 || value > 60)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "REPETITION_SWIM_CSS_OFFSET => durationValue doit être compris entre -60 et 60.",
+        });
+      }
+
+      const percentageDurationTypes = [
+        "HR_LESS_THAN",
+        "HR_GREATER_THAN",
+        "POWER_LESS_THAN",
+        "POWER_GREATER_THAN",
+        "TIME_AT_VALID_CDA",
+      ];
+      if (percentageDurationTypes.includes(s.durationType)) {
+        if (s.durationValueType !== "PERCENT") {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `${s.durationType} => durationValueType doit être 'PERCENT'.`,
+          });
+        }
+      } else if (s.durationValueType != null) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "durationValueType ne s'utilise que pour les durées HR/POWER (PERCENT).",
+        });
+      }
     }
 
     if (s.repeatType != null || s.repeatValue != null) {
@@ -193,6 +237,69 @@ const WorkoutStepSchema = z
       }
     }
 
+    if (s.targetValue != null) {
+      if (!["HEART_RATE", "POWER"].includes(s.targetType ?? "")) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "targetValue ne peut être utilisé qu'avec HEART_RATE ou POWER (zones prédéfinies).",
+        });
+      } else if (!Number.isInteger(s.targetValue) || s.targetValue <= 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "targetValue doit être un entier positif représentant une zone.",
+        });
+      } else if (
+        (s.targetType === "HEART_RATE" && (s.targetValue < 1 || s.targetValue > 5)) ||
+        (s.targetType === "POWER" && (s.targetValue < 1 || s.targetValue > 7))
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "targetValue hors plage autorisée (HEART_RATE 1-5, POWER 1-7).",
+        });
+      }
+    }
+
+    if (s.targetValueLow != null && s.targetValueHigh != null && s.targetValueLow >= s.targetValueHigh) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "targetValueLow doit être strictement inférieur à targetValueHigh.",
+      });
+    }
+
+    if (["HEART_RATE", "POWER"].includes(s.targetType ?? "")) {
+      if (s.targetValue != null) {
+        if (s.targetValueLow != null || s.targetValueHigh != null) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Lorsque targetValue est utilisé, targetValueLow/High doivent rester null.",
+          });
+        }
+      } else if (s.targetValueLow == null || s.targetValueHigh == null) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "HEART_RATE/POWER => targetValueLow et targetValueHigh requis si targetValue n'est pas fourni.",
+        });
+      }
+    } else if (
+      ["SPEED", "PACE", "CADENCE", "GRADE", "RESISTANCE", "POWER_3S", "POWER_10S", "POWER_30S", "POWER_LAP", "SPEED_LAP", "HEART_RATE_LAP"].includes(
+        s.targetType ?? "",
+      )
+    ) {
+      if (s.targetValueLow == null || s.targetValueHigh == null) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `${s.targetType} => targetValueLow et targetValueHigh sont requis.`,
+        });
+      }
+    }
+
+    if (s.secondaryTargetType && s.targetType && s.secondaryTargetType === s.targetType) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Le secondaryTargetType doit différer du targetType.",
+      });
+    }
+
     if (s.secondaryTargetType === "SWIM_INSTRUCTION") {
       if (
         s.secondaryTargetValueLow == null ||
@@ -202,6 +309,17 @@ const WorkoutStepSchema = z
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: "SWIM_INSTRUCTION => utilise secondaryTargetValueLow (1-10) uniquement.",
+        });
+      } else if (s.secondaryTargetValueLow < 1 || s.secondaryTargetValueLow > 10) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "SWIM_INSTRUCTION => secondaryTargetValueLow doit être compris entre 1 et 10.",
+        });
+      }
+      if (s.secondaryTargetValue != null) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "SWIM_INSTRUCTION n'utilise pas secondaryTargetValue.",
         });
       }
     }
@@ -217,6 +335,63 @@ const WorkoutStepSchema = z
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: "SWIM_CSS_OFFSET n'utilise pas secondaryTargetValueHigh ni secondaryTargetValueType.",
+        });
+      }
+      if (s.secondaryTargetValue != null) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "SWIM_CSS_OFFSET n'utilise pas secondaryTargetValue.",
+        });
+      }
+    }
+
+    if (s.secondaryTargetType === "PACE_ZONE") {
+      if (s.secondaryTargetValueLow == null || s.secondaryTargetValueHigh != null || s.secondaryTargetValueType != null) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "PACE_ZONE => renseigne secondaryTargetValueLow (m/s) uniquement.",
+        });
+      }
+      if (s.secondaryTargetValue != null) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "PACE_ZONE n'utilise pas secondaryTargetValue.",
+        });
+      }
+    }
+
+    const secondaryRangeTargets = [
+      "SPEED",
+      "PACE",
+      "CADENCE",
+      "POWER",
+      "HEART_RATE",
+      "GRADE",
+      "RESISTANCE",
+      "POWER_3S",
+      "POWER_10S",
+      "POWER_30S",
+      "POWER_LAP",
+      "SPEED_LAP",
+      "HEART_RATE_LAP",
+    ];
+    if (secondaryRangeTargets.includes(s.secondaryTargetType ?? "")) {
+      if (s.secondaryTargetValueLow == null || s.secondaryTargetValueHigh == null) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "secondaryTargetValueLow/High requis pour ce secondaryTargetType.",
+        });
+      }
+      if (["HEART_RATE", "POWER"].includes(s.secondaryTargetType ?? "") && s.secondaryTargetValueType !== "PERCENT") {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "secondaryTargetValueType doit être 'PERCENT' pour les cibles secondaires HR/POWER.",
+        });
+      }
+      if (!["HEART_RATE", "POWER"].includes(s.secondaryTargetType ?? "") && s.secondaryTargetValueType != null) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "secondaryTargetValueType n'est utilisé que pour HEART_RATE/POWER en secondary target.",
         });
       }
     }
@@ -267,6 +442,7 @@ const WorkoutRepeatStepSchema = z
     strokeType: nullable(StrokeType),
     drillType: nullable(DrillType),
   })
+  .strict()
   .superRefine((step, ctx) => {
     if (step.durationType != null || step.durationValue != null) {
       ctx.addIssue({
@@ -302,6 +478,7 @@ export const Segment = z
     poolLengthUnit: nullable(PoolLengthUnit),
     steps: z.array(Step).min(1),
   })
+  .strict()
   .superRefine((segment, ctx) => {
     let lastOrder = 0;
     segment.steps.forEach((step, index) => {
@@ -317,15 +494,45 @@ export const Segment = z
 
     if (segment.sport === "LAP_SWIMMING") {
       const ensureSwimCompliance = (step: z.infer<typeof Step>, path: (string | number)[]) => {
-        if (step.type === "WorkoutStep") {
-          if (step.targetType != null) {
+        if (step.targetType != null) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Pour la natation, targetType doit être null (utiliser les secondaryTarget).",
+            path: [...path, "targetType"],
+          });
+        }
+        if (step.strokeType == null && (step.drillType != null || step.equipmentType != null)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "strokeType doit être renseigné lorsque drillType ou equipmentType est défini (natation).",
+            path: [...path, "strokeType"],
+          });
+        }
+        const allowedSecondary = new Set(["PACE_ZONE", "SWIM_INSTRUCTION", "SWIM_CSS_OFFSET"]);
+        if (step.secondaryTargetType != null && !allowedSecondary.has(step.secondaryTargetType)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "En natation, secondaryTargetType doit être PACE_ZONE, SWIM_INSTRUCTION ou SWIM_CSS_OFFSET.",
+            path: [...path, "secondaryTargetType"],
+          });
+        }
+        if (step.type === "WorkoutStep" && step.durationType === "TIME" && typeof step.durationValue === "number") {
+          if (step.durationValue < 60 || step.durationValue > 3540) {
             ctx.addIssue({
               code: z.ZodIssueCode.custom,
-              message: "Pour la natation, targetType doit être null (utiliser les secondaryTarget).",
-              path: [...path, "targetType"],
+              message: "Natation TIME => durationValue doit être compris entre 60 et 3540 secondes.",
+              path: [...path, "durationValue"],
             });
           }
-        } else if (step.type === "WorkoutRepeatStep" && Array.isArray(step.steps)) {
+        }
+        if (step.type === "WorkoutRepeatStep") {
+          if (step.skipLastRestStep !== true) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: "Natation => skipLastRestStep doit être true pour les WorkoutRepeatStep.",
+              path: [...path, "skipLastRestStep"],
+            });
+          }
           step.steps.forEach((child, childIndex) => {
             ensureSwimCompliance(child, [...path, "steps", childIndex]);
           });
@@ -333,8 +540,199 @@ export const Segment = z
       };
 
       segment.steps.forEach((step, index) => ensureSwimCompliance(step, ["steps", index]));
+    } else {
+      const ensureLandCompliance = (step: z.infer<typeof Step>, path: (string | number)[]) => {
+        if (step.intensity === "MAIN") {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "L'intensité MAIN est réservée aux segments LAP_SWIMMING.",
+            path: [...path, "intensity"],
+          });
+        }
+        if (step.strokeType != null || step.drillType != null || step.equipmentType != null) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "strokeType, drillType et equipmentType sont réservés aux segments de natation.",
+            path: [...path, "strokeType"],
+          });
+        }
+        if (step.type === "WorkoutRepeatStep") {
+          step.steps.forEach((child, childIndex) => ensureLandCompliance(child, [...path, "steps", childIndex]));
+        }
+      };
+
+      segment.steps.forEach((step, index) => ensureLandCompliance(step, ["steps", index]));
     }
+
+    const ensureSecondaryTargetRules = (step: z.infer<typeof Step>, path: (string | number)[]) => {
+      if (segment.sport !== "LAP_SWIMMING") {
+        if (step.secondaryTargetType != null && (step.targetType === "OPEN" || step.targetType == null)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Lorsque secondaryTargetType est défini (hors natation), targetType doit être renseigné et différent de OPEN.",
+            path: [...path, "secondaryTargetType"],
+          });
+        }
+      }
+      if (step.type === "WorkoutRepeatStep") {
+        step.steps.forEach((child, childIndex) => ensureSecondaryTargetRules(child, [...path, "steps", childIndex]));
+      }
+    };
+
+    const ensureExerciseMetadata = (step: z.infer<typeof Step>, path: (string | number)[]) => {
+      if (step.type === "WorkoutRepeatStep") {
+        if (step.exerciseCategory != null || step.exerciseName != null) {
+          if (step.exerciseCategory != null) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: "WorkoutRepeatStep ne doit pas définir exerciseCategory.",
+              path: [...path, "exerciseCategory"],
+            });
+          }
+          if (step.exerciseName != null) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: "WorkoutRepeatStep ne doit pas définir exerciseName.",
+              path: [...path, "exerciseName"],
+            });
+          }
+        }
+        if (step.weightValue != null) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "WorkoutRepeatStep ne doit pas définir weightValue.",
+            path: [...path, "weightValue"],
+          });
+        }
+        if (step.weightDisplayUnit != null) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "WorkoutRepeatStep ne doit pas définir weightDisplayUnit.",
+            path: [...path, "weightDisplayUnit"],
+          });
+        }
+        step.steps.forEach((child, childIndex) => ensureExerciseMetadata(child, [...path, "steps", childIndex]));
+        return;
+      }
+
+      const requiresExercise = SPORTS_REQUIRING_EXERCISE_METADATA.has(segment.sport as GarminExerciseSport);
+      const category = step.exerciseCategory;
+      const name = step.exerciseName;
+      const hasCategory = typeof category === "string" && category.trim().length > 0;
+      const hasName = typeof name === "string" && name.trim().length > 0;
+
+      if (requiresExercise) {
+        if (!hasCategory) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "exerciseCategory est requis pour ce sport.",
+            path: [...path, "exerciseCategory"],
+          });
+        }
+        if (!hasName) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "exerciseName est requis pour ce sport.",
+            path: [...path, "exerciseName"],
+          });
+        }
+        if (hasCategory && !hasGarminExerciseCategory(segment.sport, category ?? null)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `exerciseCategory inconnu pour ${segment.sport}.`,
+            path: [...path, "exerciseCategory"],
+          });
+        }
+        if (hasCategory && hasName && !isKnownGarminExercise(segment.sport, category ?? null, name ?? null)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `exerciseName inconnu pour la catégorie ${category}.`,
+            path: [...path, "exerciseName"],
+          });
+        }
+      } else if (category != null || name != null) {
+        if (category != null) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "exerciseCategory n'est pas autorisé pour ce sport.",
+            path: [...path, "exerciseCategory"],
+          });
+        }
+        if (name != null) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "exerciseName n'est pas autorisé pour ce sport.",
+            path: [...path, "exerciseName"],
+          });
+        }
+      }
+
+      if (segment.sport === "STRENGTH_TRAINING") {
+        if (step.weightValue != null) {
+          if (typeof step.weightValue !== "number" || step.weightValue <= 0) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: "weightValue doit être un nombre positif.",
+              path: [...path, "weightValue"],
+            });
+          }
+          if (step.weightDisplayUnit == null) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: "weightDisplayUnit est requis lorsque weightValue est renseigné.",
+              path: [...path, "weightDisplayUnit"],
+            });
+          }
+        } else if (step.weightDisplayUnit != null) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "weightDisplayUnit ne peut être défini sans weightValue.",
+            path: [...path, "weightDisplayUnit"],
+          });
+        }
+      } else if (step.weightValue != null || step.weightDisplayUnit != null) {
+        if (step.weightValue != null) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "weightValue est réservé aux entraînements de musculation.",
+            path: [...path, "weightValue"],
+          });
+        }
+        if (step.weightDisplayUnit != null) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "weightDisplayUnit est réservé aux entraînements de musculation.",
+            path: [...path, "weightDisplayUnit"],
+          });
+        }
+      }
+
+      const repsAllowedSports: GarminExerciseSport[] = ["STRENGTH_TRAINING", "CARDIO_TRAINING"];
+      if (
+        step.durationType === "REPS" &&
+        !repsAllowedSports.includes(segment.sport as GarminExerciseSport)
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "durationType REPS n'est autorisé que pour STRENGTH_TRAINING ou CARDIO_TRAINING.",
+          path: [...path, "durationType"],
+        });
+      }
+    };
+
+    segment.steps.forEach((step, index) => ensureExerciseMetadata(step, ["steps", index]));
+    segment.steps.forEach((step, index) => ensureSecondaryTargetRules(step, ["steps", index]));
   });
+
+type StepType = z.infer<typeof Step>;
+
+const countSteps = (steps: StepType[]): number =>
+  steps.reduce((total, step) => {
+    if (step.type === "WorkoutRepeatStep") {
+      return total + countSteps(step.steps as StepType[]);
+    }
+    return total + 1;
+  }, 0);
 
 /** --- Workout racine --- */
 export const GarminWorkoutSchema = z
@@ -347,11 +745,12 @@ export const GarminWorkoutSchema = z
     estimatedDistanceInMeters: nullable(z.number()),
     poolLength: nullable(z.number()),
     poolLengthUnit: nullable(PoolLengthUnit),
-    workoutProvider: z.string().min(1),
-    workoutSourceId: z.string().min(1),
+    workoutProvider: z.string().min(1).max(20),
+    workoutSourceId: z.string().min(1).max(20),
     isSessionTransitionEnabled: z.boolean(),
     segments: z.array(Segment).min(1),
   })
+  .strict()
   .superRefine((workout, ctx) => {
     let lastOrder = 0;
     workout.segments.forEach((segment, index) => {
@@ -374,6 +773,28 @@ export const GarminWorkoutSchema = z
     }
 
     if (workout.sport === "MULTI_SPORT") {
+      if (workout.segments.length > 25) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Un workout MULTI_SPORT ne peut contenir plus de 25 segments.",
+          path: ["segments"],
+        });
+      }
+      const totalSteps = workout.segments.reduce((sum, segment) => sum + countSteps(segment.steps as StepType[]), 0);
+      if (totalSteps > 250) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Un workout MULTI_SPORT ne peut contenir plus de 250 steps au total.",
+          path: ["segments"],
+        });
+      }
+      if (!workout.isSessionTransitionEnabled) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "isSessionTransitionEnabled doit être true pour un workout MULTI_SPORT.",
+          path: ["isSessionTransitionEnabled"],
+        });
+      }
       workout.segments.forEach((segment, index) => {
         if (segment.sport === "MULTI_SPORT") {
           ctx.addIssue({
@@ -402,6 +823,14 @@ export const GarminWorkoutSchema = z
           code: z.ZodIssueCode.custom,
           message: "poolLength/poolLengthUnit ne sont valides que pour la natation en piscine.",
           path: ["poolLength"],
+        });
+      }
+      const segmentSteps = countSteps(workout.segments[0].steps as StepType[]);
+      if (segmentSteps > 100) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Un workout mono-sport ne peut contenir plus de 100 steps.",
+          path: ["segments", 0, "steps"],
         });
       }
     }

@@ -73,6 +73,8 @@ Tu es un assistant spécialisé dans la génération d'entraînements conformes 
 - `ownerId` : ne jamais inventer (mets `null` si inconnu ou fourni comme tel).
 - Mono-sport : un seul segment dont `sport` = `workout.sport`.
 - Multi-sport : `sport = "MULTI_SPORT"`, plusieurs segments, chacun avec son sport (jamais `MULTI_SPORT` dans les segments).
+- Multi-sport : au plus 25 segments et 250 steps cumulés, `isSessionTransitionEnabled = true`.
+- Mono-sport : max 100 steps (steps simples + steps enfants).
 - `poolLength` / `poolLengthUnit` (`YARD` ou `METER`) uniquement si au moins un segment est `LAP_SWIMMING`. Toutes les valeurs natation doivent être identiques entre workout et segments.
 
 ### Segments
@@ -80,10 +82,12 @@ Tu es un assistant spécialisé dans la génération d'entraînements conformes 
 - `estimatedDurationInSecs` et `estimatedDistanceInMeters` sont acceptés mais Garmin les recalculera. Fournis-les seulement si l'information est fiable.
 - `steps` contient exclusivement des objets `WorkoutStep` et `WorkoutRepeatStep`. L'ordre (`stepOrder`) est strictement croissant à l'intérieur d'un segment.
 - Pour les segments `LAP_SWIMMING`, **tous** les `WorkoutStep` doivent avoir `targetType = null` (utilise les cibles secondaires).
+- En dehors de la natation : ne jamais utiliser `intensity = "MAIN"` ni remplir `strokeType`, `drillType`, `equipmentType`.
+- En natation : si `drillType` ou `equipmentType` est présent, renseigne aussi `strokeType`.
 
 ### Steps
 #### Intensité
-Valeurs autorisées : `REST`, `WARMUP`, `COOLDOWN`, `RECOVERY`, `ACTIVE`, `INTERVAL`, `MAIN` (MAIN uniquement pour la natation).
+Valeurs autorisées : `REST`, `WARMUP`, `COOLDOWN`, `RECOVERY`, `ACTIVE`, `INTERVAL`, `MAIN` (`MAIN` uniquement pour la natation).
 
 #### Duration
 `durationType` autorisés :  
@@ -92,13 +96,14 @@ Valeurs autorisées : `REST`, `WARMUP`, `COOLDOWN`, `RECOVERY`, `ACTIVE`, `INTER
 - `durationValue` requis quand `durationType` est défini.  
 - `TIME`, `DISTANCE`, `REPS`, `FIXED_REPETITION`, `FIXED_REST` : entiers strictement positifs.  
 - `REPETITION_SWIM_CSS_OFFSET` : valeur entre -60 et 60.  
-- `durationValueType` : `PERCENT` seulement quand la durée est exprimée en pourcentage (types HR/POWER). Laisse `null` sinon.
+- `durationValueType` : `PERCENT` uniquement pour `HR_LESS_THAN`, `HR_GREATER_THAN`, `POWER_LESS_THAN`, `POWER_GREATER_THAN`, `TIME_AT_VALID_CDA`. Laisse `null` sinon.
 
 #### Répétitions
 `repeatType` n’est utilisé que pour `WorkoutRepeatStep`. Valeurs autorisées :  
 `REPEAT_UNTIL_STEPS_CMPLT`, `REPEAT_UNTIL_TIME`, `REPEAT_UNTIL_DISTANCE`, `REPEAT_UNTIL_CALORIES`, `REPEAT_UNTIL_HR_LESS_THAN`, `REPEAT_UNTIL_HR_GREATER_THAN`, `REPEAT_UNTIL_POWER_LESS_THAN`, `REPEAT_UNTIL_POWER_GREATER_THAN`, `REPEAT_UNTIL_POWER_LAST_LAP_LESS_THAN`, `REPEAT_UNTIL_MAX_POWER_LAST_LAP_LESS_THAN`.
 
-`WorkoutStep` (simple) doit toujours laisser `repeatType` et `repeatValue` à `null`.
+`WorkoutStep` (simple) doit toujours laisser `repeatType` et `repeatValue` à `null`.  
+`WorkoutRepeatStep` doit laisser `durationType`, `durationValue`, `durationValueType` à `null`.
 
 #### Cibles principales (`targetType`)
 - Valeurs : `SPEED`, `HEART_RATE`, `OPEN`, `CADENCE`, `POWER`, `GRADE`, `RESISTANCE`, `POWER_3S`, `POWER_10S`, `POWER_30S`, `POWER_LAP`, `SPEED_LAP`, `HEART_RATE_LAP`, `PACE`.
@@ -106,17 +111,23 @@ Valeurs autorisées : `REST`, `WARMUP`, `COOLDOWN`, `RECOVERY`, `ACTIVE`, `INTER
 - Si `targetType = "OPEN"`, ne renseigne **aucune** valeur (`targetValue*` doivent rester `null`).
 - Pour `HEART_RATE` ou `POWER` avec plage personnalisée, `targetValueType` = `"PERCENT"` et `targetValueLow`/`targetValueHigh` obligatoires.
 - Ne mélange jamais `targetValue` (zones 1–5 / 1–7) avec `targetValueLow`/`targetValueHigh`.
+- `targetValue` ne s'utilise qu'avec `HEART_RATE` (zones 1–5) ou `POWER` (zones 1–7).
+- Lorsque `targetValueLow`/`High` sont renseignés, `targetValueLow < targetValueHigh`.
 
 #### Cibles secondaires (`secondaryTargetType`)
 Valeurs autorisées : mêmes valeurs que `targetType` + `PACE_ZONE`, `SWIM_INSTRUCTION` (1–10 via `secondaryTargetValueLow`), `SWIM_CSS_OFFSET` (offset -60 à 60 via `secondaryTargetValueLow`).  
 `secondaryTargetValueHigh`/`secondaryTargetValueType` ne sont utilisés que pour les plages (POWER/HR) ; laisse-les à `null` sinon.
+- `secondaryTargetType` doit être différent de `targetType`.
+- Hors natation, si `secondaryTargetType` est présent, `targetType` ne peut pas être `OPEN` ni `null`.
+- `secondaryTargetValueType` = `PERCENT` uniquement pour les secondary targets `HEART_RATE` / `POWER`; sinon laisse `null`.
 
 #### Natation
 - `targetType` = `null`. Utilise `secondaryTargetType = "PACE_ZONE"`, `"SWIM_INSTRUCTION"` ou `"SWIM_CSS_OFFSET"` selon le besoin.
 - `strokeType` autorisés : `BACKSTROKE`, `BREASTSTROKE`, `BUTTERFLY`, `FREESTYLE`, `MIXED`, `IM`, `RIMO`, `CHOICE`.
 - `drillType` autorisés : `KICK`, `PULL`, `DRILL`, `BUTTERFLY` (et renseigne `strokeType` en même temps).
 - `equipmentType` autorisés : `NONE`, `SWIM_FINS`, `SWIM_KICKBOARD`, `SWIM_PADDLES`, `SWIM_PULL_BUOY`, `SWIM_SNORKEL`.
-- Répétitions natation : ajoute `skipLastRestStep = true` quand le dernier step du bloc est un repos >= 120 s.
+- Répétitions natation : positionne toujours `skipLastRestStep = true` (compatibilité Garmin Skip Rest).
+- Steps natation à base de temps : `durationValue` entre 60 et 3540 secondes (1 à 59 min).
 
 #### Renforcement/Yoga/Cardio
 - `exerciseCategory` et `exerciseName` utilisent les valeurs listées en annexe de la doc (si disponibles). Laisse `null` si inconnues.

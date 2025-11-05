@@ -18,7 +18,7 @@
     "./docs/Spec_Developpement_Adapt2Life_v2.md",
     "./docs/Spec_Technique_Securite_Adapt2Life_v2.md"
   ],
-
+  
   "contexts": [
     {
       "name": "chef_de_projet",

@@ -245,8 +245,47 @@ const sanitizeWorkoutValue = (value: unknown): unknown => {
       const cleaned = sanitizeWorkoutValue(raw);
       if (typeof cleaned === "string" && cleaned.trim().length === 0) {
         sanitized[key] = null;
-      } else {
-        sanitized[key] = cleaned;
+        continue;
+      }
+
+      const numericKeys = new Set([
+        "segmentOrder",
+        "stepOrder",
+        "repeatValue",
+        "durationValue",
+        "targetValue",
+        "targetValueLow",
+        "targetValueHigh",
+        "secondaryTargetValue",
+        "secondaryTargetValueLow",
+        "secondaryTargetValueHigh",
+        "estimatedDurationInSecs",
+        "estimatedDistanceInMeters",
+        "poolLength",
+      ]);
+
+      if (numericKeys.has(key) && typeof cleaned === "string") {
+        const parsed = Number(cleaned);
+        sanitized[key] = Number.isFinite(parsed) ? parsed : cleaned;
+        continue;
+      }
+
+      sanitized[key] = cleaned;
+    }
+
+    if (sanitized.durationType === "OPEN") {
+      sanitized.durationValue = null;
+      sanitized.durationValueType = null;
+    }
+
+    const booleanKeys = new Set(["skipLastRestStep", "isSessionTransitionEnabled"]);
+    for (const key of booleanKeys) {
+      if (typeof sanitized[key] === "string") {
+        if ((sanitized[key] as string).toLowerCase() === "true") {
+          sanitized[key] = true;
+        } else if ((sanitized[key] as string).toLowerCase() === "false") {
+          sanitized[key] = false;
+        }
       }
     }
 
@@ -259,11 +298,102 @@ const sanitizeWorkoutValue = (value: unknown): unknown => {
     return sanitized;
   }
 
-  if (typeof value === "string" && value.trim().length === 0) {
-    return null;
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed.length === 0 ? null : trimmed;
   }
 
   return value;
+};
+
+const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<string, unknown> => {
+  const clone: Record<string, unknown> = { ...workout };
+
+  const swimSegmentPoolValues: Array<{ length: number | null; unit: string | null }> = [];
+
+  const normalizeSteps = (steps: unknown, isSwim: boolean): unknown => {
+    if (!Array.isArray(steps)) {
+      return steps;
+    }
+
+    return steps.map((rawStep) => {
+      if (!rawStep || typeof rawStep !== "object") {
+        return rawStep;
+      }
+
+      const step = { ...(rawStep as Record<string, unknown>) };
+      const type = step.type;
+
+      if (type === "WorkoutRepeatStep" && Array.isArray(step.steps)) {
+        step.steps = normalizeSteps(step.steps, isSwim) as unknown[];
+
+        if (isSwim) {
+          step.skipLastRestStep = true;
+        }
+      } else if (type === "WorkoutStep" && Array.isArray(step.steps)) {
+        // Sécurité : un WorkoutStep ne doit pas embarquer steps enfants
+        step.steps = null;
+      }
+
+      return step;
+    });
+  };
+
+  if (Array.isArray(clone.segments)) {
+    clone.segments = clone.segments.map((rawSegment) => {
+      if (!rawSegment || typeof rawSegment !== "object") {
+        return rawSegment;
+      }
+
+      const segment = { ...(rawSegment as Record<string, unknown>) };
+      const sport = typeof segment.sport === "string" ? segment.sport : null;
+      const isSwim = sport === "LAP_SWIMMING";
+
+      segment.steps = normalizeSteps(segment.steps, isSwim);
+
+      if (isSwim) {
+        const segPoolLength =
+          typeof segment.poolLength === "number" && Number.isFinite(segment.poolLength)
+            ? (segment.poolLength as number)
+            : null;
+        const segPoolUnit = typeof segment.poolLengthUnit === "string" ? segment.poolLengthUnit : null;
+
+        swimSegmentPoolValues.push({ length: segPoolLength, unit: segPoolUnit });
+
+        if (segPoolLength == null && typeof clone.poolLength === "number") {
+          segment.poolLength = clone.poolLength;
+        }
+        if (segPoolUnit == null && typeof clone.poolLengthUnit === "string") {
+          segment.poolLengthUnit = clone.poolLengthUnit;
+        }
+      } else {
+        segment.poolLength = null;
+        segment.poolLengthUnit = null;
+      }
+
+      return segment;
+    });
+  }
+
+  if (clone.sport === "MULTI_SPORT") {
+    clone.isSessionTransitionEnabled = true;
+    const firstSwimWithLength = swimSegmentPoolValues.find(({ length, unit }) => length != null && unit != null);
+    if (firstSwimWithLength) {
+      clone.poolLength = firstSwimWithLength.length;
+      clone.poolLengthUnit = firstSwimWithLength.unit;
+    }
+  } else if (clone.sport === "LAP_SWIMMING") {
+    const preferred = swimSegmentPoolValues.find(({ length, unit }) => length != null && unit != null);
+    if (preferred) {
+      clone.poolLength = preferred.length;
+      clone.poolLengthUnit = preferred.unit;
+    }
+  } else {
+    clone.poolLength = null;
+    clone.poolLengthUnit = null;
+  }
+
+  return clone;
 };
 
 export async function POST(request: NextRequest) {
@@ -425,14 +555,15 @@ export async function POST(request: NextRequest) {
     }
 
     const sanitizedWorkout = sanitizeWorkoutValue(workout) as Record<string, unknown>;
+    const normalizedWorkout = enforceWorkoutPostProcessing(sanitizedWorkout);
 
-    const validation = workoutSchema.safeParse(sanitizedWorkout);
+    const validation = workoutSchema.safeParse(normalizedWorkout);
     if (!validation.success) {
       return NextResponse.json(
         {
           error: "L’entraînement généré ne respecte pas le schéma attendu.",
           issues: validation.error.issues,
-          raw: JSON.stringify(sanitizedWorkout, null, 2),
+          raw: JSON.stringify(normalizedWorkout, null, 2),
         },
         { status: 422 },
       );
