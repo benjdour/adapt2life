@@ -114,6 +114,7 @@ export const GARMIN_TRAINING_JSON_GENERATOR_PROMPT: PromptDefinition = {
     "- Respecte la distance annoncée pour chaque répétition : ne découpe pas un 50 m en plusieurs steps de 25 m ; combine la consigne dans un seul step portant la distance exacte.",
     "- Lorsque la consigne mentionne une alternance qualitative sans durée dédiée (ex. \"Alterne vélocité et facile\"), garde un seul step avec la durée globale et place l’instruction dans `description` au lieu de générer des sous-steps supplémentaires.",
     "- Ne crée jamais de step placeholder sans durée (“Blocs sweet spot…”) : fusionne ces indications avec le step d’effort existant ou répartis-les sur les sous-steps concernés.",
+    "- Si la consigne mentionne explicitement plusieurs durées successives (ex. 30 s puis 60 s), modélise-les via un `WorkoutRepeatStep` avec les sous-steps correspondants et leurs durées explicites ; ne laisse pas ces valeurs uniquement dans la description.",
     "- Le parent `WorkoutRepeatStep` doit laisser toutes les cibles (`targetType`, `secondaryTarget*`, etc.) à `null`. Place toute cible (cadence, puissance…) uniquement dans les steps enfants.",
     "",
     "### Cibles",
