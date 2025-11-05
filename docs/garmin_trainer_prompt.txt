@@ -105,6 +105,7 @@ Valeurs autorisées : `REST`, `WARMUP`, `COOLDOWN`, `RECOVERY`, `ACTIVE`, `INTER
 
 `WorkoutStep` (simple) doit toujours laisser `repeatType` et `repeatValue` à `null`.  
 `WorkoutRepeatStep` doit laisser `durationType`, `durationValue`, `durationValueType` à `null`.
+- Quand la description comporte un motif `N × …` (ex. `4 × 50 m … repos 15 s`), modélise obligatoirement un `WorkoutRepeatStep` parent avec `repeatValue = N` et des steps enfants distincts pour l’effort et la récupération (durée DISTANCE pour l’effort, FIXED_REST/TIME pour la récup). Aucune répétition ne doit rester implicite dans la description.
 
 #### Cibles principales (`targetType`)
 - Valeurs : `SPEED`, `HEART_RATE`, `OPEN`, `CADENCE`, `POWER`, `GRADE`, `RESISTANCE`, `POWER_3S`, `POWER_10S`, `POWER_30S`, `POWER_LAP`, `SPEED_LAP`, `HEART_RATE_LAP`, `PACE`.
