@@ -363,13 +363,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    userPromptSegments.push(
-      "",
-      "Consignes supplémentaires :",
-      "- Propose uniquement une séance (sauf demande explicite d’un programme de plusieurs jours).",
-      "- Respecte strictement la structure Markdown attendue (titres, listes, séparateurs).",
-      "- Ajuste l’intensité, la durée et les conseils à la note de capacité du jour.",
-    );
+  userPromptSegments.push(
+    "",
+    "Consignes supplémentaires :",
+    "- Propose uniquement une séance (sauf demande explicite d’un programme de plusieurs jours).",
+    "- Respecte strictement la structure Markdown attendue (titres, listes, séparateurs).",
+    "- Ajuste l’intensité, la durée et les conseils à la note de capacité du jour.",
+    "- Si la séance concerne de la natation en piscine, exprime les intervalles en nombre de longueurs ou en distance (mètres), pas en temps chronométré.",
+  );
 
     const userPrompt = userPromptSegments.join("\n");
 
