@@ -455,6 +455,16 @@ const WorkoutRepeatStepSchema = z
   })
   .strict()
   .superRefine((step, ctx) => {
+    const description = typeof step.description === "string" ? step.description : "";
+    const implicitRepeatPattern = /\b\d+\s*[x×]\s*\d/i;
+    if (implicitRepeatPattern.test(description)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "description mentionne une répétition 'N × ...' mais les répétitions doivent être définies via repeatValue/steps.",
+        path: ["description"],
+      });
+    }
+
     if (step.durationType != null || step.durationValue != null) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
