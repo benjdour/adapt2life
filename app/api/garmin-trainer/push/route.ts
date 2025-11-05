@@ -9,6 +9,7 @@ import { workoutSchema } from "@/schemas/garminTrainer.schema";
 import { stackServerApp } from "@/stack/server";
 
 const GARMIN_WORKOUT_CREATE_URL = "https://apis.garmin.com/workoutportal/workout/v2";
+const GARMIN_WORKOUT_SCHEDULE_URL = "https://apis.garmin.com/training-api/schedule/";
 
 const REQUEST_SCHEMA = z.object({
   workout: workoutSchema,
@@ -147,10 +148,84 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const workoutIdRaw =
+      responseData?.workoutId ??
+      responseData?.id ??
+      (typeof responseData?.workout === "object" ? (responseData.workout as Record<string, unknown>)?.workoutId : null);
+
+    const workoutId =
+      typeof workoutIdRaw === "number"
+        ? workoutIdRaw
+        : typeof workoutIdRaw === "string" && workoutIdRaw.trim().length > 0
+          ? Number.parseInt(workoutIdRaw, 10)
+          : null;
+
+    if (workoutId == null || Number.isNaN(workoutId)) {
+      return NextResponse.json(
+        {
+          error: "Garmin n’a pas renvoyé d’identifiant d’entraînement, planification impossible.",
+          garminResponse: responseData ?? responseText ?? null,
+        },
+        { status: 502 },
+      );
+    }
+
+    const scheduleDate = new Date().toISOString().slice(0, 10);
+
+    const scheduleResponse = await fetch(GARMIN_WORKOUT_SCHEDULE_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({
+        workoutId,
+        date: scheduleDate,
+      }),
+    });
+
+    const scheduleText = await scheduleResponse.text();
+    let scheduleJson: unknown = null;
+    if (scheduleText) {
+      try {
+        scheduleJson = JSON.parse(scheduleText);
+      } catch {
+        scheduleJson = null;
+      }
+    }
+    const scheduleData =
+      scheduleJson && typeof scheduleJson === "object" ? (scheduleJson as Record<string, unknown>) : null;
+
+    if (!scheduleResponse.ok) {
+      const scheduleErrorMessage =
+        typeof scheduleData?.message === "string"
+          ? scheduleData.message
+          : typeof scheduleData?.error === "string"
+            ? scheduleData.error
+            : "Garmin a refusé la planification de l’entraînement.";
+
+      return NextResponse.json(
+        {
+          error: scheduleErrorMessage,
+          status: scheduleResponse.status,
+          garminResponse: {
+            workoutCreation: responseData ?? responseText ?? null,
+            schedule: scheduleData ?? scheduleText ?? null,
+          },
+        },
+        { status: scheduleResponse.status },
+      );
+    }
+
     return NextResponse.json({
       success: true,
-      workoutId: responseData?.workoutId ?? null,
-      garminResponse: responseData ?? responseText ?? null,
+      workoutId,
+      scheduledFor: scheduleDate,
+      garminResponse: {
+        workoutCreation: responseData ?? responseText ?? null,
+        schedule: scheduleData ?? scheduleText ?? null,
+      },
     });
   } catch (error) {
     return NextResponse.json(

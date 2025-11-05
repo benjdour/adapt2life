@@ -106,6 +106,7 @@ export function GarminTrainerGenerator() {
             error?: string;
             success?: boolean;
             workoutId?: string | number | null;
+            scheduledFor?: string | null;
             garminResponse?: unknown;
           }
         | null;
@@ -122,10 +123,17 @@ export function GarminTrainerGenerator() {
         return;
       }
 
-      const successMessage =
-        payload?.workoutId !== undefined && payload.workoutId !== null
-          ? `Entraînement envoyé à Garmin (workoutId ${payload.workoutId}).`
-          : "Entraînement envoyé à Garmin.";
+      const successMessageParts: string[] = [];
+      if (payload?.workoutId !== undefined && payload.workoutId !== null) {
+        successMessageParts.push(`Entraînement envoyé à Garmin (ID ${payload.workoutId}).`);
+      } else {
+        successMessageParts.push("Entraînement envoyé à Garmin.");
+      }
+      if (payload?.scheduledFor) {
+        successMessageParts.push(`Planifié pour le ${payload.scheduledFor}.`);
+      }
+
+      const successMessage = successMessageParts.join(" ");
 
       setPushSuccess(successMessage);
 
