@@ -117,7 +117,7 @@ const WorkoutStepSchema = z
     intensity: Intensity,
     description: z.string().max(512).nullable(),
     durationType: DurationType,
-    durationValue: z.number(),
+    durationValue: nullable(z.number()),
     durationValueType: nullable(z.enum(["PERCENT"])),
 
     equipmentType: nullable(EquipmentType),
