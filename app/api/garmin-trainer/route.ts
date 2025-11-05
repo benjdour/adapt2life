@@ -433,10 +433,11 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
       }
     };
 
-    const normalizedSteps = steps
-      .map((rawStep) => {
+    const normalizedSteps: unknown[] = [];
+
+    steps.forEach((rawStep) => {
       if (!rawStep || typeof rawStep !== "object") {
-        return rawStep;
+        return;
       }
 
       const step = { ...(rawStep as Record<string, unknown>) };
@@ -492,34 +493,37 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
           step.intensity = inferRepeatIntensity(step);
         }
       } else if (type === "WorkoutStep" && Array.isArray(step.steps)) {
-        // Sécurité : un WorkoutStep ne doit pas embarquer steps enfants
         step.steps = null;
       }
 
       if (type === "WorkoutStep") {
         ensureRestDescriptions(step);
+
+        const hasDurationType = typeof step.durationType === "string" && step.durationType.trim().length > 0;
+        const hasDurationValue = typeof step.durationValue === "number" && Number.isFinite(step.durationValue);
+
+        if (!hasDurationType || !hasDurationValue) {
+          const note = typeof step.description === "string" ? step.description.trim() : "";
+          if (note && normalizedSteps.length > 0) {
+            const last = normalizedSteps[normalizedSteps.length - 1];
+            if (last && typeof last === "object") {
+              const lastStep = last as Record<string, unknown>;
+              const parts = [] as string[];
+              if (typeof lastStep.description === "string" && lastStep.description.trim().length > 0) {
+                parts.push(lastStep.description.trim());
+              }
+              parts.push(note);
+              lastStep.description = parts.join(" — ");
+            }
+          }
+          return;
+        }
       }
 
       ensureCadenceTargets(step);
 
-      return step;
-    })
-      .filter((step) => {
-        if (!step || typeof step !== "object") {
-          return false;
-        }
-
-        const typed = step as Record<string, unknown>;
-        if (typed.type !== "WorkoutStep") {
-          return true;
-        }
-
-        if (typed.durationType == null || typed.durationValue == null) {
-          return false;
-        }
-
-        return true;
-      });
+      normalizedSteps.push(step);
+    });
 
     return normalizedSteps;
   };
