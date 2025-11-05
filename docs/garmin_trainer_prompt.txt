@@ -106,6 +106,8 @@ Valeurs autorisées : `REST`, `WARMUP`, `COOLDOWN`, `RECOVERY`, `ACTIVE`, `INTER
 `WorkoutStep` (simple) doit toujours laisser `repeatType` et `repeatValue` à `null`.  
 `WorkoutRepeatStep` doit laisser `durationType`, `durationValue`, `durationValueType` à `null`.
 - Quand la description comporte un motif `N × …` (ex. `4 × 50 m … repos 15 s`), modélise obligatoirement un `WorkoutRepeatStep` parent avec `repeatValue = N` et des steps enfants distincts pour l’effort et la récupération (durée DISTANCE pour l’effort, FIXED_REST/TIME pour la récup). Aucune répétition ne doit rester implicite dans la description.
+- La description du parent `WorkoutRepeatStep` ne doit PAS répéter les distances, rythmes ou temps de repos déjà portés par ses enfants. Limite-toi à une consigne qualitative (“alterne facile/fort”, “focus glisse”) ou laisse `null` si rien n’est utile.
+- Chaque `WorkoutStep` de récupération (`durationType = FIXED_REST` ou `TIME` avec `intensity = "REST"`) doit indiquer explicitement la durée dans `description` (ex. `Récupération 20 s`).
 
 #### Cibles principales (`targetType`)
 - Valeurs : `SPEED`, `HEART_RATE`, `OPEN`, `CADENCE`, `POWER`, `GRADE`, `RESISTANCE`, `POWER_3S`, `POWER_10S`, `POWER_30S`, `POWER_LAP`, `SPEED_LAP`, `HEART_RATE_LAP`, `PACE`.
@@ -126,6 +128,7 @@ Valeurs autorisées : mêmes valeurs que `targetType` + `PACE_ZONE`, `SWIM_INSTR
 - `secondaryTargetValueType` = `PERCENT` uniquement pour les secondary targets `HEART_RATE` / `POWER`; sinon laisse `null`.
 - Si la description ou le brief mentionne une cadence (ex. “85–95 tr/min”), ajoute une cible cadence : si aucune autre cible principale n’est définie, utilise `targetType = "CADENCE"` avec `targetValueLow`/`High`; sinon, bascule en cible secondaire (`secondaryTargetType = "CADENCE"`) pour conserver la cible principale.
 - Lorsque le brief décrit explicitement des répétitions (ex. `3 x (30 s ... + 30 s ...)`), modélise-les avec un `WorkoutRepeatStep` parent (`repeatValue = 3`) contenant les sous-steps correspondants, chacun avec sa durée et ses cibles. Le temps de repos doit être un `WorkoutStep` distinct (`targetType = "OPEN"`).
+- Un step de repos ne doit jamais se contenter de “Repos” : indique toujours la durée (`Récupération 30 s`, `Repos 45 s`).
 
 #### Natation
 - `targetType` = `null`. Utilise `secondaryTargetType = "PACE_ZONE"`, `"SWIM_INSTRUCTION"` ou `"SWIM_CSS_OFFSET"` selon le besoin.

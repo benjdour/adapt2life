@@ -1,8 +1,9 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 
 import { MarkdownPlan } from "@/components/MarkdownPlan";
+import { TRAINING_LOADING_MESSAGES } from "@/constants/loadingMessages";
 
 type TrainingPlanResponse = {
   plan: string;
@@ -17,6 +18,31 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated }: TrainingPlanGener
   const [plan, setPlan] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState<string>(TRAINING_LOADING_MESSAGES[0]);
+
+  useEffect(() => {
+    if (!isLoading) {
+      setLoadingMessage(TRAINING_LOADING_MESSAGES[0]);
+      return;
+    }
+
+    const selectRandomMessage = (previous?: string | null) => {
+      if (TRAINING_LOADING_MESSAGES.length === 1) {
+        return TRAINING_LOADING_MESSAGES[0];
+      }
+      const candidates = TRAINING_LOADING_MESSAGES.filter((message) => message !== previous);
+      const index = Math.floor(Math.random() * candidates.length);
+      return candidates[index] ?? TRAINING_LOADING_MESSAGES[0];
+    };
+
+    setLoadingMessage((prev) => selectRandomMessage(prev));
+
+    const intervalId = window.setInterval(() => {
+      setLoadingMessage((prev) => selectRandomMessage(prev));
+    }, 3000);
+
+    return () => window.clearInterval(intervalId);
+  }, [isLoading]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -88,7 +114,7 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated }: TrainingPlanGener
           disabled={isLoading}
           className="inline-flex w-full items-center justify-center rounded-md border border-emerald-500/60 bg-emerald-500/20 px-4 py-2 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-500/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300 disabled:cursor-wait disabled:opacity-60"
         >
-          {isLoading ? "Génération en cours..." : "Générer le plan"}
+          {isLoading ? loadingMessage : "Générer le plan"}
         </button>
       </form>
 

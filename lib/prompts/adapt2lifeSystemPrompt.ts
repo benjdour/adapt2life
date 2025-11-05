@@ -104,6 +104,8 @@ export const GARMIN_TRAINING_JSON_GENERATOR_PROMPT: PromptDefinition = {
     "- Les `stepOrder` des sous-étapes repartent à 1 et sont strictement croissants.",
     "- Laisse `durationType`, `durationValue` et `durationValueType` à `null` sur le parent `WorkoutRepeatStep`.",
     "- Toute consigne du brief de type `N × …` (ex. `4 × 50 m … repos 15 s`) doit devenir un `WorkoutRepeatStep` parent avec `repeatValue = N` et des steps enfants séparés pour l’effort (DISTANCE) et la récupération (FIXED_REST/TIME). Aucune répétition ne doit rester implicite dans la description.",
+    "- La description du parent `WorkoutRepeatStep` ne doit PAS répéter distances, rythmes ou récupérations déjà portés par ses enfants. Garde uniquement une consigne qualitative (\"alterne facile/fort\", \"focus glisse\") ou laisse `null`.",
+    "- Chaque `WorkoutStep` de récupération (`durationType = FIXED_REST` ou `TIME` avec `intensity = \"REST\"`) doit annoncer la durée dans `description` (ex. `Récupération 20 s`).",
     "",
     "### Cibles",
     "- `targetType` in {SPEED, HEART_RATE, OPEN, CADENCE, POWER, GRADE, RESISTANCE, POWER_3S, POWER_10S, POWER_30S, POWER_LAP, SPEED_LAP, HEART_RATE_LAP, PACE}.",

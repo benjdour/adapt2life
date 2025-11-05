@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import type { GarminTrainerWorkout } from "@/schemas/garminTrainer.schema";
+import { TRAINING_LOADING_MESSAGES } from "@/constants/loadingMessages";
 
 type GenerateTrainingResponse = {
   trainingJson?: GarminTrainerWorkout;
@@ -15,29 +16,6 @@ type GarminTrainerGeneratorProps = {
   sourceMarkdown: string | null;
 };
 
-const LOADING_MESSAGES = [
-  "🧠 Calcul des watts nécessaires pour vaincre ton canapé…",
-  "🚴‍♂️ Je vérifie si ton vélo est prêt à souffrir…",
-  "🥵 Synchronisation des gouttes de sueur prévues…",
-  "🏋️‍♀️ Téléchargement de la motivation… (ça peut prendre un moment)",
-  "⏳ Ajustement du karma sportif… patience, athlète !",
-  "💪 Chargement des quadriceps à 82 %…",
-  "🍌 Épluchage de la banane pré-entraînement…",
-  "😎 Vérification de ton niveau de badassitude…",
-  "🔥 Calibration de la douleur “qui fait du bien”…",
-  "🤖 L’IA s’étire avant de te proposer une séance.",
-  "🧘‍♂️ Respire… ton entraînement arrive, pas ton jugement dernier.",
-  "🎧 Choix de la playlist “Je vais transpirer élégamment”.",
-  "🩳 Vérification du short : prêt, propre, ou approximatif ?",
-  "🧩 Assemblage du plan parfait pour te faire dire “jamais plus”.",
-  "🧃 Mélange des électrolytes imaginaires…",
-  "🕺 Petit échauffement du code source…",
-  "🚀 Mise en orbite de ton mental de champion.",
-  "🦵 Calcul du risque de courbatures demain matin…",
-  "🧊 Refroidissement anticipé des mollets en prévision.",
-  "🥇 Ajustement du mode “je ne lâche rien”.",
-];
-
 export function GarminTrainerGenerator({ sourceMarkdown }: GarminTrainerGeneratorProps) {
   const [rawResult, setRawResult] = useState<string | null>(null);
   const [trainingJson, setTrainingJson] = useState<GarminTrainerWorkout | null>(null);
@@ -47,7 +25,7 @@ export function GarminTrainerGenerator({ sourceMarkdown }: GarminTrainerGenerato
   const [pushError, setPushError] = useState<string | null>(null);
   const [pushSuccess, setPushSuccess] = useState<string | null>(null);
   const [pushDetails, setPushDetails] = useState<string | null>(null);
-  const [loadingMessage, setLoadingMessage] = useState<string>(LOADING_MESSAGES[0]);
+  const [loadingMessage, setLoadingMessage] = useState<string>(TRAINING_LOADING_MESSAGES[0]);
 
   useEffect(() => {
     setError(null);
@@ -60,24 +38,24 @@ export function GarminTrainerGenerator({ sourceMarkdown }: GarminTrainerGenerato
 
   useEffect(() => {
     if (!isLoading) {
-      setLoadingMessage(LOADING_MESSAGES[0]);
+      setLoadingMessage(TRAINING_LOADING_MESSAGES[0]);
       return;
     }
 
     const selectRandomMessage = (previous?: string | null) => {
-      if (LOADING_MESSAGES.length === 1) {
-        return LOADING_MESSAGES[0];
+      if (TRAINING_LOADING_MESSAGES.length === 1) {
+        return TRAINING_LOADING_MESSAGES[0];
       }
-      const candidates = LOADING_MESSAGES.filter((message) => message !== previous);
+      const candidates = TRAINING_LOADING_MESSAGES.filter((message) => message !== previous);
       const index = Math.floor(Math.random() * candidates.length);
-      return candidates[index] ?? LOADING_MESSAGES[0];
+      return candidates[index] ?? TRAINING_LOADING_MESSAGES[0];
     };
 
     setLoadingMessage((prev) => selectRandomMessage(prev));
 
     const intervalId = window.setInterval(() => {
       setLoadingMessage((prev) => selectRandomMessage(prev));
-    }, 2000);
+    }, 3000);
 
     return () => {
       window.clearInterval(intervalId);

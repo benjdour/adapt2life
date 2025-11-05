@@ -347,7 +347,14 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
     }
 
     const repeatPrefixPattern = /^\s*\d+\s*[x×]\s*/i;
+    const distancePrefixPattern = /^\s*\d+\s*(m|km)\s*/i;
+    const restSuffixPatterns = [
+      /,\s*\d+\s*s\s*récup(?:ération)?/gi,
+      /\+\s*\d+\s*s\s*récup(?:ération)?/gi,
+      /\s*\d+\s*s\s*récup(?:ération)?$/gi,
+    ];
     const stripLeadingPunctuation = (value: string) => value.replace(/^[,;:-]+\s*/, "");
+    const trimTrailingPunctuation = (value: string) => value.replace(/\s*[,;:-]+\s*$/, "");
 
     const ensureCadenceTargets = (step: Record<string, unknown>) => {
       const description = typeof step.description === "string" ? step.description : "";
@@ -400,6 +407,32 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
       }
     };
 
+    const ensureRestDescriptions = (step: Record<string, unknown>) => {
+      const durationType = typeof step.durationType === "string" ? step.durationType : null;
+      const durationValue =
+        typeof step.durationValue === "number" && Number.isFinite(step.durationValue) ? step.durationValue : null;
+      const intensity = typeof step.intensity === "string" ? step.intensity : null;
+
+      if (!durationValue) {
+        return;
+      }
+
+      const baseDescription = typeof step.description === "string" ? step.description.trim() : "";
+
+      if (durationType === "FIXED_REST") {
+        if (!baseDescription || !/\d/.test(baseDescription)) {
+          step.description = `Récupération ${durationValue} s`;
+        }
+        return;
+      }
+
+      if (durationType === "TIME" && intensity === "REST") {
+        if (!baseDescription || !/\d/.test(baseDescription)) {
+          step.description = `Repos ${durationValue} s`;
+        }
+      }
+    };
+
     return steps.map((rawStep) => {
       if (!rawStep || typeof rawStep !== "object") {
         return rawStep;
@@ -425,6 +458,12 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
           let cleanedDescription = step.description.replace(repeatPrefixPattern, "");
           cleanedDescription = stripLeadingPunctuation(cleanedDescription).trim();
 
+          cleanedDescription = cleanedDescription.replace(distancePrefixPattern, "").trim();
+          restSuffixPatterns.forEach((pattern) => {
+            cleanedDescription = cleanedDescription.replace(pattern, "").trim();
+          });
+          cleanedDescription = stripLeadingPunctuation(trimTrailingPunctuation(cleanedDescription)).trim();
+
           if (cleanedDescription.length === 0) {
             step.description = null;
           } else {
@@ -438,6 +477,10 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
       } else if (type === "WorkoutStep" && Array.isArray(step.steps)) {
         // Sécurité : un WorkoutStep ne doit pas embarquer steps enfants
         step.steps = null;
+      }
+
+      if (type === "WorkoutStep") {
+        ensureRestDescriptions(step);
       }
 
       ensureCadenceTargets(step);
