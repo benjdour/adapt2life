@@ -108,6 +108,7 @@ Valeurs autorisées : `REST`, `WARMUP`, `COOLDOWN`, `RECOVERY`, `ACTIVE`, `INTER
 
 `WorkoutStep` (simple) doit toujours laisser `repeatType` et `repeatValue` à `null`.  
 `WorkoutRepeatStep` doit laisser `durationType`, `durationValue`, `durationValueType` à `null`.
+- Lorsque la répétition porte sur un nombre fixe (`repeatValue` renseigné), fixe systématiquement `repeatType = "REPEAT_UNTIL_STEPS_CMPLT"` ; ne laisse jamais ce champ à `null`.
 - Quand la description comporte un motif `N × …` (ex. `4 × 50 m … repos 15 s`), modélise obligatoirement un `WorkoutRepeatStep` parent avec `repeatValue = N` et des steps enfants distincts pour l’effort et la récupération (durée DISTANCE pour l’effort, FIXED_REST/TIME pour la récup). Aucune répétition ne doit rester implicite dans la description.
 - La description du parent `WorkoutRepeatStep` ne doit PAS répéter les distances, rythmes ou temps de repos déjà portés par ses enfants. Limite-toi à une consigne qualitative (“alterne facile/fort”, “focus glisse”) ou laisse `null` si rien n’est utile.
 - Chaque `WorkoutStep` de récupération (`durationType = FIXED_REST` ou `TIME` avec `intensity = "REST"`) doit indiquer explicitement la durée dans `description` (ex. `Récupération 20 s`).

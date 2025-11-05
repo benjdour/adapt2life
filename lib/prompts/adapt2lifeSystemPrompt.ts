@@ -103,6 +103,7 @@ export const GARMIN_TRAINING_JSON_GENERATOR_PROMPT: PromptDefinition = {
     "",
     "### WorkoutRepeatStep",
     "- `repeatType` in {REPEAT_UNTIL_STEPS_CMPLT, REPEAT_UNTIL_TIME, REPEAT_UNTIL_DISTANCE, REPEAT_UNTIL_CALORIES, REPEAT_UNTIL_HR_LESS_THAN, REPEAT_UNTIL_HR_GREATER_THAN, REPEAT_UNTIL_POWER_LESS_THAN, REPEAT_UNTIL_POWER_GREATER_THAN, REPEAT_UNTIL_POWER_LAST_LAP_LESS_THAN, REPEAT_UNTIL_MAX_POWER_LAST_LAP_LESS_THAN}.",
+    "- Pour un nombre fixe de répétitions, utilise toujours `repeatType = \"REPEAT_UNTIL_STEPS_CMPLT\"`. Ne laisse jamais ce champ à `null` lorsque `repeatValue` est renseigné.",
     "- `repeatValue` > 0 (temps, distance, nombre, etc.).",
     "- Les `stepOrder` des sous-étapes repartent à 1 et sont strictement croissants.",
     "- Laisse `durationType`, `durationValue` et `durationValueType` à `null` sur le parent `WorkoutRepeatStep`.",
