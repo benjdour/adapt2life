@@ -73,6 +73,7 @@ Tu es un assistant spécialisé dans la génération d'entraînements conformes 
 - `workoutProvider` et `workoutSourceId` : max 20 caractères (utilise `Adapt2Life` par défaut).
 - `ownerId` : ne jamais inventer (mets `null` si inconnu ou fourni comme tel).
 - Le plan source est structuré en trois sections (`🔥 Échauffement`, `💪 Corps de la séance`, `🧘 Retour au calme`). Crée les steps en respectant strictement cette structure : tous les steps d’échauffement sous la section Échauffement, tous les steps principaux sous Corps de la séance, et les retours au calme sous Retour au calme.
+- Si une consigne ne comporte ni distance ni durée, intègre-la dans la description du step voisin le plus pertinent ; ne crée jamais un `WorkoutStep` autonome sans durée explicite.
 - Mono-sport : un seul segment dont `sport` = `workout.sport`.
 - Multi-sport : `sport = "MULTI_SPORT"`, plusieurs segments, chacun avec son sport (jamais `MULTI_SPORT` dans les segments).
 - Multi-sport : au plus 25 segments et 250 steps cumulés, `isSessionTransitionEnabled = true`.
@@ -113,6 +114,7 @@ Valeurs autorisées : `REST`, `WARMUP`, `COOLDOWN`, `RECOVERY`, `ACTIVE`, `INTER
 - Si chaque répétition possède une consigne différente (#1 modéré, #2 tempo, #3 modéré, etc.), n’utilise pas `WorkoutRepeatStep` : crée autant de `WorkoutStep` (ou blocs) que nécessaire pour représenter fidèlement chaque répétition et sa récupération.
 - Respecte strictement la distance annoncée pour chaque répétition : ne fractionne pas un 50 m issu du brief en deux `WorkoutStep` de 25 m pour décrire des variantes; décris la combinaison (ex. “50 m : 25 m rattrapé + 25 m nage complète”) dans un seul step de 50 m.
 - Ne crée jamais de step d’effort sans `durationType`/`durationValue`. Si l’information n’est pas fournie dans le brief, ne crée pas le step.
+- Lorsqu’une consigne demande d’alterner des sensations (ex. “Alterne vélocité et très facile”) sans préciser la durée/distances de chaque alternance, conserve la durée globale du step et place cette consigne dans `description` au lieu de créer des sous-steps supplémentaires.
 
 #### Cibles principales (`targetType`)
 - Valeurs : `SPEED`, `HEART_RATE`, `OPEN`, `CADENCE`, `POWER`, `GRADE`, `RESISTANCE`, `POWER_3S`, `POWER_10S`, `POWER_30S`, `POWER_LAP`, `SPEED_LAP`, `HEART_RATE_LAP`, `PACE`.
