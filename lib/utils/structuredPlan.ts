@@ -147,6 +147,30 @@ const normalizeIntensity = (
   return fallback;
 };
 
+const toGarminTargetType = (value: string | null | undefined): GarminTargetType | null => {
+  if (!value) {
+    return null;
+  }
+  const upper = value.toUpperCase();
+  const allowed: GarminTargetType[] = [
+    "SPEED",
+    "OPEN",
+    "HEART_RATE",
+    "CADENCE",
+    "POWER",
+    "GRADE",
+    "RESISTANCE",
+    "POWER_3S",
+    "POWER_10S",
+    "POWER_30S",
+    "POWER_LAP",
+    "SPEED_LAP",
+    "HEART_RATE_LAP",
+    "PACE",
+  ];
+  return allowed.includes(upper as GarminTargetType) ? (upper as GarminTargetType) : null;
+};
+
 const clampDescription = (value: string | undefined): string | null => {
   if (!value) {
     return null;
@@ -214,7 +238,7 @@ const convertTarget = (targets?: StructuredPlanTarget[]): TargetConversion => {
       const { low, high } = normalizeRange(target.min, target.max, target.unit);
       const valueType = target.unit === "percentFtp" ? "PERCENT" : null;
       return {
-        type: "POWER",
+        type: toGarminTargetType("POWER"),
         value: target.value ?? null,
         low,
         high,
@@ -226,7 +250,7 @@ const convertTarget = (targets?: StructuredPlanTarget[]): TargetConversion => {
       const low = target.min ?? target.max ?? target.value ?? null;
       const high = target.max ?? target.min ?? target.value ?? null;
       return {
-        type: "CADENCE",
+        type: toGarminTargetType("CADENCE"),
         value: null,
         low,
         high,
@@ -238,7 +262,7 @@ const convertTarget = (targets?: StructuredPlanTarget[]): TargetConversion => {
       const { low, high } = normalizeRange(target.min, target.max, target.unit);
       const valueType = target.unit === "percentMaxHr" || target.unit === "percentHr" ? "PERCENT" : null;
       return {
-        type: "HEART_RATE",
+        type: toGarminTargetType("HEART_RATE"),
         value: target.value ?? null,
         low,
         high,
@@ -247,7 +271,7 @@ const convertTarget = (targets?: StructuredPlanTarget[]): TargetConversion => {
     }
 
     return {
-      type: null,
+      type: toGarminTargetType(target.type),
       value: null,
       low: null,
       high: null,
