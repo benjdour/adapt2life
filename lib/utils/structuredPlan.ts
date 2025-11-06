@@ -712,18 +712,21 @@ export const convertStructuredPlanToGarmin = (
         0,
       );
 
+      const repeatCount = Math.max(1, Math.round(block.repeatCount ?? 1));
+      const repeatDurationTotal = repeatDurationPerLoop * repeatCount;
+
       segmentSteps.push({
         type: "WorkoutRepeatStep",
         stepId: null,
         stepOrder: stepOrderCounter++,
         repeatType: "REPEAT_UNTIL_STEPS_CMPLT",
-        repeatValue: Math.max(1, Math.round(block.repeatCount)),
+        repeatValue: repeatCount,
         skipLastRestStep: sport === "LAP_SWIMMING",
         steps: convertedChildren,
         intensity: normalizeIntensity(block.intensity, sectionIntensity),
         description: clampDescription(block.label ?? block.notes),
-        durationType: null,
-        durationValue: null,
+        durationType: repeatDurationTotal > 0 ? "TIME" : null,
+        durationValue: repeatDurationTotal > 0 ? repeatDurationTotal : null,
         durationValueType: null,
         equipmentType: null,
         exerciseCategory: null,

@@ -128,6 +128,8 @@ describe("convertStructuredPlanToGarmin", () => {
     expect(repeatStep.type).toBe("WorkoutRepeatStep");
     expect(repeatStep.description).toBe("4 × 8 min tempo soutenu + 2 min récup");
     expect(repeatStep.repeatValue).toBe(4);
+    expect(repeatStep.durationType).toBe("TIME");
+    expect(repeatStep.durationValue).toBe(2400);
 
     const effortStep = repeatStep.steps?.[0] as SimpleStep;
     expect(effortStep.durationType).toBe("TIME");

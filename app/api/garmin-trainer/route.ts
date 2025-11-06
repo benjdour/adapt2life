@@ -334,12 +334,6 @@ const sanitizeWorkoutValue = (value: unknown): unknown => {
       }
     }
 
-    if (sanitized.type === "WorkoutRepeatStep") {
-      sanitized.durationType = null;
-      sanitized.durationValue = null;
-      sanitized.durationValueType = null;
-    }
-
     return sanitized;
   }
 
