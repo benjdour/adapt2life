@@ -120,6 +120,8 @@ Valeurs autorisées : `REST`, `WARMUP`, `COOLDOWN`, `RECOVERY`, `ACTIVE`, `INTER
 - N’insère jamais de step “tampon” sans durée du type “Blocs sweet spot…” : intègre ces textes dans la description du step d’effort existant ou dans les sous-steps concernés.
 - Quand la consigne mentionne explicitement plusieurs durées successives (ex. “30 s vélocité, 60 s facile”), crée les sous-steps correspondants avec leurs `durationType`/`durationValue` (idéalement via un `WorkoutRepeatStep`) ; ne laisse pas ces durées uniquement dans la description.
 - Ne crée pas de step autonome juste pour rappeler qu’il existe des répétitions (“3 répétitions…”, “Intégrer 3 accélérations…”) ou un focus général (“Accent vélocité”, “Blocs sweet spot…”). Rattache ces indications au step d’effort concerné (ou à son parent `WorkoutRepeatStep`) tout en conservant des sous-steps avec durées explicites.
+- Lorsque le brief liste `N × durée …` suivi d’une ligne “Repos …” (ou équivalent), fusionne ces deux lignes dans un même `WorkoutRepeatStep` : sous-step n°1 = effort, sous-step n°2 = repos (durées explicites). La description du parent reste qualitative (“Sweet spot”, “Touches de vélocité”).
+- Si un bloc unique comporte une durée globale (“10 min …”) et qu’on te demande d’y intégrer des répétitions (“intégrer 3 × 20 s … avec 40 s …”), modélise d’abord un `WorkoutRepeatStep` enfant avec les répétitions et leurs récupérations, puis ajoute un `WorkoutStep` pour compléter la durée restante du bloc.
 
 #### Cibles principales (`targetType`)
 - Valeurs : `SPEED`, `HEART_RATE`, `OPEN`, `CADENCE`, `POWER`, `GRADE`, `RESISTANCE`, `POWER_3S`, `POWER_10S`, `POWER_30S`, `POWER_LAP`, `SPEED_LAP`, `HEART_RATE_LAP`, `PACE`.

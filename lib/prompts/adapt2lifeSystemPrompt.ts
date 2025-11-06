@@ -115,6 +115,8 @@ export const GARMIN_TRAINING_JSON_GENERATOR_PROMPT: PromptDefinition = {
     "- Lorsque la consigne mentionne une alternance qualitative sans durée dédiée (ex. \"Alterne vélocité et facile\"), garde un seul step avec la durée globale et place l’instruction dans `description` au lieu de générer des sous-steps supplémentaires. Ne crée pas de step autonome juste pour rappeler qu’il existe des répétitions ou un focus général (\"Accent vélocité\", \"Blocs sweet spot\"…): rattache ces indications au step d’effort concerné.",
     "- Ne crée jamais de step placeholder sans durée (“Blocs sweet spot…”) : fusionne ces indications avec le step d’effort existant ou répartis-les sur les sous-steps concernés.",
     "- Si la consigne mentionne explicitement plusieurs durées successives (ex. 30 s puis 60 s), modélise-les via un `WorkoutRepeatStep` avec les sous-steps correspondants et leurs durées explicites ; ne laisse pas ces valeurs uniquement dans la description.",
+    "- Quand le brief sépare `N × …` et la récupération (“Repos …”), fusionne-les dans un même `WorkoutRepeatStep` (effort + repos).",
+    "- Si un bloc de durée fixe demande d’y intégrer des répétitions (ex. 10 min comprenant 3 × 20 s + 40 s), crée d’abord un `WorkoutRepeatStep` enfant pour ces répétitions, puis un `WorkoutStep` pour compléter la durée restante.",
     "- Le parent `WorkoutRepeatStep` doit laisser toutes les cibles (`targetType`, `secondaryTarget*`, etc.) à `null`. Place toute cible (cadence, puissance…) uniquement dans les steps enfants.",
     "",
     "### Cibles",
