@@ -1,7 +1,0 @@
-### 📦 Plan structuré (JSON)
-
-
-
-test
-
-
