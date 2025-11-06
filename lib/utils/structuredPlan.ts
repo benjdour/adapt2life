@@ -23,9 +23,10 @@ export const splitPlanMarkdown = (input: string): ParsedPlanMarkdown => {
   }
 
   const [matchedBlock, jsonContent] = match;
+  const startIndex = match.index ?? 0;
 
-  const before = input.slice(0, match.index);
-  const after = input.slice(match.index + matchedBlock.length);
+  const before = input.slice(0, startIndex);
+  const after = input.slice(startIndex + matchedBlock.length);
 
   const humanMarkdown = `${before}${after}`.trim();
   const structuredPlanJson = jsonContent.trim();
