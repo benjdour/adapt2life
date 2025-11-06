@@ -40,7 +40,7 @@ attempt=1
 deployment_url=""
 
 while [ "$attempt" -le "$max_attempts" ]; do
-  if ! response=$(curl -sS --fail --get "https://api.vercel.com/v13/deployments" \
+  if ! response=$(curl -sS --fail --get "https://api.vercel.com/v6/deployments" \
     -H "Authorization: Bearer ${VERCEL_TOKEN}" \
     --data-urlencode "projectId=${VERCEL_PROJECT_ID}" \
     --data-urlencode "limit=20" \
