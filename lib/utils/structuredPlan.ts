@@ -330,6 +330,43 @@ const sectionTypeToIntensity = (sectionType: string): "WARMUP" | "ACTIVE" | "COO
   return "ACTIVE";
 };
 
+const normalizeSport = (sport: string | undefined):
+  | "STRENGTH_TRAINING"
+  | "CARDIO_TRAINING"
+  | "YOGA"
+  | "PILATES"
+  | "RUNNING"
+  | "CYCLING"
+  | "LAP_SWIMMING"
+  | "GENERIC"
+  | "MULTI_SPORT" => {
+  const normalized = sport?.toUpperCase().trim();
+  const allowed = new Set([
+    "STRENGTH_TRAINING",
+    "CARDIO_TRAINING",
+    "YOGA",
+    "PILATES",
+    "RUNNING",
+    "CYCLING",
+    "LAP_SWIMMING",
+    "GENERIC",
+    "MULTI_SPORT",
+  ]);
+  if (normalized && allowed.has(normalized)) {
+    return normalized as
+      | "STRENGTH_TRAINING"
+      | "CARDIO_TRAINING"
+      | "YOGA"
+      | "PILATES"
+      | "RUNNING"
+      | "CYCLING"
+      | "LAP_SWIMMING"
+      | "GENERIC"
+      | "MULTI_SPORT";
+  }
+  return "CYCLING";
+};
+
 export const convertStructuredPlanToGarmin = (
   plan: StructuredPlanV1,
   options: {
@@ -340,7 +377,7 @@ export const convertStructuredPlanToGarmin = (
     ownerId: null,
   },
 ): GarminTrainerWorkout => {
-  const sport = plan.sport?.toUpperCase() ?? options.sportFallback?.toUpperCase() ?? "CYCLING";
+  const sport = normalizeSport(plan.sport ?? options.sportFallback);
 
   const workout: GarminTrainerWorkout = {
     ownerId: options.ownerId,
