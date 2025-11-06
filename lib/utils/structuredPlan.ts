@@ -13,7 +13,7 @@ export const splitPlanMarkdown = (input: string): ParsedPlanMarkdown => {
     };
   }
 
-  const headingRegex = /###\s*[🗂️📦]?\s*Plan structuré[^\n]*\n?/i;
+  const headingRegex = /(^|\n)(\s{0,3}(?:###\s*)?[🗂️📦]?\s*Plan structuré[^\n]*\n?)/i;
   const headingMatch = headingRegex.exec(input);
 
   if (!headingMatch) {
@@ -23,11 +23,12 @@ export const splitPlanMarkdown = (input: string): ParsedPlanMarkdown => {
     };
   }
 
-  const headingStart = headingMatch.index ?? 0;
-  const afterHeading = input.slice(headingStart + headingMatch[0].length);
+  const headingStart = (headingMatch.index ?? 0) + headingMatch[1].length;
+  const headingLength = headingMatch[2]?.length ?? 0;
+  const afterHeading = input.slice(headingStart + headingLength);
 
   const { json: structuredPlanJson, consumedLength } = extractStructuredJson(afterHeading);
-  const removalEnd = headingStart + headingMatch[0].length + consumedLength;
+  const removalEnd = headingStart + headingLength + consumedLength;
 
   const humanMarkdown = `${input.slice(0, headingStart)}${input.slice(removalEnd)}`.trim();
 
