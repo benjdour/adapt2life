@@ -119,11 +119,14 @@ type TargetConversion = {
   secondaryTargetValueType: "PERCENT" | null;
 };
 
-const normalizeIntensity = (value: string | undefined, fallback: string): string => {
+const normalizeIntensity = (
+  value: string | undefined,
+  fallback: "WARMUP" | "ACTIVE" | "REST" | "RECOVERY" | "COOLDOWN" | "INTERVAL" | "MAIN",
+): "WARMUP" | "ACTIVE" | "REST" | "RECOVERY" | "COOLDOWN" | "INTERVAL" | "MAIN" => {
   const normalized = value?.toUpperCase().trim();
   const allowed = new Set(["WARMUP", "ACTIVE", "REST", "RECOVERY", "COOLDOWN", "INTERVAL", "MAIN"]);
   if (normalized && allowed.has(normalized)) {
-    return normalized;
+    return normalized as typeof fallback;
   }
   return fallback;
 };
@@ -273,7 +276,7 @@ const buildStepDescription = (label?: string, notes?: string): string | null => 
   return joined.length > 512 ? `${joined.slice(0, 509)}...` : joined;
 };
 
-const sectionTypeToIntensity = (sectionType: string): string => {
+const sectionTypeToIntensity = (sectionType: string): "WARMUP" | "ACTIVE" | "COOLDOWN" => {
   const normalized = sectionType.toUpperCase();
   if (normalized === "WARMUP") {
     return "WARMUP";
