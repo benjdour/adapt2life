@@ -13,22 +13,24 @@ export const splitPlanMarkdown = (input: string): ParsedPlanMarkdown => {
     };
   }
 
-  const headingRegex = /(^|\n)(\s{0,3}(?:###\s*)?[🗂️📦]?\s*Plan structuré[^\n]*\n?)/i;
-  const headingMatch = headingRegex.exec(input);
-
-  if (!headingMatch) {
+  const markerMatch = /plan structuré/i.exec(input);
+  if (!markerMatch) {
     return {
       humanMarkdown: input.trim(),
       structuredPlanJson: null,
     };
   }
 
-  const headingStart = (headingMatch.index ?? 0) + headingMatch[1].length;
-  const headingLength = headingMatch[2]?.length ?? 0;
-  const afterHeading = input.slice(headingStart + headingLength);
+  const markerIndex = markerMatch.index ?? 0;
+  const lineStart = input.lastIndexOf("\n", markerIndex);
+  const headingStart = lineStart === -1 ? 0 : lineStart + 1;
+  const lineEnd = input.indexOf("\n", markerIndex);
+  const headingEnd = lineEnd === -1 ? input.length : lineEnd + 1;
+
+  const afterHeading = input.slice(headingEnd);
 
   const { json: structuredPlanJson, consumedLength } = extractStructuredJson(afterHeading);
-  const removalEnd = headingStart + headingLength + consumedLength;
+  const removalEnd = headingEnd + consumedLength;
 
   const humanMarkdown = `${input.slice(0, headingStart)}${input.slice(removalEnd)}`.trim();
 
