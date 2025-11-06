@@ -52,41 +52,37 @@ while [ "$attempt" -le "$max_attempts" ]; do
   fi
 
   deployment_json=$(
-    printf '%s' "$response" | COMMIT_SHA="$commit_sha" node <<'NODE'
+    API_RESPONSE="$response" COMMIT_SHA="$commit_sha" node <<'NODE'
 const commit = process.env.COMMIT_SHA ? process.env.COMMIT_SHA.toLowerCase() : null;
-const chunks = [];
-process.stdin.on("data", (chunk) => chunks.push(chunk));
-process.stdin.on("end", () => {
-  const text = chunks.join("");
-  let parsed;
-  try {
-    parsed = JSON.parse(text);
-  } catch {
-    return;
-  }
-  const deployments = Array.isArray(parsed?.deployments) ? parsed.deployments : Array.isArray(parsed) ? parsed : [];
-  const normalize = (value) => (typeof value === "string" ? value.toLowerCase() : null);
-  const matchesCommit = (metaValue) => {
-    const normalized = normalize(metaValue);
-    if (!normalized || !commit) return false;
-    if (normalized === commit) return true;
-    return normalized.startsWith(commit.slice(0, 7));
-  };
-  const match = deployments.find((deployment) => {
-    const meta = deployment?.meta ?? {};
-    const candidates = [
-      meta.gitCommitSha,
-      meta.githubCommitSha,
-      meta.gitlabCommitSha,
-      meta.bitbucketCommitSha,
-    ];
-    return candidates.some(matchesCommit);
-  }) ?? deployments[0];
+const raw = process.env.API_RESPONSE ?? "";
+let parsed;
+try {
+  parsed = JSON.parse(raw);
+} catch {
+  parsed = null;
+}
+const deployments = Array.isArray(parsed?.deployments) ? parsed.deployments : Array.isArray(parsed) ? parsed : [];
+const normalize = (value) => (typeof value === "string" ? value.toLowerCase() : null);
+const matchesCommit = (metaValue) => {
+  const normalized = normalize(metaValue);
+  if (!normalized || !commit) return false;
+  if (normalized === commit) return true;
+  return normalized.startsWith(commit.slice(0, 7));
+};
+const match = deployments.find((deployment) => {
+  const meta = deployment?.meta ?? {};
+  const candidates = [
+    meta.gitCommitSha,
+    meta.githubCommitSha,
+    meta.gitlabCommitSha,
+    meta.bitbucketCommitSha,
+  ];
+  return candidates.some(matchesCommit);
+}) ?? deployments[0];
 
-  if (match) {
-    process.stdout.write(JSON.stringify(match));
-  }
-});
+if (match) {
+  process.stdout.write(JSON.stringify(match));
+}
 NODE
   )
 
