@@ -2,15 +2,34 @@
 
 import { useState } from "react";
 
+import { useCallback, useState } from "react";
+
 import { GarminTrainerGenerator } from "@/components/GarminTrainerGenerator";
 import { TrainingPlanGeneratorForm, GeneratedPlanPayload } from "@/components/TrainingPlanGeneratorForm";
+import { splitPlanMarkdown } from "@/lib/utils/structuredPlan";
 
 export function TrainingGeneratorsSection() {
   const [latestPlan, setLatestPlan] = useState<GeneratedPlanPayload | null>(null);
 
+  const handlePlanGenerated = useCallback((payload: GeneratedPlanPayload | null) => {
+    if (!payload) {
+      setLatestPlan(null);
+      return;
+    }
+
+    const raw = payload.rawPlan ?? payload.plan;
+    const { structuredPlanJson } = splitPlanMarkdown(raw);
+
+    setLatestPlan({
+      ...payload,
+      rawPlan: raw,
+      structuredPlanJson: payload.structuredPlanJson ?? structuredPlanJson ?? null,
+    });
+  }, []);
+
   return (
     <>
-      <TrainingPlanGeneratorForm onPlanGenerated={setLatestPlan} />
+      <TrainingPlanGeneratorForm onPlanGenerated={handlePlanGenerated} />
 
       <section
         id="garmin"
