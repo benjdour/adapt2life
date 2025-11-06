@@ -154,6 +154,8 @@ export type StructuredPlanTarget = {
   unit?: string;
   min?: number;
   max?: number;
+  low?: number;
+  high?: number;
   value?: number;
 };
 
@@ -274,8 +276,33 @@ const clampDescription = (value: string | undefined): string | null => {
   if (!value) {
     return null;
   }
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed.slice(0, 512) : null;
+  const normalized = normalizeMarkdown(value).trim();
+  if (!normalized) {
+    return null;
+  }
+  return normalized.length > 512 ? `${normalized.slice(0, 509)}...` : normalized;
+};
+
+const pickNumber = (...values: Array<number | null | undefined>): number | null => {
+  for (const value of values) {
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return value;
+    }
+  }
+  return null;
+};
+
+const scaleByUnit = (value: number | null, unit?: string | null): number | null => {
+  if (value == null) {
+    return null;
+  }
+  if (!unit) {
+    return Math.round(value);
+  }
+  if (unit === "percentFtp" || unit === "percentHr" || unit === "percentMaxHr") {
+    return Math.round(value * 100);
+  }
+  return Math.round(value);
 };
 
 const convertTarget = (targets?: StructuredPlanTarget[]): TargetConversion => {
@@ -299,7 +326,7 @@ const convertTarget = (targets?: StructuredPlanTarget[]): TargetConversion => {
   const convertSingle = (
     target?: StructuredPlanTarget,
   ): {
-    type: string | null;
+    type: GarminTargetType | null;
     value: number | null;
     low: number | null;
     high: number | null;
@@ -315,30 +342,20 @@ const convertTarget = (targets?: StructuredPlanTarget[]): TargetConversion => {
       };
     }
 
-    const baseType = target.type?.toUpperCase() ?? "";
+    const baseType = target.type?.toUpperCase().trim() ?? "";
 
-    const normalizeRange = (min?: number, max?: number, unit?: string) => {
-      let low = min ?? max ?? null;
-      let high = max ?? min ?? null;
-
-      if (unit === "percentFtp" || unit === "percentHr") {
-        if (low != null) {
-          low = Math.round(low * 100);
-        }
-        if (high != null) {
-          high = Math.round(high * 100);
-        }
-      }
-
-      return { low, high };
-    };
+    const baseLow = pickNumber(target.low, target.min);
+    const baseHigh = pickNumber(target.high, target.max);
+    const baseValue = pickNumber(target.value);
 
     if (baseType === "POWER") {
-      const { low, high } = normalizeRange(target.min, target.max, target.unit);
+      const low = scaleByUnit(baseLow, target.unit);
+      const high = scaleByUnit(baseHigh, target.unit);
+      const value = scaleByUnit(baseValue, target.unit);
       const valueType = target.unit === "percentFtp" ? "PERCENT" : null;
       return {
         type: toGarminTargetType("POWER"),
-        value: target.value ?? null,
+        value,
         low,
         high,
         valueType,
@@ -346,8 +363,8 @@ const convertTarget = (targets?: StructuredPlanTarget[]): TargetConversion => {
     }
 
     if (baseType === "CADENCE") {
-      const low = target.min ?? target.max ?? target.value ?? null;
-      const high = target.max ?? target.min ?? target.value ?? null;
+      const low = scaleByUnit(baseLow ?? baseValue, null);
+      const high = scaleByUnit(baseHigh ?? baseValue, null);
       return {
         type: toGarminTargetType("CADENCE"),
         value: null,
@@ -358,11 +375,13 @@ const convertTarget = (targets?: StructuredPlanTarget[]): TargetConversion => {
     }
 
     if (baseType === "HEART_RATE") {
-      const { low, high } = normalizeRange(target.min, target.max, target.unit);
+      const low = scaleByUnit(baseLow, target.unit);
+      const high = scaleByUnit(baseHigh, target.unit);
+      const value = scaleByUnit(baseValue, target.unit);
       const valueType = target.unit === "percentMaxHr" || target.unit === "percentHr" ? "PERCENT" : null;
       return {
         type: toGarminTargetType("HEART_RATE"),
-        value: target.value ?? null,
+        value,
         low,
         high,
         valueType,
@@ -371,9 +390,9 @@ const convertTarget = (targets?: StructuredPlanTarget[]): TargetConversion => {
 
     return {
       type: toGarminTargetType(target.type),
-      value: null,
-      low: null,
-      high: null,
+      value: baseValue,
+      low: baseLow,
+      high: baseHigh,
       valueType: null,
     };
   };
@@ -382,12 +401,12 @@ const convertTarget = (targets?: StructuredPlanTarget[]): TargetConversion => {
   const secondaryConverted = convertSingle(secondary);
 
   return {
-    targetType: toGarminTargetType(primaryConverted.type),
+    targetType: primaryConverted.type,
     targetValue: primaryConverted.value,
     targetValueLow: primaryConverted.low,
     targetValueHigh: primaryConverted.high,
     targetValueType: primaryConverted.valueType,
-    secondaryTargetType: toGarminTargetType(secondaryConverted.type),
+    secondaryTargetType: secondaryConverted.type,
     secondaryTargetValue: secondaryConverted.value,
     secondaryTargetValueLow: secondaryConverted.low,
     secondaryTargetValueHigh: secondaryConverted.high,
@@ -403,14 +422,22 @@ const convertDurationType = (
   if (role === "rest" && duration.type === "TIME") {
     type = "FIXED_REST";
   }
+  const numericValue =
+    typeof duration.value === "number"
+      ? duration.value
+      : typeof duration.value === "string"
+        ? Number.parseFloat(duration.value)
+        : 0;
   return {
     durationType: type,
-    durationValue: Math.max(0, Math.round(duration.value ?? 0)),
+    durationValue: Math.max(0, Math.round(Number.isFinite(numericValue) ? numericValue : 0)),
   };
 };
 
 const buildStepDescription = (label?: string, notes?: string): string | null => {
-  const parts = [label?.trim(), notes?.trim()].filter((part) => part && part.length > 0) as string[];
+  const parts = [label, notes]
+    .map((part) => (part ? normalizeMarkdown(part).trim() : null))
+    .filter((part): part is string => !!part && part.length > 0);
   if (parts.length === 0) {
     return null;
   }
@@ -427,6 +454,44 @@ const sectionTypeToIntensity = (sectionType: string): "WARMUP" | "ACTIVE" | "COO
     return "COOLDOWN";
   }
   return "ACTIVE";
+};
+
+const computeBlockDuration = (block: StructuredPlanBlock): number => {
+  if (block.type === "single") {
+    const rawValue = block.duration?.value;
+    const value =
+      typeof rawValue === "number"
+        ? rawValue
+        : typeof rawValue === "string"
+          ? Number.parseFloat(rawValue)
+          : 0;
+    return Math.max(0, Math.round(Number.isFinite(value) ? value : 0));
+  }
+
+  const repeatCount = Number.isFinite(block.repeatCount) ? Math.max(1, Math.round(block.repeatCount)) : 1;
+  const steps = Array.isArray(block.steps) ? block.steps : [];
+
+  const loopDuration = steps.reduce((total, step) => {
+    const rawValue = step.duration?.value;
+    const value =
+      typeof rawValue === "number"
+        ? rawValue
+        : typeof rawValue === "string"
+          ? Number.parseFloat(rawValue)
+          : 0;
+    return total + Math.max(0, Math.round(Number.isFinite(value) ? value : 0));
+  }, 0);
+
+  return loopDuration * repeatCount;
+};
+
+const computePlanDuration = (plan: StructuredPlanV1): number => {
+  const sections = Array.isArray(plan.sections) ? plan.sections : [];
+  return sections.reduce((total, section) => {
+    const blocks = Array.isArray(section.blocks) ? section.blocks : [];
+    const blockTotal = blocks.reduce((sum, block) => sum + computeBlockDuration(block), 0);
+    return total + blockTotal;
+  }, 0);
 };
 
 const normalizeSport = (sport: string | undefined):
@@ -466,6 +531,54 @@ const normalizeSport = (sport: string | undefined):
   return "CYCLING";
 };
 
+const clampText = (value: string | null | undefined, maxLength: number): string | null => {
+  if (!value) {
+    return null;
+  }
+  const normalized = value.replace(/\s+/g, " ").trim();
+  if (!normalized) {
+    return null;
+  }
+  return normalized.length > maxLength ? `${normalized.slice(0, maxLength - 1).trim()}…` : normalized;
+};
+
+const deriveWorkoutName = (
+  plan: StructuredPlanV1,
+  humanDescription?: string | null,
+): string => {
+  const fromPlan = clampText(plan.workoutName, 100);
+  if (fromPlan) {
+    return fromPlan;
+  }
+
+  if (humanDescription) {
+    const candidate = humanDescription
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .find((line) => line.length > 0);
+
+    const name = clampText(candidate, 100);
+    if (name) {
+      return name;
+    }
+  }
+
+  return "Séance Adapt2Life";
+};
+
+const normalizeDurationSeconds = (value: unknown): number | null => {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return Math.max(0, Math.round(value));
+  }
+  if (typeof value === "string") {
+    const parsed = Number.parseFloat(value);
+    if (Number.isFinite(parsed)) {
+      return Math.max(0, Math.round(parsed));
+    }
+  }
+  return null;
+};
+
 export const convertStructuredPlanToGarmin = (
   plan: StructuredPlanV1,
   options: {
@@ -477,13 +590,16 @@ export const convertStructuredPlanToGarmin = (
   },
 ): GarminTrainerWorkout => {
   const sport = normalizeSport(plan.sport ?? options.sportFallback);
+  const computedDuration = computePlanDuration(plan);
+  const totalDurationSeconds =
+    normalizeDurationSeconds(plan.totalDurationSeconds) ?? (computedDuration > 0 ? computedDuration : null);
 
   const workout: GarminTrainerWorkout = {
     ownerId: options.ownerId,
-    workoutName: plan.workoutName ?? "Séance Adapt2Life",
-    description: options.humanDescription ? options.humanDescription.slice(0, 1024) : null,
+    workoutName: deriveWorkoutName(plan, options.humanDescription),
+    description: clampText(options.humanDescription ?? null, 1024),
     sport,
-    estimatedDurationInSecs: plan.totalDurationSeconds ? Math.max(0, Math.round(plan.totalDurationSeconds)) : null,
+    estimatedDurationInSecs: totalDurationSeconds,
     estimatedDistanceInMeters: null,
     poolLength: null,
     poolLengthUnit: null,
@@ -503,7 +619,8 @@ export const convertStructuredPlanToGarmin = (
 
     const segmentSteps: GarminTrainerWorkout["segments"][number]["steps"] = [];
     let segmentDuration = 0;
-    const sectionIntensity = sectionTypeToIntensity(section.sectionType ?? "MAIN");
+    const sectionType = section.sectionType ?? (section as { phase?: string }).phase ?? "MAIN";
+    const sectionIntensity = sectionTypeToIntensity(sectionType);
 
     blocks.forEach((block) => {
       if (block.type === "single") {
@@ -590,8 +707,8 @@ export const convertStructuredPlanToGarmin = (
         };
       });
 
-      const repeatDurationPerLoop = repeatSteps.reduce(
-        (total, child) => total + Math.max(0, Math.round(child.duration?.value ?? 0)),
+      const repeatDurationPerLoop = convertedChildren.reduce(
+        (total, child) => total + Math.max(0, Math.round(child.durationValue ?? 0)),
         0,
       );
 
