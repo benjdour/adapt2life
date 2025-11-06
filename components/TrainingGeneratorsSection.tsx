@@ -1,7 +1,5 @@
 "use client";
 
-import { useState } from "react";
-
 import { useCallback, useState } from "react";
 
 import { GarminTrainerGenerator } from "@/components/GarminTrainerGenerator";
