@@ -386,17 +386,10 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
       return steps;
     }
 
-    const repeatPrefixPattern = /^\s*\d+\s*[x×]\s*/i;
-    const distancePrefixPattern = /^\s*\d+\s*(m|km)\s*/i;
-    const restSuffixPatterns = [
-      /,\s*\d+\s*s\s*récup(?:ération)?/gi,
-      /\+\s*\d+\s*s\s*récup(?:ération)?/gi,
-      /\s*\d+\s*s\s*récup(?:ération)?$/gi,
-    ];
-    const stripLeadingPunctuation = (value: string) => value.replace(/^[,;:-]+\s*/, "");
-    const trimTrailingPunctuation = (value: string) => value.replace(/\s*[,;:-]+\s*$/, "");
-
     const ensureCadenceTargets = (step: Record<string, unknown>) => {
+      if (step.type === "WorkoutRepeatStep") {
+        return;
+      }
       const description = typeof step.description === "string" ? step.description : "";
       if (!description || !/cadence/i.test(description)) {
         return;
@@ -525,21 +518,9 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
           step[key] = null;
         }
 
-        if (typeof step.description === "string" && step.description.trim().length > 0) {
-          let cleanedDescription = step.description.replace(repeatPrefixPattern, "");
-          cleanedDescription = stripLeadingPunctuation(cleanedDescription).trim();
-
-          cleanedDescription = cleanedDescription.replace(distancePrefixPattern, "").trim();
-          restSuffixPatterns.forEach((pattern) => {
-            cleanedDescription = cleanedDescription.replace(pattern, "").trim();
-          });
-          cleanedDescription = stripLeadingPunctuation(trimTrailingPunctuation(cleanedDescription)).trim();
-
-          if (cleanedDescription.length === 0) {
-            step.description = null;
-          } else {
-            step.description = cleanedDescription;
-          }
+        if (typeof step.description === "string") {
+          const normalized = step.description.replace(/\s+/g, " ").trim();
+          step.description = normalized.length > 0 ? normalized : null;
         }
 
         if (!step.intensity) {
