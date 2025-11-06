@@ -8,7 +8,12 @@ import { db } from "@/db";
 import { garminConnections, users } from "@/db/schema";
 import { stackServerApp } from "@/stack/server";
 import { workoutSchema } from "@/schemas/garminTrainer.schema";
-import { splitPlanMarkdown } from "@/lib/utils/structuredPlan";
+import {
+  convertStructuredPlanToGarmin,
+  parseStructuredPlanJson,
+  splitPlanMarkdown,
+  type StructuredPlanV1,
+} from "@/lib/utils/structuredPlan";
 import { saveGarminWorkoutForUser } from "@/lib/services/userGeneratedArtifacts";
 
 const REQUEST_SCHEMA = z.object({
@@ -142,6 +147,24 @@ const buildFinalPrompt = (template: string, example: string): string => {
   }
 
   return prompt;
+};
+
+const buildWorkoutDescription = (markdown: string): string | null => {
+  if (!markdown) {
+    return null;
+  }
+
+  const cleaned = markdown
+    .split(/\n+/)
+    .map((line) => line.replace(/^#+\s*/, "").trim())
+    .filter((line) => line.length > 0);
+
+  if (cleaned.length === 0) {
+    return null;
+  }
+
+  const summary = cleaned.slice(0, 6).join(" ");
+  return summary.length > 1024 ? `${summary.slice(0, 1021)}...` : summary;
 };
 
 const GARMIN_PROMPT_FILENAME = "docs/garmin_trainer_prompt.txt";
@@ -650,6 +673,49 @@ export async function POST(request: NextRequest) {
   }
 
   const { exampleMarkdown } = validation.data;
+
+  const { humanMarkdown, structuredPlanJson } = splitPlanMarkdown(exampleMarkdown);
+  const structuredPlan = parseStructuredPlanJson<StructuredPlanV1>(structuredPlanJson);
+
+  if (structuredPlan) {
+    const descriptionSource = humanMarkdown.length > 0 ? humanMarkdown : exampleMarkdown;
+    const description = buildWorkoutDescription(descriptionSource);
+
+    try {
+      const convertedWorkout = convertStructuredPlanToGarmin(structuredPlan, {
+        ownerId: ownerContext.ownerId,
+        humanDescription: description,
+        sportFallback: structuredPlan.sport ?? "CYCLING",
+      });
+
+      const sanitizedWorkout = sanitizeWorkoutValue(convertedWorkout) as Record<string, unknown>;
+      const normalizedWorkout = enforceWorkoutPostProcessing(sanitizedWorkout);
+      const validationResult = workoutSchema.safeParse(normalizedWorkout);
+
+      if (!validationResult.success) {
+        return NextResponse.json(
+          {
+            error: "L’entraînement structuré ne respecte pas le schéma attendu.",
+            issues: validationResult.error.issues,
+            raw: JSON.stringify(normalizedWorkout, null, 2),
+          },
+          { status: 422 },
+        );
+      }
+
+      if (ownerContext.localUserId) {
+        try {
+          await saveGarminWorkoutForUser(ownerContext.localUserId, validationResult.data as Record<string, unknown>);
+        } catch (storageError) {
+          console.error("garmin-trainer: unable to persist structured workout", storageError);
+        }
+      }
+
+      return NextResponse.json({ trainingJson: validationResult.data, raw: JSON.stringify(validationResult.data, null, 2) });
+    } catch (conversionError) {
+      console.warn("garmin-trainer: unable to convert structured plan, falling back to AI", conversionError);
+    }
+  }
 
   const openRouterKey = process.env.OPENROUTER_API_KEY;
   if (!openRouterKey) {
