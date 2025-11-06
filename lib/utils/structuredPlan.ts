@@ -154,7 +154,15 @@ const convertTarget = (targets?: StructuredPlanTarget[]): TargetConversion => {
 
   const [primary, secondary] = targets;
 
-  const convertSingle = (target?: StructuredPlanTarget) => {
+  const convertSingle = (
+    target?: StructuredPlanTarget,
+  ): {
+    type: string | null;
+    value: number | null;
+    low: number | null;
+    high: number | null;
+    valueType: "PERCENT" | null;
+  } => {
     if (!target) {
       return {
         type: null,
