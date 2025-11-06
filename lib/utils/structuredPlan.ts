@@ -5,7 +5,7 @@ export type ParsedPlanMarkdown = {
   structuredPlanJson: string | null;
 };
 
-const STRUCTURED_SECTION_REGEX = /###\s*[🗂️📦]?\s*Plan structuré[^`]*```json\s*([\s\S]*?)```/i;
+const STRUCTURED_SECTION_REGEX = /###\s*[🗂️📦]?\s*Plan structuré[\s\S]*?```(?:json)?\s*([\s\S]*?)```/i;
 
 export const splitPlanMarkdown = (input: string): ParsedPlanMarkdown => {
   if (typeof input !== "string") {
