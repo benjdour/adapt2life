@@ -434,6 +434,7 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
     };
 
     const normalizedSteps: unknown[] = [];
+    let pendingNote: string | null = null;
 
     steps.forEach((rawStep) => {
       if (!rawStep || typeof rawStep !== "object") {
@@ -445,6 +446,18 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
 
       if (!step.intensity && typeof segmentIntensity === "string" && segmentIntensity.trim().length > 0) {
         step.intensity = segmentIntensity;
+      }
+
+      if (pendingNote) {
+        const pending = pendingNote;
+        pendingNote = null;
+        if (type === "WorkoutStep") {
+          const existing = typeof step.description === "string" ? step.description.trim() : "";
+          step.description = existing ? `${existing} — ${pending}` : pending;
+        } else if (type === "WorkoutRepeatStep") {
+          const existing = typeof step.description === "string" ? step.description.trim() : "";
+          step.description = existing ? `${existing} — ${pending}` : pending;
+        }
       }
 
       if (type === "WorkoutRepeatStep" && Array.isArray(step.steps)) {
@@ -514,7 +527,13 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
               }
               parts.push(note);
               lastStep.description = parts.join(" — ");
+            } else {
+              pendingNote = note;
             }
+          } else if (note) {
+            pendingNote = note;
+          } else {
+            pendingNote = null;
           }
           return;
         }
