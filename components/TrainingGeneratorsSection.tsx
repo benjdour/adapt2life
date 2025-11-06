@@ -3,10 +3,10 @@
 import { useState } from "react";
 
 import { GarminTrainerGenerator } from "@/components/GarminTrainerGenerator";
-import { TrainingPlanGeneratorForm } from "@/components/TrainingPlanGeneratorForm";
+import { TrainingPlanGeneratorForm, GeneratedPlanPayload } from "@/components/TrainingPlanGeneratorForm";
 
 export function TrainingGeneratorsSection() {
-  const [latestPlan, setLatestPlan] = useState<string | null>(null);
+  const [latestPlan, setLatestPlan] = useState<GeneratedPlanPayload | null>(null);
 
   return (
     <>
@@ -26,7 +26,7 @@ export function TrainingGeneratorsSection() {
         </header>
 
         <div className="space-y-6">
-          <GarminTrainerGenerator sourceMarkdown={latestPlan} />
+          <GarminTrainerGenerator sourcePlan={latestPlan} />
 
           <div className="rounded-xl border border-white/10 bg-emerald-900/20 p-4 text-xs text-emerald-100/80">
             <p className="font-semibold text-emerald-200">Bon à savoir</p>

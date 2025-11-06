@@ -4,13 +4,22 @@ import { FormEvent, useEffect, useState } from "react";
 
 import { MarkdownPlan } from "@/components/MarkdownPlan";
 import { TRAINING_LOADING_MESSAGES } from "@/constants/loadingMessages";
+import { splitPlanMarkdown } from "@/lib/utils/structuredPlan";
+
+export type GeneratedPlanPayload = {
+  plan: string;
+  structuredPlanJson: string | null;
+  rawPlan: string;
+};
 
 type TrainingPlanResponse = {
   plan: string;
+  structuredPlanJson?: string | null;
+  rawPlan?: string;
 };
 
 type TrainingPlanGeneratorFormProps = {
-  onPlanGenerated?: (plan: string | null) => void;
+  onPlanGenerated?: (plan: GeneratedPlanPayload | null) => void;
 };
 
 export function TrainingPlanGeneratorForm({ onPlanGenerated }: TrainingPlanGeneratorFormProps) {
@@ -78,8 +87,16 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated }: TrainingPlanGener
       }
 
       const data = (await response.json()) as TrainingPlanResponse;
-      setPlan(data.plan);
-      onPlanGenerated?.(data.plan);
+      const { humanMarkdown, structuredPlanJson: extractedJson } = splitPlanMarkdown(data.rawPlan ?? data.plan);
+      const humanPlan = humanMarkdown.length > 0 ? humanMarkdown : data.plan;
+      const structuredPlanJson = data.structuredPlanJson ?? extractedJson ?? null;
+
+      setPlan(humanPlan);
+      onPlanGenerated?.({
+        plan: humanPlan,
+        structuredPlanJson,
+        rawPlan: data.rawPlan ?? data.plan,
+      });
     } catch (submissionError) {
       setError(submissionError instanceof Error ? submissionError.message : "Erreur inconnue.");
       onPlanGenerated?.(null);

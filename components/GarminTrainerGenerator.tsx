@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 
 import type { GarminTrainerWorkout } from "@/schemas/garminTrainer.schema";
-import { splitPlanMarkdown } from "@/lib/utils/structuredPlan";
 import { TRAINING_LOADING_MESSAGES } from "@/constants/loadingMessages";
+import type { GeneratedPlanPayload } from "@/components/TrainingPlanGeneratorForm";
 
 type GenerateTrainingResponse = {
   trainingJson?: GarminTrainerWorkout;
@@ -14,10 +14,10 @@ type GenerateTrainingResponse = {
 };
 
 type GarminTrainerGeneratorProps = {
-  sourceMarkdown: string | null;
+  sourcePlan: GeneratedPlanPayload | null;
 };
 
-export function GarminTrainerGenerator({ sourceMarkdown }: GarminTrainerGeneratorProps) {
+export function GarminTrainerGenerator({ sourcePlan }: GarminTrainerGeneratorProps) {
   const [rawResult, setRawResult] = useState<string | null>(null);
   const [trainingJson, setTrainingJson] = useState<GarminTrainerWorkout | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -35,7 +35,7 @@ export function GarminTrainerGenerator({ sourceMarkdown }: GarminTrainerGenerato
     setPushError(null);
     setPushSuccess(null);
     setPushDetails(null);
-  }, [sourceMarkdown]);
+  }, [sourcePlan]);
 
   useEffect(() => {
     if (!isLoading) {
@@ -63,10 +63,8 @@ export function GarminTrainerGenerator({ sourceMarkdown }: GarminTrainerGenerato
     };
   }, [isLoading]);
 
-  const planSections = useMemo(() => splitPlanMarkdown(sourceMarkdown ?? ""), [sourceMarkdown]);
-
   const structuredPlanDisplay = useMemo(() => {
-    const raw = planSections.structuredPlanJson;
+    const raw = sourcePlan?.structuredPlanJson ?? null;
     if (!raw) {
       return null;
     }
@@ -76,10 +74,24 @@ export function GarminTrainerGenerator({ sourceMarkdown }: GarminTrainerGenerato
     } catch {
       return raw;
     }
-  }, [planSections.structuredPlanJson]);
+  }, [sourcePlan?.structuredPlanJson]);
+
+  const combinedMarkdown = useMemo(() => {
+    if (!sourcePlan) {
+      return null;
+    }
+    if (sourcePlan.rawPlan) {
+      return sourcePlan.rawPlan;
+    }
+    if (sourcePlan.structuredPlanJson) {
+      const human = sourcePlan.plan.trim();
+      return `${human}\n\n### 📦 Plan structuré (JSON)\n\`\`\`json\n${sourcePlan.structuredPlanJson}\n\`\`\``;
+    }
+    return sourcePlan.plan;
+  }, [sourcePlan]);
 
   const handleGenerateWorkout = async () => {
-    const trimmedExample = sourceMarkdown?.trim();
+    const trimmedExample = combinedMarkdown?.trim();
     if (!trimmedExample) {
       setError("Génère d’abord un plan d’entraînement ci-dessus pour alimenter la conversion Garmin.");
       return;
@@ -224,7 +236,7 @@ export function GarminTrainerGenerator({ sourceMarkdown }: GarminTrainerGenerato
         <button
           type="button"
           onClick={handleGenerateWorkout}
-          disabled={isLoading || !sourceMarkdown?.trim()}
+          disabled={isLoading || !combinedMarkdown?.trim()}
           className="inline-flex h-11 w-full items-center justify-center rounded-md border border-emerald-400/60 bg-emerald-400/20 px-6 font-semibold text-white transition hover:bg-emerald-400/30 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isLoading ? loadingMessage : "Convertir le plan en JSON Garmin"}

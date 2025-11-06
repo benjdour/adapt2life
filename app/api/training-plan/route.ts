@@ -7,6 +7,7 @@ import { garminWebhookEvents, users } from "@/db/schema";
 import { stackServerApp } from "@/stack/server";
 import { ADAPT2LIFE_SYSTEM_PROMPT } from "@/lib/prompts/adapt2lifeSystemPrompt";
 import { saveTrainingPlanForUser } from "@/lib/services/userGeneratedArtifacts";
+import { splitPlanMarkdown } from "@/lib/utils/structuredPlan";
 
 const MAX_TEXT_LENGTH = 2000;
 
@@ -652,7 +653,14 @@ const cleanTextPlan = (raw: string): string => {
       console.error("training-plan: unable to persist generated plan", storageError);
     }
 
-    return NextResponse.json({ plan: finalPlan });
+    const { humanMarkdown, structuredPlanJson } = splitPlanMarkdown(finalPlan);
+    const responsePayload = {
+      plan: humanMarkdown.length > 0 ? humanMarkdown : finalPlan,
+      structuredPlanJson: structuredPlanJson ?? null,
+      rawPlan: finalPlan,
+    };
+
+    return NextResponse.json(responsePayload);
   } catch (error) {
     console.error("Erreur lors de la génération du plan :", error);
     return NextResponse.json({ error: "Erreur interne lors de la génération du plan." }, { status: 500 });
