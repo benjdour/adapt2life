@@ -106,13 +106,29 @@ export type StructuredPlanV1 = {
   sections: StructuredPlanSection[];
 };
 
+type GarminTargetType =
+  | "SPEED"
+  | "OPEN"
+  | "HEART_RATE"
+  | "CADENCE"
+  | "POWER"
+  | "GRADE"
+  | "RESISTANCE"
+  | "POWER_3S"
+  | "POWER_10S"
+  | "POWER_30S"
+  | "POWER_LAP"
+  | "SPEED_LAP"
+  | "HEART_RATE_LAP"
+  | "PACE";
+
 type TargetConversion = {
-  targetType: string | null;
+  targetType: GarminTargetType | null;
   targetValue: number | null;
   targetValueLow: number | null;
   targetValueHigh: number | null;
   targetValueType: "PERCENT" | null;
-  secondaryTargetType: string | null;
+  secondaryTargetType: GarminTargetType | null;
   secondaryTargetValue: number | null;
   secondaryTargetValueLow: number | null;
   secondaryTargetValueHigh: number | null;
