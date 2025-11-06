@@ -256,7 +256,10 @@ const convertTarget = (targets?: StructuredPlanTarget[]): TargetConversion => {
   };
 };
 
-const convertDurationType = (duration: StructuredDuration, role?: string): { durationType: string; durationValue: number } => {
+const convertDurationType = (
+  duration: StructuredDuration,
+  role?: string,
+): { durationType: "TIME" | "DISTANCE" | "FIXED_REST"; durationValue: number } => {
   let type = duration.type;
   if (role === "rest" && duration.type === "TIME") {
     type = "FIXED_REST";
