@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-import type { GarminTrainerWorkout } from "@/schemas/garminTrainer.schema";
 import { TRAINING_LOADING_MESSAGES } from "@/constants/loadingMessages";
+import { splitPlanMarkdown } from "@/lib/utils/structuredPlan";
+import type { GarminTrainerWorkout } from "@/schemas/garminTrainer.schema";
 import type { GeneratedPlanPayload } from "@/components/TrainingPlanGeneratorForm";
 
 type GenerateTrainingResponse = {
@@ -64,17 +65,29 @@ export function GarminTrainerGenerator({ sourcePlan }: GarminTrainerGeneratorPro
   }, [isLoading]);
 
   const structuredPlanDisplay = useMemo(() => {
-    const raw = sourcePlan?.structuredPlanJson ?? null;
-    if (!raw) {
+    if (!sourcePlan) {
       return null;
     }
+
+    const explicitJson = sourcePlan.structuredPlanJson;
+    const extractedJson =
+      explicitJson ??
+      (() => {
+        const parsed = splitPlanMarkdown(sourcePlan.rawPlan || sourcePlan.plan);
+        return parsed.structuredPlanJson;
+      })();
+
+    if (!extractedJson) {
+      return null;
+    }
+
     try {
-      const parsed = JSON.parse(raw);
+      const parsed = JSON.parse(extractedJson);
       return JSON.stringify(parsed, null, 2);
     } catch {
-      return raw;
+      return extractedJson;
     }
-  }, [sourcePlan?.structuredPlanJson]);
+  }, [sourcePlan]);
 
   const combinedMarkdown = useMemo(() => {
     if (!sourcePlan) {
