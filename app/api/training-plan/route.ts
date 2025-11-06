@@ -565,7 +565,7 @@ const cleanTextPlan = (raw: string): string => {
             },
           ],
           temperature: 0.8,
-          max_tokens: 4096,
+          max_tokens: 32768,
           stop: ["DEBUG", "FIN_PLAN"],
         }),
       });
