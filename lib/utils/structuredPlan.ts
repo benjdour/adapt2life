@@ -5,8 +5,6 @@ export type ParsedPlanMarkdown = {
   structuredPlanJson: string | null;
 };
 
-const STRUCTURED_SECTION_REGEX = /###\s*[🗂️📦]?\s*Plan structuré[\s\S]*?```\s*(?:json)?\s*([\s\S]*?)```/i;
-
 export const splitPlanMarkdown = (input: string): ParsedPlanMarkdown => {
   if (typeof input !== "string") {
     return {
@@ -15,28 +13,121 @@ export const splitPlanMarkdown = (input: string): ParsedPlanMarkdown => {
     };
   }
 
-  const match = input.match(STRUCTURED_SECTION_REGEX);
+  const headingRegex = /###\s*[🗂️📦]?\s*Plan structuré[^\n]*\n?/i;
+  const headingMatch = headingRegex.exec(input);
 
-  if (!match) {
+  if (!headingMatch) {
     return {
       humanMarkdown: input.trim(),
       structuredPlanJson: null,
     };
   }
 
-  const [matchedBlock, jsonContent] = match;
-  const startIndex = match.index ?? 0;
+  const headingStart = headingMatch.index ?? 0;
+  const afterHeading = input.slice(headingStart + headingMatch[0].length);
 
-  const before = input.slice(0, startIndex);
-  const after = input.slice(startIndex + matchedBlock.length);
+  const { json: structuredPlanJson, consumedLength } = extractStructuredJson(afterHeading);
+  const removalEnd = headingStart + headingMatch[0].length + consumedLength;
 
-  const humanMarkdown = `${before}${after}`.trim();
-  const structuredPlanJson = jsonContent.trim();
+  const humanMarkdown = `${input.slice(0, headingStart)}${input.slice(removalEnd)}`.trim();
 
   return {
     humanMarkdown,
-    structuredPlanJson: structuredPlanJson.length > 0 ? structuredPlanJson : null,
+    structuredPlanJson,
   };
+};
+
+const extractStructuredJson = (
+  text: string,
+): {
+  json: string | null;
+  consumedLength: number;
+} => {
+  const whitespaceMatch = text.match(/^\s*/);
+  const leadingWhitespace = whitespaceMatch ? whitespaceMatch[0].length : 0;
+  const remaining = text.slice(leadingWhitespace);
+
+  const fenceRegex = /^```(?:\s*[a-z]+)?\s*([\s\S]*?)```\s*/i;
+  const fenceMatch = fenceRegex.exec(remaining);
+  if (fenceMatch) {
+    const jsonCandidate = fenceMatch[1].trim();
+    return {
+      json: jsonCandidate.length > 0 ? jsonCandidate : null,
+      consumedLength: leadingWhitespace + fenceMatch[0].length,
+    };
+  }
+
+  const inline = extractInlineJson(remaining);
+  if (inline) {
+    return {
+      json: inline.json.length > 0 ? inline.json.trim() : null,
+      consumedLength: leadingWhitespace + inline.consumed,
+    };
+  }
+
+  return {
+    json: null,
+    consumedLength: leadingWhitespace,
+  };
+};
+
+const extractInlineJson = (
+  text: string,
+): {
+  json: string;
+  consumed: number;
+} | null => {
+  const trimmed = text.trimStart();
+  const leadingWhitespace = text.length - trimmed.length;
+
+  if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) {
+    return null;
+  }
+
+  let depth = 0;
+  let inString = false;
+
+  for (let index = 0; index < trimmed.length; index += 1) {
+    const char = trimmed[index];
+    const previous = index > 0 ? trimmed[index - 1] : null;
+
+    if (inString) {
+      if (char === '"' && previous !== "\\") {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (char === '"') {
+      inString = true;
+      continue;
+    }
+
+    if (char === "{" || char === "[") {
+      depth += 1;
+      continue;
+    }
+
+    if (char === "}" || char === "]") {
+      depth -= 1;
+      if (depth === 0) {
+        const jsonText = trimmed.slice(0, index + 1);
+        let consumed = index + 1;
+
+        while (consumed < trimmed.length && /\s/.test(trimmed[consumed]) && !trimmed.slice(consumed).startsWith("###")) {
+          consumed += 1;
+        }
+
+        return {
+          json: jsonText,
+          consumed: leadingWhitespace + consumed,
+        };
+      }
+      continue;
+    }
+  }
+
+  return null;
 };
 
 export const parseStructuredPlanJson = <T = unknown>(json: string | null): T | null => {
