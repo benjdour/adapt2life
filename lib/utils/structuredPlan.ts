@@ -283,12 +283,12 @@ const convertTarget = (targets?: StructuredPlanTarget[]): TargetConversion => {
   const secondaryConverted = convertSingle(secondary);
 
   return {
-    targetType: primaryConverted.type,
+    targetType: toGarminTargetType(primaryConverted.type),
     targetValue: primaryConverted.value,
     targetValueLow: primaryConverted.low,
     targetValueHigh: primaryConverted.high,
     targetValueType: primaryConverted.valueType,
-    secondaryTargetType: secondaryConverted.type,
+    secondaryTargetType: toGarminTargetType(secondaryConverted.type),
     secondaryTargetValue: secondaryConverted.value,
     secondaryTargetValueLow: secondaryConverted.low,
     secondaryTargetValueHigh: secondaryConverted.high,
