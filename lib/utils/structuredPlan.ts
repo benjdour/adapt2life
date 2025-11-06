@@ -13,18 +13,20 @@ export const splitPlanMarkdown = (input: string): ParsedPlanMarkdown => {
     };
   }
 
-  const markerMatch = /plan structuré/i.exec(input);
-  if (!markerMatch) {
+  const normalizedInput = normalizeMarkdown(input);
+  const lowercased = normalizedInput.toLowerCase();
+  const markerIndex = lowercased.indexOf("plan structuré");
+
+  if (markerIndex === -1) {
     return {
       humanMarkdown: input.trim(),
       structuredPlanJson: null,
     };
   }
 
-  const markerIndex = markerMatch.index ?? 0;
-  const lineStart = input.lastIndexOf("\n", markerIndex);
+  const lineStart = normalizedInput.lastIndexOf("\n", markerIndex);
   const headingStart = lineStart === -1 ? 0 : lineStart + 1;
-  const lineEnd = input.indexOf("\n", markerIndex);
+  const lineEnd = normalizedInput.indexOf("\n", markerIndex);
   const headingEnd = lineEnd === -1 ? input.length : lineEnd + 1;
 
   const afterHeading = input.slice(headingEnd);
@@ -39,6 +41,9 @@ export const splitPlanMarkdown = (input: string): ParsedPlanMarkdown => {
     structuredPlanJson,
   };
 };
+
+const normalizeMarkdown = (value: string): string =>
+  value.replace(/[\u00A0\u202F\u2007]/g, " ").replace(/\r\n?/g, "\n");
 
 const extractStructuredJson = (
   text: string,
