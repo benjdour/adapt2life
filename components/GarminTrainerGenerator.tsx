@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import type { GarminTrainerWorkout } from "@/schemas/garminTrainer.schema";
+import { splitPlanMarkdown } from "@/lib/utils/structuredPlan";
 import { TRAINING_LOADING_MESSAGES } from "@/constants/loadingMessages";
 
 type GenerateTrainingResponse = {
@@ -62,16 +63,15 @@ export function GarminTrainerGenerator({ sourceMarkdown }: GarminTrainerGenerato
     };
   }, [isLoading]);
 
+  const planSections = useMemo(() => splitPlanMarkdown(sourceMarkdown ?? ""), [sourceMarkdown]);
+
   const planPreview = useMemo(() => {
-    if (!sourceMarkdown) {
+    const previewSource = planSections.humanMarkdown?.trim() || sourceMarkdown?.trim() || "";
+    if (previewSource.length === 0) {
       return null;
     }
-    const trimmed = sourceMarkdown.trim();
-    if (trimmed.length === 0) {
-      return null;
-    }
-    return trimmed.length > 1200 ? `${trimmed.slice(0, 1200)}…` : trimmed;
-  }, [sourceMarkdown]);
+    return previewSource.length > 1200 ? `${previewSource.slice(0, 1200)}…` : previewSource;
+  }, [planSections.humanMarkdown, sourceMarkdown]);
 
   const handleGenerateWorkout = async () => {
     const trimmedExample = sourceMarkdown?.trim();

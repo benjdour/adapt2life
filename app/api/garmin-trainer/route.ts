@@ -8,6 +8,7 @@ import { db } from "@/db";
 import { garminConnections, users } from "@/db/schema";
 import { stackServerApp } from "@/stack/server";
 import { workoutSchema } from "@/schemas/garminTrainer.schema";
+import { splitPlanMarkdown } from "@/lib/utils/structuredPlan";
 import { saveGarminWorkoutForUser } from "@/lib/services/userGeneratedArtifacts";
 
 const REQUEST_SCHEMA = z.object({
@@ -121,10 +122,26 @@ const extractMessageText = (choice: OpenRouterChoice | undefined): string | null
 };
 
 const buildFinalPrompt = (template: string, example: string): string => {
-  if (template.includes("{{EXAMPLE_MARKDOWN}}")) {
-    return template.replaceAll("{{EXAMPLE_MARKDOWN}}", example);
+  const { humanMarkdown, structuredPlanJson } = splitPlanMarkdown(example);
+
+  let prompt = template;
+
+  if (prompt.includes("{{STRUCTURED_PLAN_JSON}}")) {
+    prompt = prompt.replaceAll("{{STRUCTURED_PLAN_JSON}}", structuredPlanJson ?? "{}");
   }
-  return `${template.trim()}\n\n---\nExemple d’entraînement (Markdown) :\n${example}`;
+
+  if (prompt.includes("{{HUMAN_PLAN_MARKDOWN}}")) {
+    const sanitizedHuman = humanMarkdown.length > 0 ? humanMarkdown : example;
+    prompt = prompt.replaceAll("{{HUMAN_PLAN_MARKDOWN}}", sanitizedHuman);
+  }
+
+  if (prompt.includes("{{EXAMPLE_MARKDOWN}}")) {
+    prompt = prompt.replaceAll("{{EXAMPLE_MARKDOWN}}", example);
+  } else if (!prompt.includes("{{HUMAN_PLAN_MARKDOWN}}")) {
+    prompt = `${prompt.trim()}\n\n---\nExemple d’entraînement (Markdown) :\n${example}`;
+  }
+
+  return prompt;
 };
 
 const GARMIN_PROMPT_FILENAME = "docs/garmin_trainer_prompt.txt";
