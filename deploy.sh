@@ -52,8 +52,8 @@ while [ "$attempt" -le "$max_attempts" ]; do
   fi
 
   deployment_json=$(
-    printf '%s' "$response" | node <<'NODE' "$commit_sha"
-const commit = process.argv[1]?.toLowerCase();
+    printf '%s' "$response" | COMMIT_SHA="$commit_sha" node <<'NODE'
+const commit = process.env.COMMIT_SHA ? process.env.COMMIT_SHA.toLowerCase() : null;
 const chunks = [];
 process.stdin.on("data", (chunk) => chunks.push(chunk));
 process.stdin.on("end", () => {
