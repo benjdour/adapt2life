@@ -65,13 +65,18 @@ export function GarminTrainerGenerator({ sourceMarkdown }: GarminTrainerGenerato
 
   const planSections = useMemo(() => splitPlanMarkdown(sourceMarkdown ?? ""), [sourceMarkdown]);
 
-  const planPreview = useMemo(() => {
-    const previewSource = planSections.humanMarkdown?.trim() || sourceMarkdown?.trim() || "";
-    if (previewSource.length === 0) {
+  const structuredPlanDisplay = useMemo(() => {
+    const raw = planSections.structuredPlanJson;
+    if (!raw) {
       return null;
     }
-    return previewSource.length > 1200 ? `${previewSource.slice(0, 1200)}…` : previewSource;
-  }, [planSections.humanMarkdown, sourceMarkdown]);
+    try {
+      const parsed = JSON.parse(raw);
+      return JSON.stringify(parsed, null, 2);
+    } catch {
+      return raw;
+    }
+  }, [planSections.structuredPlanJson]);
 
   const handleGenerateWorkout = async () => {
     const trimmedExample = sourceMarkdown?.trim();
@@ -205,13 +210,13 @@ export function GarminTrainerGenerator({ sourceMarkdown }: GarminTrainerGenerato
       <div className="space-y-4">
         <div className="rounded-xl border border-white/15 bg-black/30 p-4 text-left text-sm text-white">
           <p className="text-sm font-semibold text-emerald-200">Plan utilisé pour la conversion</p>
-          {planPreview ? (
+          {structuredPlanDisplay ? (
             <pre className="mt-3 max-h-60 overflow-auto whitespace-pre-wrap break-words font-mono text-xs leading-relaxed text-emerald-100/80">
-              {planPreview}
+              {structuredPlanDisplay}
             </pre>
           ) : (
             <p className="mt-2 text-xs text-white/60">
-              Génère un plan via le formulaire ci-dessus pour pouvoir le convertir en entraînement Garmin.
+              Génère un plan via le formulaire ci-dessus pour obtenir le JSON structuré à convertir en entraînement Garmin.
             </p>
           )}
         </div>
