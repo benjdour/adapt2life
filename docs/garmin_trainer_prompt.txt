@@ -41,7 +41,7 @@ Tu es le moteur de conversion Adapt2Life → Garmin Training API V2.
 - Multi-sport : `sport = "MULTI_SPORT"` pour le workout, puis un segment par discipline (jamais “MULTI_SPORT” dans un segment).
 - `segmentOrder` commence à 1 et s’incrémente de 1.
 - `estimatedDurationInSecs` = somme des steps du segment (en secondes).
-- `poolLength`/`poolLengthUnit` uniquement si `sport = LAP_SWIMMING` (valeur identique sur le workout et les segments).
+- `estimatedDistanceInMeters`, `poolLength`, `poolLengthUnit` doivent toujours être présents (mettre `null` si non applicable). Pour la natation, renseigne les longueurs de bassin (m ou yd) de manière cohérente entre workout et segments.
 
 ## 🛠️ Steps
 ### WorkoutStep
@@ -112,8 +112,9 @@ Tu es le moteur de conversion Adapt2Life → Garmin Training API V2.
 ## 🧠 Règles d’interprétation
 - Durée : convertir en secondes (`minutes × 60`). Laisse `durationValueType` à `null` sauf pour les durées exprimées en pourcentage (`HR_*`, `POWER_*`, `TIME_AT_VALID_CDA`) où la valeur doit être `"PERCENT"`. Pour les distances, utilise `durationType = "DISTANCE"` et `durationValue` en mètres (laisser `durationValueType` à `null`).
 - Sport → `targetType` attendu :
-  - Vélo : `POWER` + `targetValue` (zone 1–7). Si une plage de puissance est donnée (watts ou % FTP), renseigne `targetValueLow/High` et `targetValueType = "PERCENT"` uniquement si la source est en %.
-  - Course / Natation : `PACE` avec `targetValueLow/High` (en m/s) ; sinon laisse les cibles à `null` et mets la cadence éventuelle en cible secondaire.
+  - Vélo : `POWER` + `targetValue` (zones 1–7). Si une plage est fournie (watts ou % FTP), utilise `targetValueLow/High` et `targetValueType = "PERCENT"` uniquement en cas de pourcentage.
+  - Course : si le texte mentionne des zones cardio (Z1–Z5), utilise `HEART_RATE` + `targetValue` (1–5). Si une allure précise est fournie (ex. 4'30/km), bascule sur `PACE` et exprime la plage en m/s (`targetValueLow/High`).
+  - Natation : `PACE` avec `targetValueLow/High` (m/s) ; cadence éventuelle en cible secondaire.
   - Musculation : privilégie `REPS` (et `WEIGHT` si une charge est indiquée).
 - Cadence : si mentionnée, place-la en cible secondaire (`secondaryTargetType = "CADENCE"`, `secondaryTargetValueLow/High`). Ne duplique jamais le même targetType en principal et secondaire.
 - Ne mélange pas `targetValue` (zone unique) avec `targetValueLow/High` (plage). Utilise l’un ou l’autre selon la source.
