@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { TRAINING_LOADING_MESSAGES } from "@/constants/loadingMessages";
-import { splitPlanMarkdown } from "@/lib/utils/structuredPlan";
 import type { GarminTrainerWorkout } from "@/schemas/garminTrainer.schema";
 import type { GeneratedPlanPayload } from "@/components/TrainingPlanGeneratorForm";
 
@@ -64,43 +63,11 @@ export function GarminTrainerGenerator({ sourcePlan }: GarminTrainerGeneratorPro
     };
   }, [isLoading]);
 
-  const structuredPlanDisplay = useMemo(() => {
-    if (!sourcePlan) {
-      return null;
-    }
-
-    const explicitJson = sourcePlan.structuredPlanJson;
-    const extractedJson =
-      explicitJson ??
-      (() => {
-        const parsed = splitPlanMarkdown(sourcePlan.rawPlan || sourcePlan.plan);
-        return parsed.structuredPlanJson;
-      })();
-
-    if (!extractedJson) {
-      return null;
-    }
-
-    try {
-      const parsed = JSON.parse(extractedJson);
-      return JSON.stringify(parsed, null, 2);
-    } catch {
-      return extractedJson;
-    }
-  }, [sourcePlan]);
-
   const combinedMarkdown = useMemo(() => {
     if (!sourcePlan) {
       return null;
     }
-    if (sourcePlan.rawPlan) {
-      return sourcePlan.rawPlan;
-    }
-    if (sourcePlan.structuredPlanJson) {
-      const human = sourcePlan.plan.trim();
-      return `${human}\n\n### 📦 Plan structuré (JSON)\n\`\`\`json\n${sourcePlan.structuredPlanJson}\n\`\`\``;
-    }
-    return sourcePlan.plan;
+    return sourcePlan.rawPlan ?? sourcePlan.plan;
   }, [sourcePlan]);
 
   const handleGenerateWorkout = async () => {
@@ -235,13 +202,13 @@ export function GarminTrainerGenerator({ sourcePlan }: GarminTrainerGeneratorPro
       <div className="space-y-4">
         <div className="rounded-xl border border-white/15 bg-black/30 p-4 text-left text-sm text-white">
           <p className="text-sm font-semibold text-emerald-200">Plan utilisé pour la conversion</p>
-          {structuredPlanDisplay ? (
-            <pre className="mt-3 max-h-60 overflow-auto whitespace-pre-wrap break-words font-mono text-xs leading-relaxed text-emerald-100/80">
-              {structuredPlanDisplay}
+          {combinedMarkdown ? (
+            <pre className="mt-3 max-h-60 overflow-auto whitespace-pre-wrap break-words rounded-md border border-white/10 bg-black/20 p-3 font-mono text-xs leading-relaxed text-emerald-100/80">
+              {combinedMarkdown}
             </pre>
           ) : (
             <p className="mt-2 text-xs text-white/60">
-              Génère un plan via le formulaire ci-dessus pour obtenir le JSON structuré à convertir en entraînement Garmin.
+              Génère un plan via le formulaire ci-dessus pour alimenter la conversion Garmin.
             </p>
           )}
         </div>
