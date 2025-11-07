@@ -58,21 +58,21 @@ Tu es le moteur de conversion Adapt2Life → Garmin Training API V2.
   "description": "8 minutes en zone 3",
   "durationType": "TIME",
   "durationValue": 480,
-  "durationValueType": "SECOND",
+  "durationValueType": null,
   "equipmentType": null,
   "exerciseCategory": null,
   "exerciseName": null,
   "weightValue": null,
   "weightDisplayUnit": null,
-  "targetType": "POWER_ZONE",
+  "targetType": "POWER",
   "targetValue": 3,
   "targetValueLow": null,
   "targetValueHigh": null,
   "targetValueType": null,
-  "secondaryTargetType": null,
+  "secondaryTargetType": "CADENCE",
   "secondaryTargetValue": null,
-  "secondaryTargetValueLow": null,
-  "secondaryTargetValueHigh": null,
+  "secondaryTargetValueLow": 90,
+  "secondaryTargetValueHigh": 95,
   "secondaryTargetValueType": null,
   "strokeType": null,
   "drillType": null
@@ -110,13 +110,14 @@ Tu es le moteur de conversion Adapt2Life → Garmin Training API V2.
 - Les `WorkoutRepeatStep` n’ont **jamais** de durée propre : laisse `durationType`, `durationValue`, `durationValueType`, `target*`, `secondaryTarget*` à `null` et fais porter les durées/cibles par leurs steps enfants.
 
 ## 🧠 Règles d’interprétation
-- Durée : convertir en secondes (`min × 60`), `durationValueType = "SECOND"` ; pour la distance, `durationType = "DISTANCE"` et `durationValueType = "METER"`.
-- Sport → `targetType` par défaut :
-  - Vélo : `POWER_ZONE`
-  - Course/Natation : `PACE_ZONE`
-  - Musculation : utiliser `REPS` (et `WEIGHT` si charge indiquée).
+- Durée : convertir en secondes (`minutes × 60`). Laisse `durationValueType` à `null` sauf pour les durées exprimées en pourcentage (`HR_*`, `POWER_*`, `TIME_AT_VALID_CDA`) où la valeur doit être `"PERCENT"`. Pour les distances, utilise `durationType = "DISTANCE"` et `durationValue` en mètres (laisser `durationValueType` à `null`).
+- Sport → `targetType` attendu :
+  - Vélo : `POWER` + `targetValue` (zone 1–7). Si une plage de puissance est donnée (watts ou % FTP), renseigne `targetValueLow/High` et `targetValueType = "PERCENT"` uniquement si la source est en %.
+  - Course / Natation : `PACE` avec `targetValueLow/High` (en m/s) ; sinon laisse les cibles à `null` et mets la cadence éventuelle en cible secondaire.
+  - Musculation : privilégie `REPS` (et `WEIGHT` si une charge est indiquée).
+- Cadence : si mentionnée, place-la en cible secondaire (`secondaryTargetType = "CADENCE"`, `secondaryTargetValueLow/High`). Ne duplique jamais le même targetType en principal et secondaire.
+- Ne mélange pas `targetValue` (zone unique) avec `targetValueLow/High` (plage). Utilise l’un ou l’autre selon la source.
 - Zones : extrais les chiffres (ex. “Zone 3” → 3).
-- Cadence : si mentionnée, renseigne-la dans `secondaryTarget*` (cadence = second target).
 - Intensités : `WARMUP`, `ACTIVE`, `REST`, `COOLDOWN`, `RECOVERY` (pas de “MAIN”).
 - Description : texte bref ≤ 512 caractères, synthèse de l’action.
 - `workoutName` : reprendre le titre sans emoji (ex. “Entraînement : Bike S05” → “Bike S05”).
