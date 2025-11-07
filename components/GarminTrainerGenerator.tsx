@@ -27,6 +27,7 @@ export function GarminTrainerGenerator({ sourcePlan }: GarminTrainerGeneratorPro
   const [pushSuccess, setPushSuccess] = useState<string | null>(null);
   const [pushDetails, setPushDetails] = useState<string | null>(null);
   const [loadingMessage, setLoadingMessage] = useState<string>(TRAINING_LOADING_MESSAGES[0]);
+  const [conversionInput, setConversionInput] = useState<string>("");
 
   useEffect(() => {
     setError(null);
@@ -70,8 +71,16 @@ export function GarminTrainerGenerator({ sourcePlan }: GarminTrainerGeneratorPro
     return sourcePlan.rawPlan ?? sourcePlan.plan;
   }, [sourcePlan]);
 
+  useEffect(() => {
+    if (!combinedMarkdown) {
+      setConversionInput("");
+      return;
+    }
+    setConversionInput(combinedMarkdown.trim());
+  }, [combinedMarkdown]);
+
   const handleGenerateWorkout = async () => {
-    const trimmedExample = combinedMarkdown?.trim();
+    const trimmedExample = conversionInput.trim();
     if (!trimmedExample) {
       setError("Génère d’abord un plan d’entraînement ci-dessus pour alimenter la conversion Garmin.");
       return;
@@ -202,21 +211,21 @@ export function GarminTrainerGenerator({ sourcePlan }: GarminTrainerGeneratorPro
       <div className="space-y-4">
         <div className="rounded-xl border border-white/15 bg-black/30 p-4 text-left text-sm text-white">
           <p className="text-sm font-semibold text-emerald-200">Plan utilisé pour la conversion</p>
-          {combinedMarkdown ? (
-            <pre className="mt-3 max-h-60 overflow-auto whitespace-pre-wrap break-words rounded-md border border-white/10 bg-black/20 p-3 font-mono text-xs leading-relaxed text-emerald-100/80">
-              {combinedMarkdown}
-            </pre>
-          ) : (
-            <p className="mt-2 text-xs text-white/60">
-              Génère un plan via le formulaire ci-dessus pour alimenter la conversion Garmin.
-            </p>
-          )}
+          <p className="mt-2 text-xs text-white/60">
+            Le plan généré est copié automatiquement ici. Tu peux l’ajuster avant de lancer la conversion Garmin.
+          </p>
+          <textarea
+            value={conversionInput}
+            onChange={(event) => setConversionInput(event.target.value)}
+            placeholder="Colle ou édite ici le plan à convertir"
+            className="mt-3 w-full max-h-60 min-h-[160px] resize-y rounded-md border border-white/15 bg-black/20 p-3 font-mono text-xs leading-relaxed text-emerald-100/80 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-300/40"
+          />
         </div>
 
         <button
           type="button"
           onClick={handleGenerateWorkout}
-          disabled={isLoading || !combinedMarkdown?.trim()}
+          disabled={isLoading || conversionInput.trim().length === 0}
           className="inline-flex h-11 w-full items-center justify-center rounded-md border border-emerald-400/60 bg-emerald-400/20 px-6 font-semibold text-white transition hover:bg-emerald-400/30 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isLoading ? loadingMessage : "Convertir le plan en JSON Garmin"}
