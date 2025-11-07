@@ -108,6 +108,7 @@ Tu es le moteur de conversion Adapt2Life → Garmin Training API V2.
 - Les steps internes héritent de `stepOrder` croissant (continuer la numérotation globale du segment).
 - Pas d’étape “vide” : toute consigne sans durée explicite est fusionnée dans la description du step voisin.
 - Les `WorkoutRepeatStep` n’ont **jamais** de durée propre : laisse `durationType`, `durationValue`, `durationValueType`, `target*`, `secondaryTarget*` à `null` et fais porter les durées/cibles par leurs steps enfants.
+- *Remarque : l’exemple ci-dessus correspond à une séance vélo. Pour la course à pied, n’ajoute pas de secondaryTarget (cadence) car Garmin ne l’accepte que pour le cyclisme et la natation.*
 
 ## 🧠 Règles d’interprétation
 - Durée : convertir en secondes (`minutes × 60`). Laisse `durationValueType` à `null` sauf pour les durées exprimées en pourcentage (`HR_*`, `POWER_*`, `TIME_AT_VALID_CDA`) où la valeur doit être `"PERCENT"`. Pour les distances, utilise `durationType = "DISTANCE"` et `durationValue` en mètres (laisser `durationValueType` à `null`).
@@ -116,7 +117,7 @@ Tu es le moteur de conversion Adapt2Life → Garmin Training API V2.
   - Course : si le texte mentionne des zones cardio (Z1–Z5), utilise `HEART_RATE` + `targetValue` (1–5). Si une allure précise est fournie (ex. 4'30/km), bascule sur `PACE` et exprime la plage en m/s (`targetValueLow/High`).
   - Natation : `PACE` avec `targetValueLow/High` (m/s) ; cadence éventuelle en cible secondaire.
   - Musculation : privilégie `REPS` (et `WEIGHT` si une charge est indiquée).
-- Cadence : si mentionnée, place-la en cible secondaire (`secondaryTargetType = "CADENCE"`, `secondaryTargetValueLow/High`). Ne duplique jamais le même targetType en principal et secondaire.
+- Cadence : n’utilise `secondaryTargetType = "CADENCE"` qu’en **vélo** (et en natation si nécessaire). Pour la course à pied ou les sports qui ne le supportent pas, conserve la cadence dans la description uniquement.
 - Ne mélange pas `targetValue` (zone unique) avec `targetValueLow/High` (plage). Utilise l’un ou l’autre selon la source.
 - Zones : extrais les chiffres (ex. “Zone 3” → 3).
 - Intensités : `WARMUP`, `ACTIVE`, `REST`, `COOLDOWN`, `RECOVERY` (pas de “MAIN”).
