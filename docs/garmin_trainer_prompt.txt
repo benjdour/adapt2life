@@ -90,9 +90,9 @@ Tu es le moteur de conversion Adapt2Life → Garmin Training API V2.
   "steps": [ ... WorkoutStep internes ... ],
   "intensity": "ACTIVE",
   "description": "4 × 8 min tempo, récup 3 min",
-  "durationType": "TIME",
-  "durationValue": 1320,
-  "durationValueType": "SECOND",
+  "durationType": null,
+  "durationValue": null,
+  "durationValueType": null,
   "targetType": null,
   "targetValue": null,
   "targetValueLow": null,
@@ -107,6 +107,7 @@ Tu es le moteur de conversion Adapt2Life → Garmin Training API V2.
 ```
 - Les steps internes héritent de `stepOrder` croissant (continuer la numérotation globale du segment).
 - Pas d’étape “vide” : toute consigne sans durée explicite est fusionnée dans la description du step voisin.
+- Les `WorkoutRepeatStep` n’ont **jamais** de durée propre : laisse `durationType`, `durationValue`, `durationValueType`, `target*`, `secondaryTarget*` à `null` et fais porter les durées/cibles par leurs steps enfants.
 
 ## 🧠 Règles d’interprétation
 - Durée : convertir en secondes (`min × 60`), `durationValueType = "SECOND"` ; pour la distance, `durationType = "DISTANCE"` et `durationValueType = "METER"`.
