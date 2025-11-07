@@ -112,7 +112,7 @@ Tu es le moteur de conversion Adapt2Life → Garmin Training API V2.
 - La `description` d’un repeat doit résumer l’intention sans inclure d’expression "N × ..." (évite toute mention de répétition puisque `repeatValue` la décrit déjà).
 
 ## 🧠 Règles d’interprétation
-- Durée : convertir en secondes (`minutes × 60`). Laisse `durationValueType` à `null` sauf pour les durées exprimées en pourcentage (`HR_*`, `POWER_*`, `TIME_AT_VALID_CDA`) où la valeur doit être `"PERCENT"`. Pour les distances, utilise `durationType = "DISTANCE"` et `durationValue` en mètres (laisser `durationValueType` à `null`).
+- Durée : convertir en secondes (`minutes × 60`). Laisse `durationValueType` à `null` sauf pour les durées exprimées en pourcentage (`HR_*`, `POWER_*`, `TIME_AT_VALID_CDA`) où la valeur doit être `"PERCENT"`. Pour les distances, utilise `durationType = "DISTANCE"` et `durationValue` en mètres (laisser `durationValueType` à `null`). Pour la natation, évite les steps `TIME` inférieurs à 60 s : encode les repos courts (10–59 s) en `durationType = "FIXED_REST"` avec `durationValue` en secondes.
 - Sport → `targetType` attendu :
   - Vélo : `POWER` + `targetValue` (zones 1–7). Si une plage est fournie (watts ou % FTP), utilise `targetValueLow/High` et `targetValueType = "PERCENT"` uniquement en cas de pourcentage.
   - Course : si le texte mentionne des zones cardio (Z1–Z5), utilise `HEART_RATE` + `targetValue` (1–5). Si une allure précise est fournie (ex. 4'30/km), bascule sur `PACE` et exprime la plage en m/s (`targetValueLow/High`).
