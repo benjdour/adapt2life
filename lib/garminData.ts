@@ -1371,7 +1371,6 @@ export const fetchGarminData = async (localUserId: string | number): Promise<Gar
   }
   const lengthConfigurationDisplay =
     lengthConfigurationParts.length > 0 ? lengthConfigurationParts.join(" · ") : null;
-
   const sections: GarminSection[] = [
     {
       title: "🧠 RÉCUPÉRATION & ÉNERGIE",

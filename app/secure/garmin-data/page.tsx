@@ -45,7 +45,7 @@ export default async function GarminDataPage() {
         <p className="text-sm uppercase tracking-wide text-emerald-400">Garmin</p>
         <h1 className="text-3xl font-semibold">Données synchronisées</h1>
         <p className="max-w-2xl text-sm text-white/70">
-          Cette page présente les métriques clés envoyées par Garmin Connect via les webhooks Push.
+          Cette page présente les métriques clés envoyées par Garmin Connect.
         </p>
       </header>
 
@@ -67,14 +67,7 @@ export default async function GarminDataPage() {
         >
           Retour à l’accueil
         </Link>
-        <Link
-          href="/integrations/garmin"
-          className="inline-flex items-center justify-center rounded-md border border-emerald-500/60 bg-emerald-500/10 px-5 py-2.5 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-500/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300"
-        >
-          Gérer l’intégration Garmin
-        </Link>
       </div>
     </div>
   );
 }
-
