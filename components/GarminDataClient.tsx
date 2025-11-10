@@ -17,15 +17,6 @@ const renderMetricValue = (value: string | null) => {
   return <span className="text-sm text-yellow-200">En attente de synchro</span>;
 };
 
-const displayDate = (isoString: string | null) => {
-  if (!isoString) return "—";
-  try {
-    return new Date(isoString).toLocaleString("fr-FR", { hour12: false });
-  } catch {
-    return isoString;
-  }
-};
-
 const GarminDataClient = ({ initialData }: GarminDataClientProps) => {
   const [data, setData] = useState<GarminDataBundle>(initialData);
 
@@ -66,36 +57,12 @@ const GarminDataClient = ({ initialData }: GarminDataClientProps) => {
     <>
       <TrainingScoreGauge data={data.trainingGaugeData} />
 
-      {data.connection ? (
-        <section className="space-y-4 rounded-2xl border border-white/10 bg-white/5 p-6 shadow-lg backdrop-blur">
-          <div>
-            <p className="text-sm font-medium text-white/90">Garmin userId</p>
-            <p className="font-mono text-base text-emerald-200">{data.connection.garminUserId ?? "—"}</p>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <span className="rounded-md border border-white/10 bg-white/5 p-4 text-sm text-white/70">
-              Dernière mise à jour : <strong className="text-white">{displayDate(data.connection.updatedAt)}</strong>
-            </span>
-            <span className="rounded-md border border-white/10 bg-white/5 p-4 text-sm text-white/70">
-              Token valide jusqu&apos;au :{" "}
-              <strong className="text-white">{displayDate(data.connection.accessTokenExpiresAt)}</strong>
-            </span>
-          </div>
-          <div className="rounded-md border border-emerald-400/30 bg-emerald-400/10 p-4 text-sm text-emerald-100">
-            <p className="font-semibold">Sources Garmin Health API</p>
-            <p className="text-emerald-100/80">
-              Les métriques ci-dessous proviennent des endpoints documentés dans <code>docs/Garmin_Health_API_1.2.2.md</code> et{" "}
-              <code>docs/Activity_API-1.2.3_0.md</code>. Les cartes marquées &laquo; En attente de synchro &raquo; indiquent les endpoints
-              à activer ou consommer.
-            </p>
-          </div>
-        </section>
-      ) : (
+      {!data.connection ? (
         <section className="space-y-2 rounded-2xl border border-white/10 bg-white/5 p-6 shadow-lg backdrop-blur">
           <p className="text-sm font-medium text-white">Aucune connexion Garmin</p>
           <p className="text-sm text-white/70">Relie ton compte via la page d’intégration pour voir les données apparaître ici.</p>
         </section>
-      )}
+      ) : null}
 
       {data.connection ? (
         <div className="space-y-8">
@@ -122,4 +89,3 @@ const GarminDataClient = ({ initialData }: GarminDataClientProps) => {
 };
 
 export default GarminDataClient;
-

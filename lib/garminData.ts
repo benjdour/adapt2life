@@ -336,117 +336,6 @@ const prettifyLabel = (value: string | null | undefined): string | null => {
     .join(" ");
 };
 
-const formatDateOnly = (value: string | number | null | undefined): string | null => {
-  if (value === null || value === undefined) return null;
-  if (typeof value === "number" && Number.isFinite(value)) {
-    try {
-      return new Date(value * 1000).toLocaleDateString("fr-FR");
-    } catch {
-      return value.toString();
-    }
-  }
-  if (typeof value === "string") {
-    const trimmed = value.trim();
-    if (trimmed.length === 0) return null;
-    if (/^\d+$/.test(trimmed)) {
-      const numeric = Number(trimmed);
-      if (Number.isFinite(numeric)) {
-        return formatDateOnly(numeric);
-      }
-    }
-    try {
-      const parsed = new Date(trimmed);
-      if (!Number.isNaN(parsed.getTime())) {
-        return parsed.toLocaleDateString("fr-FR");
-      }
-    } catch {
-      // Fall back to original string
-    }
-    return trimmed;
-  }
-  return null;
-};
-
-const formatDateRange = (
-  start: string | number | null | undefined,
-  end: string | number | null | undefined,
-): string | null => {
-  const startDisplay = formatDateOnly(start ?? null);
-  const endDisplay = formatDateOnly(end ?? null);
-  if (startDisplay && endDisplay) {
-    return `${startDisplay} → ${endDisplay}`;
-  }
-  return startDisplay ?? endDisplay ?? null;
-};
-
-const formatSymptomList = (value: unknown): string | null => {
-  const makeEntryLabel = (entry: unknown): string | null => {
-    if (entry === null || entry === undefined) return null;
-    if (typeof entry === "string") {
-      const trimmed = entry.trim();
-      if (trimmed.length === 0) return null;
-      return prettifyLabel(trimmed) ?? trimmed;
-    }
-    if (typeof entry === "number" && Number.isFinite(entry)) {
-      return entry.toString();
-    }
-    if (Array.isArray(entry)) {
-      const labels = entry.map(makeEntryLabel).filter((item): item is string => Boolean(item));
-      return labels.length > 0 ? labels.join(" · ") : null;
-    }
-    if (typeof entry === "object") {
-      const record = entry as Record<string, unknown>;
-      const primary =
-        toTrimmedString(record.label) ??
-        toTrimmedString(record.name) ??
-        toTrimmedString(record.description) ??
-        toTrimmedString(record.type) ??
-        toTrimmedString(record.category);
-      const detail =
-        toTrimmedString(record.value) ??
-        toTrimmedString(record.severity) ??
-        toTrimmedString(record.level) ??
-        toTrimmedString(record.state);
-      const primaryLabel = prettifyLabel(primary ?? undefined);
-      const detailLabel = prettifyLabel(detail ?? undefined);
-      if (primaryLabel && detailLabel) {
-        return `${primaryLabel}: ${detailLabel}`;
-      }
-      if (primaryLabel || detailLabel) {
-        return primaryLabel ?? detailLabel ?? null;
-      }
-      const nested = Object.entries(record)
-        .map(([key, val]) => {
-          const keyLabel = prettifyLabel(key);
-          const valLabel = makeEntryLabel(val);
-          if (keyLabel && valLabel) {
-            return `${keyLabel}: ${valLabel}`;
-          }
-          return valLabel ?? keyLabel ?? null;
-        })
-        .filter((item): item is string => Boolean(item));
-      if (nested.length > 0) {
-        return nested.join(" · ");
-      }
-    }
-    return null;
-  };
-
-  if (value === null || value === undefined) {
-    return null;
-  }
-
-  if (Array.isArray(value)) {
-    const labels = value.map(makeEntryLabel).filter((item): item is string => Boolean(item));
-    if (labels.length > 0) {
-      return labels.slice(0, 6).join(" · ");
-    }
-    return null;
-  }
-
-  return makeEntryLabel(value);
-};
-
 const computeStressDurations = (
   map: unknown,
 ): { low: string | null; moderate: string | null; high: string | null } | null => {
@@ -1431,49 +1320,7 @@ export const fetchGarminData = async (localUserId: string | number): Promise<Gar
     [womenHealthSummary],
     ["currentPhaseType", "phaseType", "cyclePhaseType", "cycleSummary.currentPhaseType"],
   );
-  const cyclePhaseRaw = pickString(
-    [womenHealthSummary],
-    ["cyclePhase", "currentPhase", "phase", "cycleStatus", "cycleState", "phaseName", "cycleSummary.phase"],
-  );
-  const trackingTypeRaw = pickString([womenHealthSummary], ["trackingType", "trackingMode", "mode"]);
-  const flowLevelRaw = pickString(
-    [womenHealthSummary],
-    ["flowLevel", "currentFlow", "flow", "periodFlow", "symptoms.flow", "cycleSummary.flowLevel"],
-  );
-  const contraceptionRaw = pickString(
-    [womenHealthSummary],
-    ["contraceptionType", "birthControl", "birthControlType"],
-  );
-  const pregnancyWeek = pickNumber(
-    [womenHealthSummary],
-    ["pregnancyWeek", "gestationalWeek", "pregnancySummary.week"],
-  );
-  const pregnancyTrimester = pickNumber(
-    [womenHealthSummary],
-    ["pregnancyTrimester", "gestationalTrimester", "pregnancySummary.trimester"],
-  );
-  const cyclePhaseLabel = prettifyLabel(cyclePhaseRaw);
-  const currentPhaseLabel = prettifyLabel(currentPhaseTypeRaw) ?? cyclePhaseLabel;
-  const currentPhaseTypeDisplay = currentPhaseLabel ?? currentPhaseTypeRaw ?? null;
-  const trackingTypeLabel = prettifyLabel(trackingTypeRaw);
-  const flowStatusLabel = flowLevelRaw ? `Flux ${prettifyLabel(flowLevelRaw) ?? flowLevelRaw}` : null;
-  const contraceptionLabel = prettifyLabel(contraceptionRaw);
-  const pregnancyParts: string[] = [];
-  if (pregnancyWeek !== null) {
-    pregnancyParts.push(`Semaine ${Math.round(pregnancyWeek)}`);
-  }
-  if (pregnancyTrimester !== null) {
-    pregnancyParts.push(`Trimestre ${Math.round(pregnancyTrimester)}`);
-  }
-  const pregnancyDisplay = pregnancyParts.length > 0 ? pregnancyParts.join(" · ") : null;
-  const cycleStatusParts: string[] = [];
-  if (currentPhaseLabel) cycleStatusParts.push(currentPhaseLabel);
-  if (trackingTypeLabel && trackingTypeLabel !== currentPhaseLabel) cycleStatusParts.push(trackingTypeLabel);
-  if (cyclePhaseLabel && cyclePhaseLabel !== currentPhaseLabel) cycleStatusParts.push(cyclePhaseLabel);
-  if (flowStatusLabel) cycleStatusParts.push(flowStatusLabel);
-  if (pregnancyDisplay) cycleStatusParts.push(pregnancyDisplay);
-  if (contraceptionLabel) cycleStatusParts.push(`Contraception: ${contraceptionLabel}`);
-  const cycleStatusDisplay = cycleStatusParts.length > 0 ? cycleStatusParts.join(" · ") : null;
+  const currentPhaseTypeDisplay = prettifyLabel(currentPhaseTypeRaw) ?? currentPhaseTypeRaw ?? null;
 
   const dayInCycleValue = pickNumber(
     [womenHealthSummary],
@@ -1495,27 +1342,17 @@ export const fetchGarminData = async (localUserId: string | number): Promise<Gar
       "cycleSummary.predictedCycleLength",
     ],
   );
-  const averagePeriodLength = pickNumber(
-    [womenHealthSummary],
-    ["periodLength", "cycleSummary.periodLength", "periodLengthDays", "averagePeriodLength", "avgPeriodLength"],
-  );
-  const cycleDurationSegments: string[] = [];
+  const cycleLengthSegments: string[] = [];
   if (cycleLengthValue !== null) {
-    cycleDurationSegments.push(`Cycle observé ${Math.round(cycleLengthValue)} j`);
+    cycleLengthSegments.push(`Observé ${Math.round(cycleLengthValue)} j`);
   }
-  if (predictedCycleLengthValue !== null) {
-    const predictedDays = Math.round(predictedCycleLengthValue);
-    const labelPrefix = cycleLengthValue !== null ? "Cycle prévu" : "Cycle estimé";
-    if (cycleLengthValue === null || predictedDays !== Math.round(cycleLengthValue)) {
-      cycleDurationSegments.push(`${labelPrefix} ${predictedDays} j`);
-    } else if (cycleLengthValue === null) {
-      cycleDurationSegments.push(`${labelPrefix} ${predictedDays} j`);
-    }
+  if (
+    predictedCycleLengthValue !== null &&
+    (cycleLengthValue === null || Math.round(predictedCycleLengthValue) !== Math.round(cycleLengthValue))
+  ) {
+    cycleLengthSegments.push(`Prévu ${Math.round(predictedCycleLengthValue)} j`);
   }
-  if (averagePeriodLength !== null) {
-    cycleDurationSegments.push(`Règles ${Math.round(averagePeriodLength)} j`);
-  }
-  const cycleDurationDisplay = cycleDurationSegments.length > 0 ? cycleDurationSegments.join(" · ") : null;
+  const cycleLengthDisplay = cycleLengthSegments.length > 0 ? cycleLengthSegments.join(" · ") : null;
 
   const hasSpecifiedCycleLength = pickBoolean(
     [womenHealthSummary],
@@ -1527,208 +1364,13 @@ export const fetchGarminData = async (localUserId: string | number): Promise<Gar
   );
   const lengthConfigurationParts: string[] = [];
   if (hasSpecifiedCycleLength !== null) {
-    lengthConfigurationParts.push(`Cycle perso: ${hasSpecifiedCycleLength ? "Oui" : "Non"}`);
+    lengthConfigurationParts.push(`Cycle personnalisé: ${hasSpecifiedCycleLength ? "Oui" : "Non"}`);
   }
   if (hasSpecifiedPeriodLength !== null) {
-    lengthConfigurationParts.push(`Règles perso: ${hasSpecifiedPeriodLength ? "Oui" : "Non"}`);
+    lengthConfigurationParts.push(`Règles personnalisées: ${hasSpecifiedPeriodLength ? "Oui" : "Non"}`);
   }
   const lengthConfigurationDisplay =
     lengthConfigurationParts.length > 0 ? lengthConfigurationParts.join(" · ") : null;
-
-  const periodStartString = pickString(
-    [womenHealthSummary],
-    [
-      "periodStartDate",
-      "periodStart",
-      "currentPeriodStart",
-      "menstruationStartDate",
-      "mensesStartDate",
-      "cycleStartDate",
-      "currentPeriod.startDate",
-      "cycleSummary.periodStartDate",
-    ],
-  );
-  const periodStartSeconds = pickNumber(
-    [womenHealthSummary],
-    [
-      "periodStartInSeconds",
-      "periodStartTimestamp",
-      "currentPeriod.startTimeInSeconds",
-      "menstruationStartTimeInSeconds",
-      "cycleSummary.periodStartInSeconds",
-    ],
-  );
-  const periodEndString = pickString(
-    [womenHealthSummary],
-    [
-      "periodEndDate",
-      "periodEnd",
-      "currentPeriodEnd",
-      "menstruationEndDate",
-      "mensesEndDate",
-      "cycleEndDate",
-      "currentPeriod.endDate",
-      "cycleSummary.periodEndDate",
-    ],
-  );
-  const periodEndSeconds = pickNumber(
-    [womenHealthSummary],
-    [
-      "periodEndInSeconds",
-      "periodEndTimestamp",
-      "currentPeriod.endTimeInSeconds",
-      "menstruationEndTimeInSeconds",
-      "cycleSummary.periodEndInSeconds",
-    ],
-  );
-  const periodRangeDisplay = formatDateRange(
-    periodStartString ?? periodStartSeconds,
-    periodEndString ?? periodEndSeconds,
-  );
-  const periodStatusRaw = pickString(
-    [womenHealthSummary],
-    ["periodStatus", "menstruationStatus", "currentPeriod.status"],
-  );
-  const periodStatusDisplay = prettifyLabel(periodStatusRaw);
-  const currentPeriodParts: string[] = [];
-  if (periodRangeDisplay) currentPeriodParts.push(periodRangeDisplay);
-  if (periodStatusDisplay) currentPeriodParts.push(periodStatusDisplay);
-  const currentPeriodDisplay = currentPeriodParts.length > 0 ? currentPeriodParts.join(" · ") : null;
-
-  const nextPeriodStartString = pickString(
-    [womenHealthSummary],
-    [
-      "nextPeriodStartDate",
-      "nextPredictedPeriodStartDate",
-      "predictedPeriodStartDate",
-      "nextPeriodStart",
-      "predictedPeriodStart",
-      "cycleSummary.nextPeriodStartDate",
-      "cycleSummary.predictedPeriodStartDate",
-    ],
-  );
-  const nextPeriodStartSeconds = pickNumber(
-    [womenHealthSummary],
-    [
-      "nextPeriodStartInSeconds",
-      "nextPredictedPeriodStartInSeconds",
-      "predictedPeriodStartInSeconds",
-      "cycleSummary.nextPeriodStartInSeconds",
-      "cycleSummary.predictedPeriodStartInSeconds",
-    ],
-  );
-  const nextPeriodEndString = pickString(
-    [womenHealthSummary],
-    [
-      "nextPeriodEndDate",
-      "nextPredictedPeriodEndDate",
-      "predictedPeriodEndDate",
-      "nextPeriodEnd",
-      "predictedPeriodEnd",
-      "cycleSummary.nextPeriodEndDate",
-      "cycleSummary.predictedPeriodEndDate",
-    ],
-  );
-  const nextPeriodEndSeconds = pickNumber(
-    [womenHealthSummary],
-    [
-      "nextPeriodEndInSeconds",
-      "nextPredictedPeriodEndInSeconds",
-      "predictedPeriodEndInSeconds",
-      "cycleSummary.nextPeriodEndInSeconds",
-      "cycleSummary.predictedPeriodEndInSeconds",
-    ],
-  );
-  const nextPeriodRangeDisplay = formatDateRange(
-    nextPeriodStartString ?? nextPeriodStartSeconds,
-    nextPeriodEndString ?? nextPeriodEndSeconds,
-  );
-  const nextPeriodDisplay =
-    nextPeriodRangeDisplay ?? formatDateOnly(nextPeriodStartString ?? nextPeriodStartSeconds) ?? null;
-
-  const fertilityStartString = pickString(
-    [womenHealthSummary],
-    [
-      "fertilityWindowStartDate",
-      "fertilityStartDate",
-      "nextFertilityStartDate",
-      "predictedFertilityStartDate",
-      "fertileWindowStartDate",
-      "cycleSummary.fertilityWindowStartDate",
-    ],
-  );
-  const fertilityStartSeconds = pickNumber(
-    [womenHealthSummary],
-    [
-      "fertilityWindowStartInSeconds",
-      "fertilityStartInSeconds",
-      "nextFertilityStartInSeconds",
-      "predictedFertilityStartInSeconds",
-      "cycleSummary.fertilityWindowStartInSeconds",
-    ],
-  );
-  const fertilityEndString = pickString(
-    [womenHealthSummary],
-    [
-      "fertilityWindowEndDate",
-      "fertilityEndDate",
-      "nextFertilityEndDate",
-      "predictedFertilityEndDate",
-      "fertileWindowEndDate",
-      "cycleSummary.fertilityWindowEndDate",
-    ],
-  );
-  const fertilityEndSeconds = pickNumber(
-    [womenHealthSummary],
-    [
-      "fertilityWindowEndInSeconds",
-      "fertilityEndInSeconds",
-      "nextFertilityEndInSeconds",
-      "predictedFertilityEndInSeconds",
-      "cycleSummary.fertilityWindowEndInSeconds",
-    ],
-  );
-  const fertilityWindowDisplay = formatDateRange(
-    fertilityStartString ?? fertilityStartSeconds,
-    fertilityEndString ?? fertilityEndSeconds,
-  );
-  const ovulationString = pickString(
-    [womenHealthSummary],
-    ["ovulationDate", "predictedOvulationDate", "nextOvulationDate", "cycleSummary.ovulationDate"],
-  );
-  const ovulationSeconds = pickNumber(
-    [womenHealthSummary],
-    ["ovulationInSeconds", "ovulationTimestamp", "predictedOvulationInSeconds", "cycleSummary.ovulationInSeconds"],
-  );
-  const ovulationDisplay = formatDateOnly(ovulationString ?? ovulationSeconds);
-  const fertilityParts: string[] = [];
-  if (fertilityWindowDisplay) fertilityParts.push(fertilityWindowDisplay);
-  if (ovulationDisplay) fertilityParts.push(`Ovulation ${ovulationDisplay}`);
-  const fertilitySummaryDisplay = fertilityParts.length > 0 ? fertilityParts.join(" · ") : null;
-
-  const rawSymptomsSource =
-    getPathValue(womenHealthSummary, "symptoms") ??
-    getPathValue(womenHealthSummary, "log.symptoms") ??
-    getPathValue(womenHealthSummary, "latestSymptoms") ??
-    undefined;
-  const moodRaw = pickString([womenHealthSummary], ["symptoms.mood", "mood"]);
-  const painRaw = pickString(
-    [womenHealthSummary],
-    ["symptoms.pain", "painLevel", "symptoms.cramps", "cramps", "symptoms.painLevel"],
-  );
-  const energyRaw = pickString([womenHealthSummary], ["symptoms.energy", "energyLevel"]);
-  const symptomsCandidates: string[] = [];
-  if (moodRaw) symptomsCandidates.push(`Humeur ${prettifyLabel(moodRaw) ?? moodRaw}`);
-  if (painRaw) symptomsCandidates.push(`Douleurs ${prettifyLabel(painRaw) ?? painRaw}`);
-  if (energyRaw) symptomsCandidates.push(`Énergie ${prettifyLabel(energyRaw) ?? energyRaw}`);
-  const formattedSymptoms = formatSymptomList(rawSymptomsSource);
-  const symptomsDisplay =
-    formattedSymptoms ?? (symptomsCandidates.length > 0 ? symptomsCandidates.join(" · ") : null);
-  const notesDisplay = pickString([womenHealthSummary], ["note", "notes", "log.note", "summary.note"]);
-  const observationsParts: string[] = [];
-  if (symptomsDisplay) observationsParts.push(symptomsDisplay);
-  if (notesDisplay) observationsParts.push(notesDisplay);
-  const observationsDisplay = observationsParts.length > 0 ? observationsParts.join(" · ") : null;
 
   const sections: GarminSection[] = [
     {
@@ -1889,44 +1531,19 @@ export const fetchGarminData = async (localUserId: string | number): Promise<Gar
           hint: "Women's Health API — currentPhaseType (docs/Womens_API_1.0.4.md).",
         },
         {
-          label: "Statut complémentaire",
-          value: cycleStatusDisplay,
-          hint: "Women's Health API — trackingType, cyclePhase & flowLevel.",
-        },
-        {
           label: "Jour dans le cycle",
           value: dayInCycleDisplay,
           hint: "Women's Health API — dayInCycle.",
         },
         {
           label: "Durée du cycle observée/prévue",
-          value: cycleDurationDisplay,
+          value: cycleLengthDisplay,
           hint: "Women's Health API — cycleLength & predictedCycleLength.",
         },
         {
           label: "Durées personnalisées fournies",
           value: lengthConfigurationDisplay,
           hint: "Women's Health API — hasSpecifiedCycleLength / hasSpecifiedPeriodLength.",
-        },
-        {
-          label: "Période actuelle",
-          value: currentPeriodDisplay,
-          hint: "Women's Health API — periodStart / periodEnd.",
-        },
-        {
-          label: "Prochaine période estimée",
-          value: nextPeriodDisplay,
-          hint: "Women's Health API — predictedPeriodStart / predictedPeriodEnd.",
-        },
-        {
-          label: "Fenêtre fertile estimée",
-          value: fertilitySummaryDisplay,
-          hint: "Women's Health API — fertilityWindow & ovulation.",
-        },
-        {
-          label: "Symptômes & notes",
-          value: observationsDisplay,
-          hint: "Women's Health API — symptoms / notes.",
         },
       ],
     },
