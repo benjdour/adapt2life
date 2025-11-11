@@ -24,6 +24,7 @@ export type GarminActivityHighlight = {
   id: string;
   type: string | null;
   startDisplay: string | null;
+  startTimestampMs: number | null;
   durationSeconds: number | null;
   durationDisplay: string | null;
   intensityDisplay: string | null;
@@ -431,6 +432,12 @@ const buildActivityHighlight = (
     detailsEvent?.createdAt?.toLocaleString("fr-FR", { hour12: false }) ??
     null;
   const startDisplay = formatDateTime(startSeconds, offsetSeconds) ?? fallbackStartGmt ?? createdAtDisplay;
+  const startTimestampMs =
+    startSeconds !== null && startSeconds !== undefined
+      ? (startSeconds + (offsetSeconds ?? 0)) * 1000
+      : activityPayload?.startTimeGmt
+          ? new Date(activityPayload.startTimeGmt).getTime()
+          : activityEvent?.createdAt?.getTime() ?? detailsEvent?.createdAt?.getTime() ?? null;
 
   const durationSeconds = pickNumber(
     [activityPayload, detailsPayload],
@@ -482,6 +489,7 @@ const buildActivityHighlight = (
     id: idCandidate,
     type,
     startDisplay,
+    startTimestampMs: startTimestampMs ?? null,
     durationSeconds,
     durationDisplay,
     intensityDisplay,
@@ -1385,6 +1393,12 @@ export const fetchGarminData = async (localUserId: string | number): Promise<Gar
 
   const latestActivityHighlight =
     activityHighlights[0] ?? buildActivityHighlight(latestActivity, latestActivityDetails) ?? null;
+  const activityHighlightsForSnapshots =
+    activityHighlights.length > 0
+      ? activityHighlights
+      : latestActivityHighlight
+        ? [latestActivityHighlight]
+        : [];
 
   const activityType = latestActivityHighlight?.type ?? null;
   const activityStartDisplay = latestActivityHighlight?.startDisplay ?? null;
@@ -1394,6 +1408,18 @@ export const fetchGarminData = async (localUserId: string | number): Promise<Gar
   const activityAvgHr = latestActivityHighlight?.averageHeartRate ?? null;
   const activityCalories = latestActivityHighlight?.calories ?? null;
   const activityCaloriesDisplay = latestActivityHighlight?.caloriesDisplay ?? null;
+  const recentActivityEntries = activityHighlightsForSnapshots
+    .slice(0, 5)
+    .map((activity) => ({
+      durationMin: activity.durationSeconds !== null && activity.durationSeconds !== undefined ? activity.durationSeconds / 60 : null,
+      avgHr: activity.averageHeartRate,
+      calories: activity.calories,
+      timestampMs: activity.startTimestampMs,
+    }))
+    .filter(
+      (entry) =>
+        entry.durationMin !== null || entry.avgHr !== null || entry.calories !== null || entry.timestampMs !== null,
+    );
 
   const womenHealthPayloadRaw = latestWomenHealth?.payload ?? null;
   const womenHealthPayload =
@@ -1590,6 +1616,7 @@ export const fetchGarminData = async (localUserId: string | number): Promise<Gar
       activeTimeSeconds !== null && activeTimeSeconds !== undefined ? activeTimeSeconds / 60 : undefined,
     totalCalories: totalKilocalories ?? undefined,
     lastActivity: lastActivitySnapshot,
+    recentActivities: recentActivityEntries.length > 0 ? recentActivityEntries : undefined,
     physio: physioSnapshot,
     female: femaleSnapshot,
     baselines: baselinesSnapshot,

@@ -30,6 +30,12 @@ export type TrainingScoreData = {
     calories?: number | null;
     type?: string | null;
   } | null;
+  recentActivities?: Array<{
+    durationMin?: number | null;
+    avgHr?: number | null;
+    calories?: number | null;
+    timestampMs?: number | null;
+  }> | null;
   physio?: {
     spo2?: number | null;
     tempDelta?: number | null;
@@ -145,21 +151,89 @@ export const computeTrainingScore = (snapshot: TrainingScoreData): number => {
   const ansScore =
     0.4 * hrvComponent + 0.25 * rhrComponent + 0.25 * stressComponent + 0.1 * stressHighComponent;
 
-  const hasActivity =
+  const hasLastActivity =
     isFiniteNumber(snapshot.lastActivity?.durationMin) ||
     isFiniteNumber(snapshot.lastActivity?.avgHr) ||
     isFiniteNumber(snapshot.lastActivity?.calories);
-  const activityDuration = hasActivity
-    ? valueOr(snapshot.lastActivity?.durationMin, 45)
-    : 45;
-  const activityHr = hasActivity ? valueOr(snapshot.lastActivity?.avgHr, 135) : 135;
-  const activityCalories = hasActivity ? valueOr(snapshot.lastActivity?.calories, 500) : 500;
+  const fallbackDuration = hasLastActivity ? valueOr(snapshot.lastActivity?.durationMin, 45) : 45;
+  const fallbackHr = hasLastActivity ? valueOr(snapshot.lastActivity?.avgHr, 135) : 135;
+  const fallbackCalories = hasLastActivity ? valueOr(snapshot.lastActivity?.calories, 500) : 500;
 
-  const intensityDuration = norm(activityDuration, 0, 90) ?? NEUTRAL_SCORE;
-  const intensityHeartRate = norm(activityHr, 80, 170) ?? NEUTRAL_SCORE;
-  const intensityCalories = norm(activityCalories, 0, 900) ?? NEUTRAL_SCORE;
-  const intensityScore = 0.5 * intensityDuration + 0.3 * intensityHeartRate + 0.2 * intensityCalories;
-  const loadScore = 100 - intensityScore;
+  const restHrForLoad = clamp(valueOr(snapshot.rhr ?? snapshot.baselines?.rhr, baselineRhr), 35, 90);
+  const sessionsFromRecent =
+    snapshot.recentActivities && Array.isArray(snapshot.recentActivities)
+      ? snapshot.recentActivities.filter(Boolean)
+      : [];
+  const fallbackSessions =
+    sessionsFromRecent.length === 0 && hasLastActivity
+      ? [
+          {
+            durationMin: snapshot.lastActivity?.durationMin ?? null,
+            avgHr: snapshot.lastActivity?.avgHr ?? null,
+            calories: snapshot.lastActivity?.calories ?? null,
+            timestampMs: null,
+          },
+        ]
+      : [];
+  const sessionsForLoad =
+    sessionsFromRecent.length > 0 ? sessionsFromRecent : fallbackSessions;
+
+  const computeSessionLoad = (
+    session: NonNullable<TrainingScoreData["recentActivities"]>[number],
+  ): number | null => {
+    const duration = session?.durationMin;
+    if (!isFiniteNumber(duration) || duration <= 0) {
+      return null;
+    }
+    const maxHrEstimate = 190;
+    const avgHrValue = session?.avgHr;
+    let hrReserve: number | null = isFiniteNumber(avgHrValue)
+      ? clamp(((avgHrValue as number) - restHrForLoad) / (maxHrEstimate - restHrForLoad), 0, 1.1)
+      : null;
+
+    if (hrReserve === null) {
+      const calories = session?.calories;
+      if (isFiniteNumber(calories) && duration > 0) {
+        const caloriesPerMinute = calories / duration;
+        hrReserve = clamp((caloriesPerMinute - 4) / 8, 0.05, 0.95);
+      }
+    }
+
+    if (hrReserve === null) {
+      hrReserve = clamp(duration / 120, 0.1, 0.7);
+    }
+
+    const intensityFactor = 0.64 * hrReserve * Math.exp(1.92 * hrReserve);
+    return duration * intensityFactor;
+  };
+
+  const MS_PER_DAY = 1000 * 60 * 60 * 24;
+  const now = Date.now();
+  const acuteLoad = sessionsForLoad.reduce((sum, session, index) => {
+    const sessionLoad = computeSessionLoad(session);
+    if (sessionLoad === null) {
+      return sum;
+    }
+    const timestamp = session?.timestampMs;
+    const daysAgo =
+      typeof timestamp === "number" && Number.isFinite(timestamp)
+        ? Math.max((now - timestamp) / MS_PER_DAY, 0)
+        : index;
+    const decay = Math.exp(-Math.max(daysAgo, 0) / 7); // ~1-week time constant
+    return sum + sessionLoad * decay;
+  }, 0);
+
+  let loadScore: number;
+  if (sessionsForLoad.length > 0) {
+    loadScore = inv(acuteLoad, 80, 450) ?? NEUTRAL_SCORE;
+  } else {
+    const intensityDuration = norm(fallbackDuration, 0, 90) ?? NEUTRAL_SCORE;
+    const intensityHeartRate = norm(fallbackHr, 80, 170) ?? NEUTRAL_SCORE;
+    const intensityCalories = norm(fallbackCalories, 0, 900) ?? NEUTRAL_SCORE;
+    const intensityScore =
+      0.5 * intensityDuration + 0.3 * intensityHeartRate + 0.2 * intensityCalories;
+    loadScore = 100 - intensityScore;
+  }
 
   const hasSpo2 = snapshot.physio ? isFiniteNumber(snapshot.physio.spo2 ?? null) : false;
   const spo2 = hasSpo2 ? clamp(snapshot.physio?.spo2 ?? 0, 90, 100) : 97;
@@ -226,6 +300,26 @@ export const mockGarminData = (): TrainingScoreData => ({
   activeMinutes: 52,
   totalCalories: 2550,
   lastActivity: { durationMin: 48, avgHr: 138, calories: 620, type: "RUN" },
+  recentActivities: [
+    {
+      durationMin: 48,
+      avgHr: 138,
+      calories: 620,
+      timestampMs: Date.now() - 1000 * 60 * 60 * 18,
+    },
+    {
+      durationMin: 35,
+      avgHr: 132,
+      calories: 450,
+      timestampMs: Date.now() - 1000 * 60 * 60 * 42,
+    },
+    {
+      durationMin: 60,
+      avgHr: 150,
+      calories: 780,
+      timestampMs: Date.now() - 1000 * 60 * 60 * 70,
+    },
+  ],
   physio: { spo2: 97.8, tempDelta: 0.15, respiration: 15.5, hydrationPercent: 58 },
   female: { currentPhaseType: "FOLLICULAR" },
   baselines: { hrv: 62, rhr: 55 },
