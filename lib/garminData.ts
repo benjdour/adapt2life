@@ -800,6 +800,8 @@ export const fetchGarminData = async (localUserId: string | number): Promise<Gar
     ]);
   }
 
+  const stressPayload = (latestStress?.payload as Record<string, unknown>) ?? undefined;
+
   const bodyBatteryTimeSeries = Array.isArray(getPathValue(stressPayload, "timeOffsetBodyBatteryValues"))
     ? (getPathValue(stressPayload, "timeOffsetBodyBatteryValues") as Array<unknown>)
         .map((entry) => {
@@ -1119,7 +1121,6 @@ export const fetchGarminData = async (localUserId: string | number): Promise<Gar
     ],
   );
 
-  const stressPayload = (latestStress?.payload as Record<string, unknown>) ?? undefined;
   const stressAverage = pickNumber(
     [latestDailyRaw, stressPayload],
     ["averageStressLevel", "averageStress", "stressAvg"],
