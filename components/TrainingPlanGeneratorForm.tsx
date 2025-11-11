@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 import { MarkdownPlan } from "@/components/MarkdownPlan";
 import { TRAINING_LOADING_MESSAGES } from "@/constants/loadingMessages";
+import { AppError, describeAppError, getErrorDescriptor } from "@/lib/errors";
 
 export type GeneratedPlanPayload = {
   plan: string;
@@ -57,8 +58,8 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated }: TrainingPlanGener
 
     const trimmedPrompt = prompt.trim();
     if (!trimmedPrompt) {
-      const validationMessage = "Merci de préciser ce que tu veux faire aujourd’hui et tes contraintes.";
-      toast.error(validationMessage);
+      const descriptor = getErrorDescriptor("training-plan/empty-brief");
+      toast.error(descriptor.title, { description: descriptor.description });
       return;
     }
 
@@ -80,12 +81,18 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated }: TrainingPlanGener
 
       if (!response.ok) {
         const payload = (await response.json().catch(() => ({}))) as { error?: string };
-        throw new Error(payload.error ?? "Impossible de générer le plan pour le moment.");
+        throw new AppError("training-plan/request-failed", {
+          details: payload.error ?? null,
+        });
       }
 
       const data = (await response.json()) as TrainingPlanResponse;
       const humanPlan = (data.plan ?? "").trim();
       const fallbackRaw = data.rawPlan ?? data.plan ?? "";
+
+      if (!humanPlan) {
+        throw new AppError("training-plan/invalid-response");
+      }
 
       setPlan(humanPlan);
       onPlanGenerated?.({
@@ -96,8 +103,8 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated }: TrainingPlanGener
         description: "Tu peux le consulter et le convertir juste en dessous.",
       });
     } catch (submissionError) {
-      const message = submissionError instanceof Error ? submissionError.message : "Erreur inconnue.";
-      toast.error(message);
+      const descriptor = describeAppError(submissionError, "training-plan/request-failed");
+      toast.error(descriptor.title, { description: descriptor.description });
       onPlanGenerated?.(null);
     } finally {
       setIsLoading(false);

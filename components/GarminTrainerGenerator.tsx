@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { TRAINING_LOADING_MESSAGES } from "@/constants/loadingMessages";
+import { AppError, describeAppError, getErrorDescriptor } from "@/lib/errors";
 import type { GarminTrainerWorkout } from "@/schemas/garminTrainer.schema";
 import type { GeneratedPlanPayload } from "@/components/TrainingPlanGeneratorForm";
 
@@ -77,9 +78,8 @@ export function GarminTrainerGenerator({ sourcePlan }: GarminTrainerGeneratorPro
   const handleGenerateWorkout = async () => {
     const trimmedExample = conversionInput.trim();
     if (!trimmedExample) {
-      const validationMessage =
-        "Génère d’abord un plan d’entraînement ci-dessus pour alimenter la conversion Garmin.";
-      toast.error(validationMessage);
+      const descriptor = getErrorDescriptor("garmin-trainer/no-source-plan");
+      toast.error(descriptor.title, { description: descriptor.description });
       return;
     }
 
@@ -114,20 +114,21 @@ export function GarminTrainerGenerator({ sourcePlan }: GarminTrainerGeneratorPro
           data?.error ?? "Impossible de générer l’entraînement pour le moment. Merci de réessayer plus tard.";
         const parseHint =
           data?.parseError && data.parseError.trim().length > 0 ? `\nDétail: ${data.parseError.trim()}` : "";
-        toast.error(`${message}${parseHint}`);
-        return;
+        throw new AppError("garmin-trainer/request-failed", {
+          details: `${message}${parseHint}`.trim(),
+        });
       }
 
       if (!raw) {
-        throw new Error("Le serveur n’a pas renvoyé de JSON brut.");
+        throw new AppError("garmin-trainer/raw-missing");
       }
 
       toast.success("Conversion terminée", {
         description: "Le JSON brut est prêt à être revu avant envoi à Garmin.",
       });
     } catch (generationError) {
-      const message = generationError instanceof Error ? generationError.message : "Erreur inconnue.";
-      toast.error(message);
+      const descriptor = describeAppError(generationError, "garmin-trainer/request-failed");
+      toast.error(descriptor.title, { description: descriptor.description });
     } finally {
       setIsLoading(false);
     }
@@ -169,8 +170,8 @@ export function GarminTrainerGenerator({ sourcePlan }: GarminTrainerGeneratorPro
         if (payload?.garminResponse) {
           setPushDetails(JSON.stringify(payload.garminResponse, null, 2));
         }
-        toast.error(message);
-        return;
+        const code = response.status === 409 ? "garmin-trainer/push-unavailable" : "garmin-trainer/push-failed";
+        throw new AppError(code, { details: message });
       }
 
       const successMessageParts: string[] = [];
@@ -192,11 +193,8 @@ export function GarminTrainerGenerator({ sourcePlan }: GarminTrainerGeneratorPro
         setPushDetails(JSON.stringify(payload.garminResponse, null, 2));
       }
     } catch (pushErrorInstance) {
-      const message =
-        pushErrorInstance instanceof Error
-          ? pushErrorInstance.message
-          : "Erreur inconnue lors de l’envoi à Garmin.";
-      toast.error(message);
+      const descriptor = describeAppError(pushErrorInstance, "garmin-trainer/push-failed");
+      toast.error(descriptor.title, { description: descriptor.description });
     } finally {
       setIsPushing(false);
     }

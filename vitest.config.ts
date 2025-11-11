@@ -8,6 +8,7 @@ export default defineConfig({
     alias: {
       "@/constants": path.resolve(__dirname, "src/constants"),
       "@/schemas": path.resolve(__dirname, "src/schemas"),
+      "server-only": path.resolve(__dirname, "server-only.ts"),
       "@": path.resolve(__dirname, "."),
     },
   },
