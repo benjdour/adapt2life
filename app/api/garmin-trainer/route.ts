@@ -7,6 +7,7 @@ import { z } from "zod";
 import { db } from "@/db";
 import { garminConnections, users } from "@/db/schema";
 import { stackServerApp } from "@/stack/server";
+import { requestChatCompletion, AiConfigurationError, AiRequestError } from "@/lib/ai";
 import { workoutSchema } from "@/schemas/garminTrainer.schema";
 import { saveGarminWorkoutForUser } from "@/lib/services/userGeneratedArtifacts";
 
@@ -624,14 +625,6 @@ export async function POST(request: NextRequest) {
 
   const normalizedExample = exampleMarkdown.trim();
 
-  const openRouterKey = process.env.OPENROUTER_API_KEY;
-  if (!openRouterKey) {
-    return NextResponse.json(
-      { error: "OPENROUTER_API_KEY manquant côté serveur. Ajoute la clé API OpenRouter dans l’environnement." },
-      { status: 500 },
-    );
-  }
-
   const promptTemplate = await loadPromptTemplate();
   if (!promptTemplate) {
     return NextResponse.json(
@@ -654,77 +647,55 @@ export async function POST(request: NextRequest) {
 
   const userPrompt = [ownerContext.ownerInstruction, buildFinalPrompt(promptTemplate, normalizedExample)].join("\n\n");
 
-  const completionResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${openRouterKey}`,
-      "HTTP-Referer": referer,
-      "X-Title": "Adapt2Life Garmin Trainer",
-    },
-    body: JSON.stringify({
+  let aiResponse;
+  try {
+    aiResponse = await requestChatCompletion({
       model: modelId,
       messages: [
-        {
-          role: "system",
-          content: systemPrompt,
-        },
-        {
-          role: "user",
-          content: userPrompt,
-        },
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
       ],
       temperature: 0.7,
-      max_tokens: 32768,
-      max_output_tokens: 32768,
-    }),
-  });
-
-  if (!completionResponse.ok) {
-    const payload = await completionResponse
-      .json()
-      .catch(async () => ({ error: await completionResponse.text().catch(() => null) }));
-
-    if (completionResponse.status === 429) {
+      maxOutputTokens: 32_768,
+      metadata: {
+        referer,
+        title: "Adapt2Life Garmin Trainer",
+      },
+    });
+  } catch (error) {
+    if (error instanceof AiConfigurationError) {
+      console.error("garmin-trainer: AI configuration error", error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    const aiError = error instanceof AiRequestError ? error : new AiRequestError("AI request failed", { cause: error });
+    if (aiError.status === 429) {
       return NextResponse.json(
         {
           error:
             "Le service d’IA est momentanément saturé. Réessaie dans quelques instants ou ajuste la fréquence des requêtes.",
-          details: payload,
+          details: aiError.body ?? null,
         },
         { status: 429 },
       );
     }
-
     return NextResponse.json(
       {
         error: "La génération de l’entraînement a échoué via OpenRouter.",
-        details: payload,
+        details: aiError.body ?? aiError.message ?? null,
       },
-      { status: completionResponse.status },
+      { status: aiError.status && aiError.status !== 0 ? aiError.status : 500 },
     );
   }
 
-  const completionPayload = await completionResponse.text();
-  let completionJson: OpenRouterResponse | null = null;
-  let parseErrorMessage: string | null = null;
-
-  if (completionPayload) {
-    try {
-      completionJson = JSON.parse(completionPayload) as OpenRouterResponse;
-    } catch (parseError) {
-      completionJson = null;
-      parseErrorMessage =
-        parseError instanceof Error ? parseError.message : "Erreur de parsing JSON inconnue.";
-    }
-  }
+  const completionPayload = aiResponse.rawText;
+  const completionJson = (aiResponse.data ?? null) as OpenRouterResponse | null;
 
   if (!completionJson) {
     return NextResponse.json(
       {
         raw: completionPayload,
         parseError:
-          parseErrorMessage ??
+          aiResponse.parseError ??
           "Impossible d’interpréter la réponse d’OpenRouter comme JSON. Consulte le champ 'raw' pour inspecter le contenu brut.",
       },
       { status: 200 },

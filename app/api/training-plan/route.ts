@@ -5,6 +5,7 @@ import { z } from "zod";
 import { db } from "@/db";
 import { garminWebhookEvents, users } from "@/db/schema";
 import { stackServerApp } from "@/stack/server";
+import { requestChatCompletion, AiConfigurationError, AiRequestError } from "@/lib/ai";
 import { ADAPT2LIFE_SYSTEM_PROMPT } from "@/lib/prompts/adapt2lifeSystemPrompt";
 import { saveTrainingPlanForUser } from "@/lib/services/userGeneratedArtifacts";
 
@@ -258,11 +259,6 @@ async function fetchLatestGarminWeightKg(userId: number): Promise<number | null>
 
 export async function POST(request: NextRequest) {
   try {
-    const openRouterKey = process.env.OPENROUTER_API_KEY;
-    if (!openRouterKey) {
-      return NextResponse.json({ error: "OPENROUTER_API_KEY manquant côté serveur." }, { status: 500 });
-    }
-
     const stackUser = await stackServerApp.getUser({ or: "return-null", tokenStore: request });
     if (!stackUser) {
       return NextResponse.json({ error: "Authentification requise." }, { status: 401 });
@@ -538,53 +534,46 @@ const cleanTextPlan = (raw: string): string => {
   return result.length > 0 ? result : raw.trim();
 };
 
-    let completionResponse: Response | null = null;
-    let lastErrorPayload: string | null = null;
+    let completionPayload: Awaited<ReturnType<typeof requestChatCompletion>> | null = null;
+    let lastAiError: AiRequestError | null = null;
 
     for (let index = 0; index < candidateModels.length; index += 1) {
       const model = candidateModels[index];
-
-      completionResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${openRouterKey}`,
-          "HTTP-Referer": appUrl,
-          "X-Title": "Adapt2Life",
-        },
-        body: JSON.stringify({
+      try {
+        completionPayload = await requestChatCompletion({
           model,
           messages: [
-            {
-              role: "system",
-              content: ADAPT2LIFE_SYSTEM_PROMPT,
-            },
-            {
-              role: "user",
-              content: userPrompt,
-            },
+            { role: "system", content: ADAPT2LIFE_SYSTEM_PROMPT },
+            { role: "user", content: userPrompt },
           ],
           temperature: 0.8,
-          max_tokens: 32768,
+          maxOutputTokens: 32_768,
           stop: ["DEBUG", "FIN_PLAN"],
-        }),
-      });
+          metadata: {
+            referer: appUrl,
+            title: "Adapt2Life",
+          },
+        });
+        break;
+      } catch (error) {
+        if (error instanceof AiConfigurationError) {
+          console.error("training-plan: AI configuration error", error);
+          return NextResponse.json({ error: error.message }, { status: 500 });
+        }
+        const aiError =
+          error instanceof AiRequestError ? error : new AiRequestError("AI request failed", { cause: error });
+        lastAiError = aiError;
 
-      if (completionResponse.ok) {
+        if (aiError.status === 429 && index < candidateModels.length - 1) {
+          await new Promise((resolve) => setTimeout(resolve, 1500));
+          continue;
+        }
         break;
       }
-
-      if (completionResponse.status === 429 && index < candidateModels.length - 1) {
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-        continue;
-      }
-
-      lastErrorPayload = await completionResponse.text();
-      break;
     }
 
-    if (!completionResponse || !completionResponse.ok) {
-      if (completionResponse?.status === 429) {
+    if (!completionPayload) {
+      if (lastAiError?.status === 429) {
         return NextResponse.json(
           {
             error:
@@ -595,14 +584,27 @@ const cleanTextPlan = (raw: string): string => {
       }
 
       return NextResponse.json(
-        { error: "La génération a échoué sur OpenRouter.", details: lastErrorPayload ?? null },
-        { status: completionResponse?.status ?? 500 },
+        {
+          error: "La génération a échoué sur OpenRouter.",
+          details: lastAiError?.body ?? lastAiError?.message ?? null,
+        },
+        { status: lastAiError?.status && lastAiError.status !== 0 ? lastAiError.status : 500 },
       );
     }
 
-    const completionJson = (await completionResponse.json()) as {
+    const completionJson = (completionPayload.data ?? null) as {
       choices?: Array<{ message?: { content?: unknown } }>;
-    };
+    } | null;
+
+    if (!completionJson) {
+      return NextResponse.json(
+        {
+          error: "La génération a renvoyé un format inattendu.",
+          details: completionPayload.parseError ?? completionPayload.rawText ?? null,
+        },
+        { status: 502 },
+      );
+    }
 
     const planResult = extractPlanFromMessage(completionJson.choices?.[0]?.message);
     const plan =
@@ -636,7 +638,7 @@ const cleanTextPlan = (raw: string): string => {
     if (!finalPlan) {
       console.error("training-plan: unable to extract plan", {
         choices: completionJson.choices,
-        lastErrorPayload,
+        raw: completionPayload.rawText,
       });
       return NextResponse.json(
         { error: "Impossible de générer un plan d’entraînement pour le moment." },
