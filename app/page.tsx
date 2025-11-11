@@ -1,70 +1,104 @@
 import { unstable_noStore as noStore } from "next/cache";
 import Link from "next/link";
+import { eq } from "drizzle-orm";
 
 import { stackServerApp } from "@/stack/server";
+import { db } from "@/db";
+import { users } from "@/db/schema";
 
-const extractFirstName = (user: unknown): string | null => {
-  if (!user || typeof user !== "object") {
+const normalizeFirstName = (value: unknown): string | null => {
+  if (typeof value !== "string") {
     return null;
   }
-
-  const record = user as Record<string, unknown>;
-  const profileRaw = record["profile"];
-
-  const getFromProfile = (): string | null => {
-    if (!profileRaw || typeof profileRaw !== "object") {
-      return null;
-    }
-    const profile = profileRaw as Record<string, unknown>;
-    const direct = profile["firstName"];
-    if (typeof direct === "string" && direct.trim()) {
-      return direct;
-    }
-    const nameRaw = profile["name"];
-    if (nameRaw && typeof nameRaw === "object") {
-      const name = nameRaw as Record<string, unknown>;
-      const keys = ["givenName", "given_name", "firstName", "first_name", "given", "first"];
-      for (const key of keys) {
-        const candidate = name[key];
-        if (typeof candidate === "string" && candidate.trim()) {
-          return candidate;
-        }
-      }
-    }
-    return null;
-  };
-
-  const fromProfile = getFromProfile();
-  const displayName = typeof record["displayName"] === "string" ? record["displayName"] : null;
-  const fallbackName = fromProfile ?? displayName;
-
-  if (!fallbackName) {
-    return null;
-  }
-
-  const trimmed = fallbackName.trim();
+  const trimmed = value.trim();
   if (!trimmed) {
     return null;
   }
-
   const [firstSegment] = trimmed.split(/\s+/);
   if (!firstSegment) {
     return null;
   }
-
-  const firstChar = firstSegment.charAt(0);
-  if (!firstChar) {
+  const [initial, ...rest] = firstSegment;
+  if (!initial) {
     return null;
   }
+  return `${initial.toLocaleUpperCase("fr-FR")}${rest.join("")}`;
+};
 
-  return `${firstChar.toLocaleUpperCase("fr-FR")}${firstSegment.slice(1)}`;
+const extractFirstName = (user: unknown, fallback?: string | null): string | null => {
+  if (!user || typeof user !== "object") {
+    return normalizeFirstName(fallback);
+  }
+
+  const record = user as Record<string, unknown>;
+  const candidates: Array<unknown> = [
+    record["firstName"],
+    record["first_name"],
+    record["givenName"],
+    record["given_name"],
+    record["name"],
+    record["displayName"],
+  ];
+
+  const profileRaw = record["profile"];
+
+  if (profileRaw && typeof profileRaw === "object") {
+    const profile = profileRaw as Record<string, unknown>;
+    candidates.push(profile["firstName"], profile["first_name"], profile["givenName"], profile["given_name"]);
+
+    const profileName = profile["name"];
+    if (profileName && typeof profileName === "object") {
+      const nameRecord = profileName as Record<string, unknown>;
+      const keys = ["givenName", "given_name", "firstName", "first_name", "given", "first"];
+      for (const key of keys) {
+        candidates.push(nameRecord[key]);
+      }
+    }
+  }
+
+  if (fallback) {
+    candidates.push(fallback);
+  }
+
+  for (const candidate of candidates) {
+    const normalized = normalizeFirstName(candidate);
+    if (normalized) {
+      return normalized;
+    }
+  }
+
+  return null;
 };
 
 export default async function Home() {
   noStore();
 
   const user = await stackServerApp.getUser({ or: "return-null", tokenStore: "nextjs-cookie" });
-  const firstName = extractFirstName(user);
+  let firstName = extractFirstName(user);
+
+  if (!firstName && user) {
+    const [localUser] = await db
+      .select({
+        firstName: users.firstName,
+        name: users.name,
+        pseudo: users.pseudo,
+      })
+      .from(users)
+      .where(eq(users.stackId, user.id))
+      .limit(1);
+
+    if (localUser) {
+      firstName =
+        extractFirstName(
+          {
+            firstName: localUser.firstName ?? undefined,
+            name: localUser.name ?? undefined,
+            displayName: localUser.pseudo ?? undefined,
+          },
+          localUser.firstName ?? localUser.name ?? localUser.pseudo ?? null,
+        ) ?? normalizeFirstName(localUser.firstName ?? localUser.name ?? localUser.pseudo);
+    }
+  }
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-slate-950 px-6 py-16 text-white">
