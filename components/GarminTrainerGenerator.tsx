@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 
 import { TRAINING_LOADING_MESSAGES } from "@/constants/loadingMessages";
 import type { GarminTrainerWorkout } from "@/schemas/garminTrainer.schema";
@@ -20,21 +21,15 @@ type GarminTrainerGeneratorProps = {
 export function GarminTrainerGenerator({ sourcePlan }: GarminTrainerGeneratorProps) {
   const [rawResult, setRawResult] = useState<string | null>(null);
   const [trainingJson, setTrainingJson] = useState<GarminTrainerWorkout | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isPushing, setIsPushing] = useState(false);
-  const [pushError, setPushError] = useState<string | null>(null);
-  const [pushSuccess, setPushSuccess] = useState<string | null>(null);
   const [pushDetails, setPushDetails] = useState<string | null>(null);
   const [loadingMessage, setLoadingMessage] = useState<string>(TRAINING_LOADING_MESSAGES[0]);
   const [conversionInput, setConversionInput] = useState<string>("");
 
   useEffect(() => {
-    setError(null);
     setRawResult(null);
     setTrainingJson(null);
-    setPushError(null);
-    setPushSuccess(null);
     setPushDetails(null);
   }, [sourcePlan]);
 
@@ -82,15 +77,14 @@ export function GarminTrainerGenerator({ sourcePlan }: GarminTrainerGeneratorPro
   const handleGenerateWorkout = async () => {
     const trimmedExample = conversionInput.trim();
     if (!trimmedExample) {
-      setError("Génère d’abord un plan d’entraînement ci-dessus pour alimenter la conversion Garmin.");
+      const validationMessage =
+        "Génère d’abord un plan d’entraînement ci-dessus pour alimenter la conversion Garmin.";
+      toast.error(validationMessage);
       return;
     }
 
-    setError(null);
     setRawResult(null);
     setTrainingJson(null);
-    setPushError(null);
-    setPushSuccess(null);
     setPushDetails(null);
     setIsLoading(true);
 
@@ -120,7 +114,7 @@ export function GarminTrainerGenerator({ sourcePlan }: GarminTrainerGeneratorPro
           data?.error ?? "Impossible de générer l’entraînement pour le moment. Merci de réessayer plus tard.";
         const parseHint =
           data?.parseError && data.parseError.trim().length > 0 ? `\nDétail: ${data.parseError.trim()}` : "";
-        setError(`${message}${parseHint}`);
+        toast.error(`${message}${parseHint}`);
         return;
       }
 
@@ -128,9 +122,12 @@ export function GarminTrainerGenerator({ sourcePlan }: GarminTrainerGeneratorPro
         throw new Error("Le serveur n’a pas renvoyé de JSON brut.");
       }
 
-      setError(null);
+      toast.success("Conversion terminée", {
+        description: "Le JSON brut est prêt à être revu avant envoi à Garmin.",
+      });
     } catch (generationError) {
-      setError(generationError instanceof Error ? generationError.message : "Erreur inconnue.");
+      const message = generationError instanceof Error ? generationError.message : "Erreur inconnue.";
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }
@@ -142,8 +139,6 @@ export function GarminTrainerGenerator({ sourcePlan }: GarminTrainerGeneratorPro
     }
 
     setIsPushing(true);
-    setPushError(null);
-    setPushSuccess(null);
     setPushDetails(null);
 
     try {
@@ -171,10 +166,10 @@ export function GarminTrainerGenerator({ sourcePlan }: GarminTrainerGeneratorPro
           payload && typeof payload.error === "string"
             ? payload.error
             : "Impossible d’envoyer l’entraînement à Garmin.";
-        setPushError(message);
         if (payload?.garminResponse) {
           setPushDetails(JSON.stringify(payload.garminResponse, null, 2));
         }
+        toast.error(message);
         return;
       }
 
@@ -189,18 +184,19 @@ export function GarminTrainerGenerator({ sourcePlan }: GarminTrainerGeneratorPro
       }
 
       const successMessage = successMessageParts.join(" ");
-
-      setPushSuccess(successMessage);
+      toast.success("Entraînement envoyé à Garmin", {
+        description: successMessage,
+      });
 
       if (payload?.garminResponse) {
         setPushDetails(JSON.stringify(payload.garminResponse, null, 2));
       }
     } catch (pushErrorInstance) {
-      setPushError(
+      const message =
         pushErrorInstance instanceof Error
           ? pushErrorInstance.message
-          : "Erreur inconnue lors de l’envoi à Garmin.",
-      );
+          : "Erreur inconnue lors de l’envoi à Garmin.";
+      toast.error(message);
     } finally {
       setIsPushing(false);
     }
@@ -231,8 +227,6 @@ export function GarminTrainerGenerator({ sourcePlan }: GarminTrainerGeneratorPro
           {isLoading ? loadingMessage : "Convertir le plan en JSON Garmin"}
         </button>
 
-        {error ? <p className="text-sm text-red-300">{error}</p> : null}
-
         {rawResult ? (
           <div className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-4 text-left text-sm text-white backdrop-blur">
             <h2 className="text-base font-semibold text-white/70">Résultat brut</h2>
@@ -261,13 +255,13 @@ export function GarminTrainerGenerator({ sourcePlan }: GarminTrainerGeneratorPro
             {isPushing ? "Envoi vers Garmin..." : "Envoyer l’entraînement sur Garmin"}
           </button>
 
-          {pushError ? <p className="text-xs text-red-300">{pushError}</p> : null}
-          {pushSuccess ? <p className="text-xs text-white/70">{pushSuccess}</p> : null}
-
           {pushDetails ? (
-            <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-white/10 bg-black/40 p-3 font-mono text-[11px] leading-relaxed text-white/80">
-              {pushDetails}
-            </pre>
+            <div className="space-y-2">
+              <p className="text-xs uppercase tracking-wide text-white/50">Dernière réponse Garmin</p>
+              <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-white/10 bg-black/40 p-3 font-mono text-[11px] leading-relaxed text-white/80">
+                {pushDetails}
+              </pre>
+            </div>
           ) : null}
         </div>
       ) : null}

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import type { TouchEvent } from "react";
 
 import TrainingScoreGauge from "@/components/TrainingScoreGauge";
@@ -122,6 +123,7 @@ const ActivityCarousel = ({ activities }: { activities: GarminActivityHighlight[
 
 const GarminDataClient = ({ initialData }: GarminDataClientProps) => {
   const [data, setData] = useState<GarminDataBundle>(initialData);
+  const hasShownErrorRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -134,14 +136,31 @@ const GarminDataClient = ({ initialData }: GarminDataClientProps) => {
           credentials: "include",
         });
         if (!response.ok) {
+          if (!hasShownErrorRef.current) {
+            toast.error("Impossible d’actualiser les données Garmin.", {
+              description: "Dernière synchronisation indisponible. Vérifie ta connexion ou réessaie plus tard.",
+            });
+            hasShownErrorRef.current = true;
+          }
           return;
         }
         const payload = (await response.json()) as GarminDataBundle;
         if (!cancelled) {
           setData(payload);
+          if (hasShownErrorRef.current) {
+            toast.success("Données Garmin mises à jour", {
+              description: "La connexion est rétablie, les dernières mesures sont affichées.",
+            });
+            hasShownErrorRef.current = false;
+          }
         }
       } catch {
-        // Silent retry on next interval
+        if (!hasShownErrorRef.current) {
+          toast.error("Impossible d’actualiser les données Garmin.", {
+            description: "Dernière synchronisation indisponible. Vérifie ta connexion ou réessaie plus tard.",
+          });
+          hasShownErrorRef.current = true;
+        }
       }
     };
 

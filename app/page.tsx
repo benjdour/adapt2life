@@ -70,7 +70,18 @@ const extractFirstName = (user: unknown, fallback?: string | null): string | nul
   return null;
 };
 
-export default async function Home() {
+type HomePageProps = {
+  searchParams?: Record<string, string | string[] | undefined>;
+};
+
+const readParam = (value: string | string[] | undefined): string | null => {
+  if (Array.isArray(value)) {
+    return value[0] ?? null;
+  }
+  return value ?? null;
+};
+
+export default async function Home({ searchParams }: HomePageProps) {
   noStore();
 
   const user = await stackServerApp.getUser({ or: "return-null", tokenStore: "nextjs-cookie" });
@@ -100,9 +111,19 @@ export default async function Home() {
     }
   }
 
+  const authState = readParam(searchParams?.auth);
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-slate-950 px-6 py-16 text-white">
       <section className="w-full max-w-md space-y-6 rounded-2xl border border-white/10 bg-white/5 p-8 text-center shadow-lg backdrop-blur">
+        {authState === "unauthorized" ? (
+          <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-left text-sm text-red-100">
+            <p className="font-semibold text-red-200">Accès refusé</p>
+            <p className="text-red-100/80">
+              Tu dois être connecté avec un compte autorisé pour accéder à cette page.
+            </p>
+          </div>
+        ) : null}
         <header className="space-y-2">
           <h1 className="text-3xl font-semibold">Adapt2Life</h1>
           <p className="text-sm text-white/70">

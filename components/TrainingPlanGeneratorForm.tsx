@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import { toast } from "sonner";
 
 import { MarkdownPlan } from "@/components/MarkdownPlan";
 import { TRAINING_LOADING_MESSAGES } from "@/constants/loadingMessages";
@@ -22,7 +23,6 @@ type TrainingPlanGeneratorFormProps = {
 export function TrainingPlanGeneratorForm({ onPlanGenerated }: TrainingPlanGeneratorFormProps) {
   const [prompt, setPrompt] = useState("");
   const [plan, setPlan] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState<string>(TRAINING_LOADING_MESSAGES[0]);
 
@@ -52,13 +52,13 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated }: TrainingPlanGener
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setError(null);
     setPlan(null);
     onPlanGenerated?.(null);
 
     const trimmedPrompt = prompt.trim();
     if (!trimmedPrompt) {
-      setError("Merci de préciser ce que tu veux faire aujourd’hui et tes contraintes.");
+      const validationMessage = "Merci de préciser ce que tu veux faire aujourd’hui et tes contraintes.";
+      toast.error(validationMessage);
       return;
     }
 
@@ -92,8 +92,12 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated }: TrainingPlanGener
         plan: humanPlan,
         rawPlan: fallbackRaw,
       });
+      toast.success("Plan généré avec succès", {
+        description: "Tu peux le consulter et le convertir juste en dessous.",
+      });
     } catch (submissionError) {
-      setError(submissionError instanceof Error ? submissionError.message : "Erreur inconnue.");
+      const message = submissionError instanceof Error ? submissionError.message : "Erreur inconnue.";
+      toast.error(message);
       onPlanGenerated?.(null);
     } finally {
       setIsLoading(false);
@@ -121,8 +125,6 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated }: TrainingPlanGener
             required
           />
         </div>
-
-        {error ? <p className="text-sm text-red-300">{error}</p> : null}
 
         <button
           type="submit"
