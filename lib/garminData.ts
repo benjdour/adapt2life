@@ -338,7 +338,7 @@ const prettifyLabel = (value: string | null | undefined): string | null => {
 
 const computeStressDurations = (
   map: unknown,
-): { low: string | null; moderate: string | null; high: string | null } | null => {
+): { low: number | null; moderate: number | null; high: number | null } | null => {
   if (!map || typeof map !== "object") return null;
 
   const entries = Object.entries(map as Record<string, unknown>)
@@ -371,13 +371,12 @@ const computeStressDurations = (
     else durations.high += duration;
   }
 
-  const formatBucket = (seconds: number): string | null =>
-    seconds > 0 ? formatMinutes(seconds) : null;
+  const sanitize = (seconds: number): number | null => (seconds > 0 ? seconds : null);
 
   return {
-    low: formatBucket(durations.low),
-    moderate: formatBucket(durations.moderate),
-    high: formatBucket(durations.high),
+    low: sanitize(durations.low),
+    moderate: sanitize(durations.moderate),
+    high: sanitize(durations.high),
   };
 };
 
@@ -1259,31 +1258,6 @@ export const fetchGarminData = async (localUserId: string | number): Promise<Gar
   if (activityCadence !== null) activityIntensityParts.push(`${Math.round(activityCadence)} cad.`);
   const activityIntensityDisplay = activityIntensityParts.length > 0 ? activityIntensityParts.join(" · ") : null;
 
-  const trainingScoreData: TrainingScoreData = {
-    sleepScore: sleepScore ?? undefined,
-    bodyBattery:
-      bodyBatteryCharged !== null || bodyBatteryDrained !== null
-        ? {
-            charged: bodyBatteryCharged ?? undefined,
-            spent: bodyBatteryDrained ?? undefined,
-          }
-        : undefined,
-    stressAverage: stressAverage ?? undefined,
-    steps: latestSummary?.steps ?? undefined,
-    hrv: hrvAverage ?? undefined,
-    avgHR: avgHeartRate24h ?? restingHeartRate ?? activityAvgHr ?? undefined,
-  };
-  const hasTrainingInputs = [
-    trainingScoreData.sleepScore,
-    trainingScoreData.bodyBattery?.charged,
-    trainingScoreData.bodyBattery?.spent,
-    trainingScoreData.stressAverage,
-    trainingScoreData.steps,
-    trainingScoreData.hrv,
-    trainingScoreData.avgHR,
-  ].some((value) => value !== null && value !== undefined);
-  const trainingGaugeData = hasTrainingInputs ? trainingScoreData : mockGarminData();
-
   const womenHealthPayloadRaw = latestWomenHealth?.payload ?? null;
   const womenHealthPayload =
     Array.isArray(womenHealthPayloadRaw)
@@ -1371,6 +1345,151 @@ export const fetchGarminData = async (localUserId: string | number): Promise<Gar
   }
   const lengthConfigurationDisplay =
     lengthConfigurationParts.length > 0 ? lengthConfigurationParts.join(" · ") : null;
+
+  const sleepDurationHours =
+    sleepDurationSeconds !== null && sleepDurationSeconds !== undefined
+      ? sleepDurationSeconds / 3600
+      : undefined;
+  const deepSleepSeconds = sleepPhases?.profond ?? stageDurations.profond ?? null;
+  const remSleepSeconds = sleepPhases?.paradoxal ?? stageDurations.paradoxal ?? null;
+  const lightSleepSeconds = sleepPhases?.leger ?? stageDurations.leger ?? null;
+
+  const sleepSnapshot =
+    sleepScore !== null ||
+    sleepDurationHours !== undefined ||
+    deepSleepSeconds !== null ||
+    remSleepSeconds !== null ||
+    lightSleepSeconds !== null
+      ? {
+          score: sleepScore ?? undefined,
+          durationHours: sleepDurationHours,
+          deepHours: deepSleepSeconds !== null ? deepSleepSeconds / 3600 : undefined,
+          remHours: remSleepSeconds !== null ? remSleepSeconds / 3600 : undefined,
+          lightHours: lightSleepSeconds !== null ? lightSleepSeconds / 3600 : undefined,
+        }
+      : undefined;
+
+  const bodyBatterySnapshot =
+    bodyBatteryLevel !== null || bodyBatteryCharged !== null || bodyBatteryDrained !== null
+      ? {
+          current: bodyBatteryLevel ?? undefined,
+          charged: bodyBatteryCharged ?? undefined,
+          drained: bodyBatteryDrained ?? undefined,
+        }
+      : undefined;
+
+  const stressLowSeconds = stressDurations?.low ?? null;
+  const stressModerateSeconds = stressDurations?.moderate ?? null;
+  const stressHighSeconds = stressDurations?.high ?? null;
+  const stressSnapshot =
+    stressAverage !== null ||
+    stressLowSeconds !== null ||
+    stressModerateSeconds !== null ||
+    stressHighSeconds !== null
+      ? {
+          average: stressAverage ?? undefined,
+          lowMin: stressLowSeconds !== null ? stressLowSeconds / 60 : undefined,
+          mediumMin: stressModerateSeconds !== null ? stressModerateSeconds / 60 : undefined,
+          highMin: stressHighSeconds !== null ? stressHighSeconds / 60 : undefined,
+        }
+      : undefined;
+
+  const hasActivitySnapshot =
+    (activityDurationSeconds !== null && activityDurationSeconds !== undefined) ||
+    (activityAvgHr !== null && activityAvgHr !== undefined) ||
+    (activityCalories !== null && activityCalories !== undefined) ||
+    Boolean(activityType);
+
+  const lastActivitySnapshot = hasActivitySnapshot
+    ? {
+        durationMin:
+          activityDurationSeconds !== null && activityDurationSeconds !== undefined
+            ? activityDurationSeconds / 60
+            : undefined,
+        avgHr: activityAvgHr ?? undefined,
+        calories: activityCalories ?? undefined,
+        type: activityType ?? undefined,
+      }
+    : undefined;
+
+  const physioSnapshot =
+    spo2Average !== null ||
+    skinTempDeviation !== null ||
+    respirationAverage !== null ||
+    bodyHydration !== null
+      ? {
+          spo2: spo2Average ?? undefined,
+          tempDelta: skinTempDeviation ?? undefined,
+          respiration: respirationAverage ?? undefined,
+          hydrationPercent: bodyHydration ?? undefined,
+        }
+      : undefined;
+
+  const allowedCyclePhases = new Set(["MENSTRUAL", "FOLLICULAR", "OVULATION", "LUTEAL"]);
+  const cyclePhaseNormalized =
+    typeof currentPhaseTypeRaw === "string" ? currentPhaseTypeRaw.trim().toUpperCase() : null;
+  const femaleSnapshot =
+    cyclePhaseNormalized && allowedCyclePhases.has(cyclePhaseNormalized)
+      ? { currentPhaseType: cyclePhaseNormalized as "MENSTRUAL" | "FOLLICULAR" | "OVULATION" | "LUTEAL" }
+      : undefined;
+
+  const baselinesSnapshot =
+    (hrvAverage !== null && hrvAverage !== undefined) ||
+    (restingHeartRate !== null && restingHeartRate !== undefined)
+      ? {
+          hrv: hrvAverage ?? undefined,
+          rhr: restingHeartRate ?? undefined,
+        }
+      : undefined;
+
+  const trainingScoreData: TrainingScoreData = {
+    bodyBattery: bodyBatterySnapshot,
+    sleep: sleepSnapshot,
+    rhr: (restingHeartRate ?? avgHeartRate24h) ?? undefined,
+    stress: stressSnapshot,
+    hrv: hrvAverage ?? undefined,
+    steps: latestSummary?.steps ?? undefined,
+    activeMinutes:
+      activeTimeSeconds !== null && activeTimeSeconds !== undefined ? activeTimeSeconds / 60 : undefined,
+    totalCalories: totalKilocalories ?? undefined,
+    lastActivity: lastActivitySnapshot,
+    physio: physioSnapshot,
+    female: femaleSnapshot,
+    baselines: baselinesSnapshot,
+  };
+
+  const trainingDataCandidates = [
+    bodyBatteryLevel,
+    bodyBatteryCharged,
+    bodyBatteryDrained,
+    sleepScore,
+    sleepDurationSeconds,
+    stageDurations.profond,
+    stageDurations.paradoxal,
+    stageDurations.leger,
+    restingHeartRate,
+    hrvAverage,
+    stressAverage,
+    stressLowSeconds,
+    stressModerateSeconds,
+    stressHighSeconds,
+    latestSummary?.steps,
+    activeTimeSeconds,
+    totalKilocalories,
+    spo2Average,
+    skinTempDeviation,
+    respirationAverage,
+    bodyHydration,
+    activityDurationSeconds,
+    activityAvgHr,
+    activityCalories,
+    avgHeartRate24h,
+  ];
+  const hasTrainingInputs = trainingDataCandidates.some(
+    (value) => value !== null && value !== undefined,
+  );
+  const trainingGaugeData = hasTrainingInputs ? trainingScoreData : mockGarminData();
+
   const sections: GarminSection[] = [
     {
       title: "🧠 RÉCUPÉRATION & ÉNERGIE",
@@ -1430,9 +1549,9 @@ export const fetchGarminData = async (localUserId: string | number): Promise<Gar
           value:
             stressDurations && (stressDurations.low || stressDurations.moderate || stressDurations.high)
               ? [
-                  stressDurations.low ? `Faible ${stressDurations.low}` : null,
-                  stressDurations.moderate ? `Moyen ${stressDurations.moderate}` : null,
-                  stressDurations.high ? `Élevé ${stressDurations.high}` : null,
+                  stressDurations.low ? `Faible ${formatMinutes(stressDurations.low)}` : null,
+                  stressDurations.moderate ? `Moyen ${formatMinutes(stressDurations.moderate)}` : null,
+                  stressDurations.high ? `Élevé ${formatMinutes(stressDurations.high)}` : null,
                 ]
                   .filter(Boolean)
                   .join(" · ")
