@@ -802,22 +802,35 @@ export const fetchGarminData = async (localUserId: string | number): Promise<Gar
 
   const stressPayload = (latestStress?.payload as Record<string, unknown>) ?? undefined;
 
-  const bodyBatteryTimeSeries = Array.isArray(getPathValue(stressPayload, "timeOffsetBodyBatteryValues"))
-    ? (getPathValue(stressPayload, "timeOffsetBodyBatteryValues") as Array<unknown>)
-        .map((entry) => {
-          if (!entry || typeof entry !== "object") {
-            return null;
-          }
-          const value = pickNumber([entry as Record<string, unknown>], ["bodyBatteryValue", "value", "bodyBattery", "level"]);
-          const offset = pickNumber([entry as Record<string, unknown>], ["offset", "offsetInSeconds", "offsetInSecond"]);
-          return value !== null ? { offset: offset ?? 0, value } : null;
-        })
-        .filter((entry): entry is { offset: number; value: number } => entry !== null)
-    : [];
+  const bodyBatteryTimeSeriesSource = getPathValue(stressPayload, "timeOffsetBodyBatteryValues");
+  const bodyBatteryTimeSeries: Array<{ offset: number; value: number }> = [];
+
+  if (Array.isArray(bodyBatteryTimeSeriesSource)) {
+    for (const entry of bodyBatteryTimeSeriesSource) {
+      if (!entry || typeof entry !== "object") continue;
+      const value = pickNumber([entry as Record<string, unknown>], ["bodyBatteryValue", "value", "bodyBattery", "level"]);
+      if (value === null) continue;
+      const offset =
+        pickNumber([entry as Record<string, unknown>], ["offset", "offsetInSeconds", "offsetInSecond"]) ?? 0;
+      bodyBatteryTimeSeries.push({ offset, value });
+    }
+  } else if (bodyBatteryTimeSeriesSource && typeof bodyBatteryTimeSeriesSource === "object") {
+    for (const [offsetKey, rawValue] of Object.entries(bodyBatteryTimeSeriesSource as Record<string, unknown>)) {
+      const value = toNumber(rawValue);
+      if (value === null) continue;
+      const offset = Number.parseFloat(offsetKey);
+      bodyBatteryTimeSeries.push({ offset: Number.isFinite(offset) ? offset : 0, value });
+    }
+  }
 
   const lastBodyBatteryValue =
     bodyBatteryTimeSeries.length > 0
-      ? bodyBatteryTimeSeries.reduce((latest, current) => (current.offset >= latest.offset ? current : latest)).value
+      ? bodyBatteryTimeSeries
+          .reduce(
+            (latest, current) => (current.offset >= latest.offset ? current : latest),
+            bodyBatteryTimeSeries[0],
+          )
+          .value
       : null;
 
   const bodyBatteryLevel =
