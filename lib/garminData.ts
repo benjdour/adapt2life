@@ -11,6 +11,7 @@ import { TrainingScoreData, mockGarminData } from "@/lib/trainingScore";
 type GarminWebhookEventRow = {
   payload: unknown;
   createdAt: Date | null;
+  entityId: string | null;
 };
 
 export type GarminSectionItem = {
@@ -19,10 +20,28 @@ export type GarminSectionItem = {
   hint?: string;
 };
 
+export type GarminActivityHighlight = {
+  id: string;
+  type: string | null;
+  startDisplay: string | null;
+  durationSeconds: number | null;
+  durationDisplay: string | null;
+  intensityDisplay: string | null;
+  averageHeartRate: number | null;
+  heartRateDisplay: string | null;
+  power: number | null;
+  powerDisplay: string | null;
+  cadence: number | null;
+  cadenceDisplay: string | null;
+  calories: number | null;
+  caloriesDisplay: string | null;
+};
+
 export type GarminSection = {
   title: string;
   description?: string;
   items: GarminSectionItem[];
+  activities?: GarminActivityHighlight[];
 };
 
 export type GarminConnectionSummary = {
@@ -377,6 +396,103 @@ const computeStressDurations = (
     low: sanitize(durations.low),
     moderate: sanitize(durations.moderate),
     high: sanitize(durations.high),
+  };
+};
+
+const buildActivityHighlight = (
+  activityEvent: GarminWebhookEventRow | null,
+  detailsEvent: GarminWebhookEventRow | null,
+): GarminActivityHighlight | null => {
+  const activityPayload = (activityEvent?.payload as Record<string, unknown> | undefined) ?? undefined;
+  const detailsPayload = (detailsEvent?.payload as Record<string, unknown> | undefined) ?? undefined;
+
+  if (!activityPayload && !detailsPayload) {
+    return null;
+  }
+
+  const activityTypeRaw =
+    pickString([activityPayload, detailsPayload], ["activityType", "activityName", "sportType"]) ?? null;
+  const type = prettifyLabel(activityTypeRaw) ?? activityTypeRaw ?? "Activité";
+
+  const startSeconds = pickNumber(
+    [activityPayload, detailsPayload],
+    ["startTimeInSeconds", "activityStartInSeconds", "startTimestamp"],
+  );
+  const offsetSeconds = pickNumber(
+    [activityPayload, detailsPayload],
+    ["startTimeOffsetInSeconds", "activityStartOffsetInSeconds"],
+  );
+  const fallbackStartGmt =
+    typeof activityPayload?.startTimeGmt === "string"
+      ? new Date(activityPayload.startTimeGmt).toLocaleString("fr-FR", { hour12: false })
+      : null;
+  const createdAtDisplay =
+    activityEvent?.createdAt?.toLocaleString("fr-FR", { hour12: false }) ??
+    detailsEvent?.createdAt?.toLocaleString("fr-FR", { hour12: false }) ??
+    null;
+  const startDisplay = formatDateTime(startSeconds, offsetSeconds) ?? fallbackStartGmt ?? createdAtDisplay;
+
+  const durationSeconds = pickNumber(
+    [activityPayload, detailsPayload],
+    ["durationInSeconds", "activityDurationInSeconds"],
+  );
+  const durationDisplay = formatMinutes(durationSeconds);
+
+  const avgHeartRate = pickNumber(
+    [activityPayload, detailsPayload],
+    ["averageHeartRateInBeatsPerMinute", "averageHeartRate", "avgHeartRate"],
+  );
+  const heartRateDisplay = formatBpm(avgHeartRate);
+
+  const power = pickNumber([detailsPayload, activityPayload], ["averagePowerInWatts", "averagePower"]);
+  const powerDisplay = power !== null ? `${Math.round(power)} W` : null;
+
+  const cadence = pickNumber(
+    [detailsPayload, activityPayload],
+    ["averageCadenceInStepsPerMinute", "averageCadence"],
+  );
+  const cadenceDisplay = cadence !== null ? `${Math.round(cadence)} cad.` : null;
+
+  const calories = pickNumber(
+    [activityPayload, detailsPayload],
+    ["activeKilocalories", "totalKilocalories", "caloriesBurned"],
+  );
+  const caloriesDisplay = formatKcal(calories);
+
+  const intensityParts: string[] = [];
+  if (durationDisplay) intensityParts.push(durationDisplay);
+  if (avgHeartRate !== null) intensityParts.push(`${Math.round(avgHeartRate)} bpm`);
+  if (power !== null) intensityParts.push(`${Math.round(power)} W`);
+  if (cadence !== null) intensityParts.push(`${Math.round(cadence)} cad.`);
+  const intensityDisplay = intensityParts.length > 0 ? intensityParts.join(" · ") : null;
+
+  const idCandidate =
+    pickString([activityPayload, detailsPayload], ["summaryId", "activityId", "eventId", "workoutId", "uuid"]) ??
+    pickNumber([activityPayload, detailsPayload], ["summaryId", "activityId"])?.toString() ??
+    activityEvent?.entityId ??
+    detailsEvent?.entityId ??
+    activityEvent?.createdAt?.toISOString() ??
+    detailsEvent?.createdAt?.toISOString();
+
+  if (!idCandidate) {
+    return null;
+  }
+
+  return {
+    id: idCandidate,
+    type,
+    startDisplay,
+    durationSeconds,
+    durationDisplay,
+    intensityDisplay,
+    averageHeartRate: avgHeartRate,
+    heartRateDisplay,
+    power,
+    powerDisplay,
+    cadence,
+    cadenceDisplay,
+    calories,
+    caloriesDisplay,
   };
 };
 
@@ -757,19 +873,25 @@ export const fetchGarminData = async (localUserId: string | number): Promise<Gar
   let latestActivity: GarminWebhookEventRow | null = null;
   let latestActivityDetails: GarminWebhookEventRow | null = null;
   let latestWomenHealth: GarminWebhookEventRow | null = null;
+  let activityHistory: GarminWebhookEventRow[] = [];
+  let activityDetailHistory: GarminWebhookEventRow[] = [];
 
   if (connectionRow) {
-    const fetchLatestEvent = async (type: string): Promise<GarminWebhookEventRow | null> => {
-      const [event] = await db
+    const fetchLatestEvents = async (type: string, limit = 1): Promise<GarminWebhookEventRow[]> => {
+      return db
         .select({
           payload: garminWebhookEvents.payload,
           createdAt: garminWebhookEvents.createdAt,
+          entityId: garminWebhookEvents.entityId,
         })
         .from(garminWebhookEvents)
         .where(and(eq(garminWebhookEvents.userId, numericUserId), eq(garminWebhookEvents.type, type)))
         .orderBy(desc(garminWebhookEvents.createdAt))
-        .limit(1);
+        .limit(limit);
+    };
 
+    const fetchLatestEvent = async (type: string): Promise<GarminWebhookEventRow | null> => {
+      const [event] = await fetchLatestEvents(type, 1);
       return event ?? null;
     };
 
@@ -785,6 +907,8 @@ export const fetchGarminData = async (localUserId: string | number): Promise<Gar
       latestActivity,
       latestActivityDetails,
       latestWomenHealth,
+      activityHistory,
+      activityDetailHistory,
     ] = await Promise.all([
       fetchLatestEvent("sleeps"),
       fetchLatestEvent("hrv"),
@@ -797,7 +921,12 @@ export const fetchGarminData = async (localUserId: string | number): Promise<Gar
       fetchLatestEvent("activities"),
       fetchLatestEvent("activityDetails"),
       fetchLatestEvent("womenHealth"),
+      fetchLatestEvents("activities", 5),
+      fetchLatestEvents("activityDetails", 5),
     ]);
+
+    latestActivity = activityHistory[0] ?? latestActivity;
+    latestActivityDetails = activityDetailHistory[0] ?? latestActivityDetails;
   }
 
   const stressPayload = (latestStress?.payload as Record<string, unknown>) ?? undefined;
@@ -1237,50 +1366,34 @@ export const fetchGarminData = async (localUserId: string | number): Promise<Gar
     ],
   );
 
-  const activityPayload = (latestActivity?.payload as Record<string, unknown>) ?? undefined;
-  const activityDetailsPayload = (latestActivityDetails?.payload as Record<string, unknown>) ?? undefined;
-  const activityType =
-    pickString([activityPayload, activityDetailsPayload], ["activityType", "activityName", "sportType"]) ?? undefined;
-  const activityStartSeconds = pickNumber(
-    [activityPayload, activityDetailsPayload],
-    ["startTimeInSeconds", "activityStartInSeconds", "startTimestamp"],
-  );
-  const activityOffsetSeconds = pickNumber(
-    [activityPayload, activityDetailsPayload],
-    ["startTimeOffsetInSeconds", "activityStartOffsetInSeconds"],
-  );
-  const activityStartDisplay =
-    formatDateTime(activityStartSeconds, activityOffsetSeconds) ??
-    (typeof activityPayload?.startTimeGmt === "string"
-      ? new Date(activityPayload.startTimeGmt).toLocaleString("fr-FR", { hour12: false })
-      : null);
-  const activityDurationSeconds = pickNumber(
-    [activityPayload, activityDetailsPayload],
-    ["durationInSeconds", "activityDurationInSeconds"],
-  );
-  const activityDurationDisplay = formatMinutes(activityDurationSeconds);
-  const activityAvgHr = pickNumber(
-    [activityPayload, activityDetailsPayload],
-    ["averageHeartRateInBeatsPerMinute", "averageHeartRate", "avgHeartRate"],
-  );
-  const activityPower = pickNumber(
-    [activityDetailsPayload, activityPayload],
-    ["averagePowerInWatts", "averagePower"],
-  );
-  const activityCadence = pickNumber(
-    [activityDetailsPayload, activityPayload],
-    ["averageCadenceInStepsPerMinute", "averageCadence"],
-  );
-  const activityCalories = pickNumber(
-    [activityPayload, activityDetailsPayload],
-    ["activeKilocalories", "totalKilocalories", "caloriesBurned"],
-  );
-  const activityIntensityParts: string[] = [];
-  if (activityDurationDisplay) activityIntensityParts.push(activityDurationDisplay);
-  if (activityAvgHr !== null) activityIntensityParts.push(`${Math.round(activityAvgHr)} bpm`);
-  if (activityPower !== null) activityIntensityParts.push(`${Math.round(activityPower)} W`);
-  if (activityCadence !== null) activityIntensityParts.push(`${Math.round(activityCadence)} cad.`);
-  const activityIntensityDisplay = activityIntensityParts.length > 0 ? activityIntensityParts.join(" · ") : null;
+  const activityDetailsMap = new Map<string, GarminWebhookEventRow>();
+  for (const detailEvent of activityDetailHistory) {
+    if (detailEvent?.entityId) {
+      activityDetailsMap.set(detailEvent.entityId, detailEvent);
+    }
+  }
+
+  const activityHighlights = activityHistory
+    .map((activityEvent, index) => {
+      const matchedDetails =
+        (activityEvent.entityId ? activityDetailsMap.get(activityEvent.entityId) : undefined) ??
+        activityDetailHistory[index] ??
+        null;
+      return buildActivityHighlight(activityEvent, matchedDetails ?? null);
+    })
+    .filter((highlight): highlight is GarminActivityHighlight => Boolean(highlight));
+
+  const latestActivityHighlight =
+    activityHighlights[0] ?? buildActivityHighlight(latestActivity, latestActivityDetails) ?? null;
+
+  const activityType = latestActivityHighlight?.type ?? null;
+  const activityStartDisplay = latestActivityHighlight?.startDisplay ?? null;
+  const activityDurationSeconds = latestActivityHighlight?.durationSeconds ?? null;
+  const activityDurationDisplay = latestActivityHighlight?.durationDisplay ?? null;
+  const activityIntensityDisplay = latestActivityHighlight?.intensityDisplay ?? null;
+  const activityAvgHr = latestActivityHighlight?.averageHeartRate ?? null;
+  const activityCalories = latestActivityHighlight?.calories ?? null;
+  const activityCaloriesDisplay = latestActivityHighlight?.caloriesDisplay ?? null;
 
   const womenHealthPayloadRaw = latestWomenHealth?.payload ?? null;
   const womenHealthPayload =
@@ -1686,32 +1799,39 @@ export const fetchGarminData = async (localUserId: string | number): Promise<Gar
     },
     {
       title: "🕒 MÉTADONNÉES D’ACTIVITÉ",
-      description: undefined,
-      items: [
-        {
-          label: "Dernière activité — date & heure",
-          value: activityStartDisplay,
-          hint: "Activity summaries (§7.1 Activity API).",
-        },
-        {
-          label: "Type d’activité",
-          value: activityType ?? null,
-          hint: "Activity summaries — activityType.",
-        },
-        {
-          label: "Durée & intensité (HR, puissance, cadence)",
-          value:
-            activityIntensityDisplay && activityIntensityDisplay.length > 0
-              ? activityIntensityDisplay
-              : activityDurationDisplay,
-          hint: "Activity Details (docs/Activity_API-1.2.3_0.md).",
-        },
-        {
-          label: "Calories de la dernière activité",
-          value: formatKcal(activityCalories),
-          hint: "Activity summaries — activeKilocalories.",
-        },
-      ],
+      description:
+        activityHighlights.length > 1
+          ? "Balaye horizontalement (ou utilise les boutons sur desktop) pour parcourir les 5 dernières activités synchronisées."
+          : undefined,
+      items:
+        activityHighlights.length === 0
+          ? [
+              {
+                label: "Dernière activité — date & heure",
+                value: activityStartDisplay,
+                hint: "Activity summaries (§7.1 Activity API).",
+              },
+              {
+                label: "Type d’activité",
+                value: activityType ?? null,
+                hint: "Activity summaries — activityType.",
+              },
+              {
+                label: "Durée & intensité (HR, puissance, cadence)",
+                value:
+                  activityIntensityDisplay && activityIntensityDisplay.length > 0
+                    ? activityIntensityDisplay
+                    : activityDurationDisplay,
+                hint: "Activity Details (docs/Activity_API-1.2.3_0.md).",
+              },
+              {
+                label: "Calories de la dernière activité",
+                value: activityCaloriesDisplay,
+                hint: "Activity summaries — activeKilocalories.",
+              },
+            ]
+          : [],
+      activities: activityHighlights,
     },
   ];
 
