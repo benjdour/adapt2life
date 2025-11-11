@@ -432,11 +432,15 @@ const buildActivityHighlight = (
     detailsEvent?.createdAt?.toLocaleString("fr-FR", { hour12: false }) ??
     null;
   const startDisplay = formatDateTime(startSeconds, offsetSeconds) ?? fallbackStartGmt ?? createdAtDisplay;
+  const rawStartTimeGmt =
+    typeof activityPayload?.startTimeGmt === "string" || typeof activityPayload?.startTimeGmt === "number"
+      ? activityPayload.startTimeGmt
+      : null;
   const startTimestampMs =
     startSeconds !== null && startSeconds !== undefined
       ? (startSeconds + (offsetSeconds ?? 0)) * 1000
-      : activityPayload?.startTimeGmt
-          ? new Date(activityPayload.startTimeGmt).getTime()
+      : rawStartTimeGmt !== null
+          ? new Date(rawStartTimeGmt).getTime()
           : activityEvent?.createdAt?.getTime() ?? detailsEvent?.createdAt?.getTime() ?? null;
 
   const durationSeconds = pickNumber(
