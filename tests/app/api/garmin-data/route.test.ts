@@ -1,4 +1,3 @@
-import { NextRequest } from "next/server";
 import { describe, expect, beforeEach, it, vi } from "vitest";
 
 const mockGetUser = vi.fn();
@@ -39,11 +38,6 @@ vi.mock("server-only", () => ({}));
 
 const { GET } = await import("@/app/api/garmin-data/route");
 
-const buildRequest = () =>
-  new NextRequest("http://localhost/api/garmin-data", {
-    method: "GET",
-  });
-
 describe("GET /api/garmin-data", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -63,7 +57,7 @@ describe("GET /api/garmin-data", () => {
     mockGetUser.mockResolvedValueOnce({ id: "stack-user-1" });
     selectBuilder.limit.mockResolvedValueOnce([]);
 
-    const response = await GET(buildRequest());
+    const response = await GET();
     const payload = await response.json();
 
     expect(response.status).toBe(200);
@@ -82,7 +76,7 @@ describe("GET /api/garmin-data", () => {
     const garminData = { connection: { garminUserId: "abc" }, sections: [], trainingGaugeData: {}, usedRealtimeMetrics: true };
     mockFetchGarminData.mockResolvedValueOnce(garminData);
 
-    const response = await GET(buildRequest());
+    const response = await GET();
     const payload = await response.json();
 
     expect(response.status).toBe(200);

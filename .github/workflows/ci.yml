@@ -45,11 +45,17 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Type check
+        run: npm run typecheck
+
       - name: Unit tests
         run: npm run test -- --runInBand
 
       - name: Build
         run: npm run build
+
+      - name: Security audit
+        run: npm run audit
 
       - name: Verify migrations (drizzle-kit push)
         run: npm run db:push

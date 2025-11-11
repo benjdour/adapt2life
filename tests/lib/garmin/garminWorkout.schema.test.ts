@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import { GarminWorkoutSchema } from "@/schemas/garminWorkout.schema";
+import type { GarminTrainerWorkout } from "@/schemas/garminTrainer.schema";
 
-const buildBaseWorkout = (sport: "STRENGTH_TRAINING" | "CARDIO_TRAINING" | "YOGA" | "PILATES") => ({
+const buildBaseWorkout = (sport: GarminTrainerWorkout["sport"]): GarminTrainerWorkout => ({
   ownerId: null,
   workoutName: `Test ${sport}`,
   description: null,
@@ -57,9 +58,10 @@ const buildBaseWorkout = (sport: "STRENGTH_TRAINING" | "CARDIO_TRAINING" | "YOGA
       ],
     },
   ],
-});
+} as GarminTrainerWorkout);
 
-const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value));
+const clone = (value: GarminTrainerWorkout): GarminTrainerWorkout =>
+  JSON.parse(JSON.stringify(value)) as GarminTrainerWorkout;
 
 describe("GarminWorkoutSchema exercise metadata validation", () => {
   it("accepts a strength workout with a known exercise", () => {

@@ -8,6 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest",
+    "typecheck": "tsc --noEmit",
+    "audit": "npm audit --audit-level=moderate",
     "db:push": "drizzle-kit push --config drizzle.config.ts",
     "validate:workout": "ts-node --compiler-options '{\"module\":\"commonjs\",\"moduleResolution\":\"node\"}' scripts/validateWorkout.ts"
   },
