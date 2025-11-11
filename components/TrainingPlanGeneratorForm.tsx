@@ -104,7 +104,10 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated }: TrainingPlanGener
     <div className="space-y-6">
       <form onSubmit={handleSubmit} className="space-y-6 rounded-2xl border border-emerald-700/30 bg-emerald-900/20 p-6">
         <div className="space-y-2">
-          <label htmlFor="prompt" className="text-sm font-semibold text-emerald-100">
+          <h2 className="text-base font-semibold uppercase tracking-wide text-emerald-200">
+            Briefing d’entraînement
+          </h2>
+          <label htmlFor="prompt" className="block text-sm font-semibold text-emerald-100">
             Que veux-tu faire aujourd’hui et quelles sont tes contraintes ? *
           </label>
           <textarea
@@ -114,7 +117,7 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated }: TrainingPlanGener
             onChange={(event) => setPrompt(event.target.value)}
             rows={6}
             placeholder="Ex. je veux faire une séance cardio de 45 min, genou fragile, pas d’équipement, dispo ce soir."
-            className="min-h-[140px] rounded-md border border-emerald-700/40 bg-emerald-950/60 px-3 py-2 text-sm text-emerald-50 placeholder:text-emerald-200/40 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
+            className="min-h-[140px] w-full rounded-md border border-emerald-700/40 bg-emerald-950/60 px-3 py-2 text-sm text-emerald-50 placeholder:text-emerald-200/40 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
             required
           />
         </div>
