@@ -2,6 +2,8 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { StackServerApp } from "@stackframe/stack";
 
+import { enforceRateLimit } from "@/lib/security/rateLimiter";
+
 type RoutePolicy = {
   pattern: RegExp;
   allowedRoles?: string[];
@@ -63,6 +65,11 @@ const findRoutePolicy = (pathname: string): RoutePolicy | undefined =>
 const buildRedirectUrl = (request: NextRequest, basePath: string) => new URL(basePath, request.url);
 
 export async function middleware(request: NextRequest) {
+  const rateLimitResponse = enforceRateLimit(request);
+  if (rateLimitResponse) {
+    return rateLimitResponse;
+  }
+
   const { pathname } = request.nextUrl;
   const policy = findRoutePolicy(pathname);
 
@@ -91,5 +98,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/secure/:path*", "/generateur-entrainement", "/garmin-trainer/:path*", "/integrations/garmin"],
+  matcher: ["/secure/:path*", "/generateur-entrainement", "/garmin-trainer/:path*", "/integrations/garmin", "/api/:path*"],
 };

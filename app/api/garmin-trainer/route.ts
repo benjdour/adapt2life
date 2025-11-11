@@ -8,6 +8,7 @@ import { db } from "@/db";
 import { garminConnections, users } from "@/db/schema";
 import { stackServerApp } from "@/stack/server";
 import { requestChatCompletion, AiConfigurationError, AiRequestError } from "@/lib/ai";
+import { createLogger } from "@/lib/logger";
 import { workoutSchema } from "@/schemas/garminTrainer.schema";
 import { saveGarminWorkoutForUser } from "@/lib/services/userGeneratedArtifacts";
 
@@ -606,6 +607,7 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
 };
 
 export async function POST(request: NextRequest) {
+  const logger = createLogger("garmin-trainer", { headers: request.headers });
   const ownerContext = await resolveOwnerContext(request);
 
   let body: unknown;
@@ -624,6 +626,10 @@ export async function POST(request: NextRequest) {
   const { exampleMarkdown } = validation.data;
 
   const normalizedExample = exampleMarkdown.trim();
+  logger.info("garmin trainer conversion requested", {
+    ownerId: ownerContext.ownerId ?? null,
+    hasLocalUser: Boolean(ownerContext.localUserId),
+  });
 
   const promptTemplate = await loadPromptTemplate();
   if (!promptTemplate) {
@@ -664,7 +670,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     if (error instanceof AiConfigurationError) {
-      console.error("garmin-trainer: AI configuration error", error);
+      logger.error("garmin-trainer AI configuration error", { error });
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
     const aiError = error instanceof AiRequestError ? error : new AiRequestError("AI request failed", { cause: error });
@@ -757,7 +763,7 @@ export async function POST(request: NextRequest) {
       try {
         await saveGarminWorkoutForUser(ownerContext.localUserId, validation.data as Record<string, unknown>);
       } catch (storageError) {
-        console.error("garmin-trainer: unable to persist generated workout", storageError);
+        logger.error("garmin-trainer unable to persist generated workout", { error: storageError });
       }
     }
   }

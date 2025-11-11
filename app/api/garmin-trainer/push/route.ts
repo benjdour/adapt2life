@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "@/db";
-import { garminConnections, users } from "@/db/schema";
+import { users } from "@/db/schema";
 import { ensureGarminAccessToken, fetchGarminConnectionByUserId } from "@/lib/services/garmin-connections";
 import { workoutSchema } from "@/schemas/garminTrainer.schema";
 import { stackServerApp } from "@/stack/server";

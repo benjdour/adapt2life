@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 import { db } from "@/db";
 import { garminDailySummaries, garminWebhookEvents } from "@/db/schema";
@@ -6,6 +6,8 @@ import {
   GarminConnectionRecord,
   fetchGarminConnectionByGarminUserId,
 } from "@/lib/services/garmin-connections";
+import { createLogger } from "@/lib/logger";
+import { verifyGarminSignature } from "@/lib/security/garminSignature";
 
 type GarminDailyPayload = {
   summaryId?: string;
@@ -83,10 +85,19 @@ const resolveCalendarDate = (entry: GarminDailyPayload): string => {
   );
 };
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const logger = createLogger("garmin-webhook-dailies", { headers: request.headers });
+  const rawBody = await request.text();
+  const signatureCheck = verifyGarminSignature(request.headers, rawBody);
+  if (!signatureCheck.valid) {
+    const status = signatureCheck.reason === "GARMIN_WEBHOOK_SECRET missing" ? 500 : 401;
+    logger.warn("garmin dailies invalid signature", { reason: signatureCheck.reason });
+    return NextResponse.json({ error: "Invalid signature" }, { status });
+  }
+
   try {
-    const payload = await request.json();
-    console.info("Garmin push /dailies received", {
+    const payload = rawBody.length > 0 ? JSON.parse(rawBody) : null;
+    logger.info("garmin dailies received", {
       bodyType: typeof payload,
       keys: payload && typeof payload === "object" ? Object.keys(payload as Record<string, unknown>) : undefined,
     });
@@ -98,9 +109,10 @@ export async function POST(request: Request) {
       getConnectionWithCache(garminUserId, connectionCache),
     );
 
+    logger.info("garmin dailies processed", { received: entries.length, processed });
     return NextResponse.json({ received: entries.length, processed }, { status: 200 });
   } catch (error) {
-    console.error("Garmin dailies webhook failed", error);
+    logger.error("garmin dailies webhook failed", { error });
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
   }
 }

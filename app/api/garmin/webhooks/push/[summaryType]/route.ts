@@ -6,6 +6,8 @@ import {
   GarminConnectionRecord,
   fetchGarminConnectionByGarminUserId,
 } from "@/lib/services/garmin-connections";
+import { createLogger } from "@/lib/logger";
+import { verifyGarminSignature } from "@/lib/security/garminSignature";
 
 const SUPPORTED_SUMMARY_TYPES = new Set([
   "activities",
@@ -60,6 +62,7 @@ export async function POST(
 ) {
   const { summaryType } = await params;
   const normalizedType = summaryType === "sleep" ? "sleeps" : summaryType;
+  const logger = createLogger(`garmin-webhook-${normalizedType}`, { headers: request.headers });
 
   if (normalizedType === "dailies") {
     return NextResponse.json({ error: "Use /push/dailies endpoint." }, { status: 405 });
@@ -69,9 +72,17 @@ export async function POST(
     return NextResponse.json({ error: `Unsupported Garmin webhook type "${summaryType}".` }, { status: 404 });
   }
 
+  const rawBody = await request.text();
+  const signatureCheck = verifyGarminSignature(request.headers, rawBody);
+  if (!signatureCheck.valid) {
+    const status = signatureCheck.reason === "GARMIN_WEBHOOK_SECRET missing" ? 500 : 401;
+    logger.warn("garmin summary invalid signature", { summaryType, reason: signatureCheck.reason });
+    return NextResponse.json({ error: "Invalid signature" }, { status });
+  }
+
   try {
-    const payload = await request.json();
-    console.info(`Garmin push /${summaryType} received`, {
+    const payload = rawBody.length > 0 ? JSON.parse(rawBody) : null;
+    logger.info(`Garmin push /${summaryType} received`, {
       bodyType: typeof payload,
       keys: payload && typeof payload === "object" ? Object.keys(payload as Record<string, unknown>) : undefined,
     });
@@ -102,9 +113,10 @@ export async function POST(
       processed += 1;
     }
 
+    logger.info("garmin summary processed", { summaryType: normalizedType, received: entries.length, processed });
     return NextResponse.json({ received: entries.length, processed }, { status: 200 });
   } catch (error) {
-    console.error(`Garmin ${summaryType} webhook failed`, error);
+    logger.error(`Garmin ${summaryType} webhook failed`, { error });
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
   }
 }

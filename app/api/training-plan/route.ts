@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { garminWebhookEvents, users } from "@/db/schema";
 import { stackServerApp } from "@/stack/server";
 import { requestChatCompletion, AiConfigurationError, AiRequestError } from "@/lib/ai";
+import { createLogger } from "@/lib/logger";
 import { ADAPT2LIFE_SYSTEM_PROMPT } from "@/lib/prompts/adapt2lifeSystemPrompt";
 import { saveTrainingPlanForUser } from "@/lib/services/userGeneratedArtifacts";
 
@@ -258,11 +259,14 @@ async function fetchLatestGarminWeightKg(userId: number): Promise<number | null>
 }
 
 export async function POST(request: NextRequest) {
+  const logger = createLogger("training-plan", { headers: request.headers });
   try {
     const stackUser = await stackServerApp.getUser({ or: "return-null", tokenStore: request });
     if (!stackUser) {
+      logger.warn("unauthenticated access blocked", { path: request.nextUrl.pathname });
       return NextResponse.json({ error: "Authentification requise." }, { status: 401 });
     }
+    logger.info("training-plan request received", { userId: stackUser.id });
 
     const json = await request.json();
     const parsed = REQUEST_SCHEMA.safeParse(json);
@@ -557,7 +561,7 @@ const cleanTextPlan = (raw: string): string => {
         break;
       } catch (error) {
         if (error instanceof AiConfigurationError) {
-          console.error("training-plan: AI configuration error", error);
+          logger.error("training-plan AI configuration error", { error });
           return NextResponse.json({ error: error.message }, { status: 500 });
         }
         const aiError =
@@ -636,7 +640,7 @@ const cleanTextPlan = (raw: string): string => {
     }
 
     if (!finalPlan) {
-      console.error("training-plan: unable to extract plan", {
+      logger.error("training-plan payload missing usable plan", {
         choices: completionJson.choices,
         raw: completionPayload.rawText,
       });
@@ -651,7 +655,7 @@ const cleanTextPlan = (raw: string): string => {
         await saveTrainingPlanForUser(localUser.id, finalPlan);
       }
     } catch (storageError) {
-      console.error("training-plan: unable to persist generated plan", storageError);
+      logger.error("training-plan unable to persist plan", { error: storageError });
     }
 
     const planText = finalPlan.trim();
@@ -660,7 +664,7 @@ const cleanTextPlan = (raw: string): string => {
       rawPlan: finalPlan,
     });
   } catch (error) {
-    console.error("Erreur lors de la génération du plan :", error);
+    logger.error("training-plan unexpected failure", { error });
     return NextResponse.json({ error: "Erreur interne lors de la génération du plan." }, { status: 500 });
   }
 }
