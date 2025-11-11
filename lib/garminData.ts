@@ -800,14 +800,34 @@ export const fetchGarminData = async (localUserId: string | number): Promise<Gar
     ]);
   }
 
-  const bodyBatteryLevel = pickNumber(
-    [latestDailyRaw],
-    [
-      "bodyBatteryLevel",
-      "bodyBatteryDynamicFeedbackEvent.bodyBatteryLevel",
-      "bodyBatteryStatus.currentLevel",
-    ],
-  );
+  const bodyBatteryTimeSeries = Array.isArray(getPathValue(stressPayload, "timeOffsetBodyBatteryValues"))
+    ? (getPathValue(stressPayload, "timeOffsetBodyBatteryValues") as Array<unknown>)
+        .map((entry) => {
+          if (!entry || typeof entry !== "object") {
+            return null;
+          }
+          const value = pickNumber([entry as Record<string, unknown>], ["bodyBatteryValue", "value", "bodyBattery", "level"]);
+          const offset = pickNumber([entry as Record<string, unknown>], ["offset", "offsetInSeconds", "offsetInSecond"]);
+          return value !== null ? { offset: offset ?? 0, value } : null;
+        })
+        .filter((entry): entry is { offset: number; value: number } => entry !== null)
+    : [];
+
+  const lastBodyBatteryValue =
+    bodyBatteryTimeSeries.length > 0
+      ? bodyBatteryTimeSeries.reduce((latest, current) => (current.offset >= latest.offset ? current : latest)).value
+      : null;
+
+  const bodyBatteryLevel =
+    lastBodyBatteryValue ??
+    pickNumber(
+      [latestDailyRaw],
+      [
+        "bodyBatteryLevel",
+        "bodyBatteryDynamicFeedbackEvent.bodyBatteryLevel",
+        "bodyBatteryStatus.currentLevel",
+      ],
+    );
   const bodyBatteryCharged = pickNumber(
     [latestDailyRaw],
     [
@@ -822,20 +842,10 @@ export const fetchGarminData = async (localUserId: string | number): Promise<Gar
       "bodyBatteryStatus.drainedValue",
     ],
   );
-  const bodyBatteryTrend =
-    pickString(
-      [latestDailyRaw],
-      [
-        "bodyBatteryTrend",
-        "bodyBatteryDynamicFeedbackEvent.bodyBatteryTrend",
-        "bodyBatteryStatus.trend",
-      ],
-    ) ?? undefined;
   const bodyBatteryParts: string[] = [];
   if (bodyBatteryLevel !== null) bodyBatteryParts.push(`${Math.round(bodyBatteryLevel)}/100`);
   if (bodyBatteryCharged !== null) bodyBatteryParts.push(`+${Math.round(bodyBatteryCharged)}`);
   if (bodyBatteryDrained !== null) bodyBatteryParts.push(`-${Math.round(bodyBatteryDrained)}`);
-  if (bodyBatteryTrend) bodyBatteryParts.push(`tendance ${bodyBatteryTrend.toLowerCase()}`);
   const bodyBatteryDisplay = bodyBatteryParts.length > 0 ? bodyBatteryParts.join(" · ") : null;
 
   const sleepPayload = (latestSleep?.payload as Record<string, unknown>) ?? undefined;
@@ -1496,7 +1506,7 @@ export const fetchGarminData = async (localUserId: string | number): Promise<Gar
       description: undefined,
       items: [
         {
-          label: "Body Battery (actuel / chargé / dépensé / tendance 24h)",
+          label: "Body Battery (actuel / chargé / dépensé)",
           value: bodyBatteryDisplay,
           hint: "Daily summaries — Body Battery (docs/Garmin_Health_API_1.2.2.md §7.1).",
         },
@@ -1527,11 +1537,6 @@ export const fetchGarminData = async (localUserId: string | number): Promise<Gar
           label: "Fréquence cardiaque au repos (RHR)",
           value: formatBpm(restingHeartRate),
           hint: "User Metrics summaries — champ restingHeartRate.",
-        },
-        {
-          label: "Niveau d’énergie global",
-          value: bodyBatteryDisplay,
-          hint: "Synthèse à construire (Body Battery + sommeil + HRV).",
         },
       ],
     },
