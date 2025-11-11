@@ -25,10 +25,10 @@ const TrainingScoreGauge: FC<TrainingScoreGaugeProps> = ({ data }) => {
   const message = getInterpretationMessage(score);
 
   return (
-    <section className="mx-auto mb-5 w-full max-w-4xl rounded-2xl bg-gray-800 p-6 text-white shadow-lg">
+    <section className="mx-auto mb-5 w-full max-w-4xl rounded-2xl border border-white/10 bg-white/5 p-6 text-white shadow-lg backdrop-blur">
       <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-lg font-semibold uppercase tracking-wide text-emerald-400">Capacité à s’entraîner aujourd’hui</h2>
+          <h2 className="text-lg font-semibold uppercase tracking-wide text-white/60">Capacité à s’entraîner aujourd’hui</h2>
           <p className="mt-1 text-sm text-white/70">Calculé localement à partir des données de récupération, stress et activités.</p>
         </div>
         <div className="flex flex-col items-center gap-4 sm:flex-row sm:gap-6">

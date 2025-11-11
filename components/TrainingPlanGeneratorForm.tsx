@@ -102,12 +102,12 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated }: TrainingPlanGener
 
   return (
     <div className="space-y-6">
-      <form onSubmit={handleSubmit} className="space-y-6 rounded-2xl border border-emerald-700/30 bg-emerald-900/20 p-6">
+      <form onSubmit={handleSubmit} className="space-y-6 rounded-2xl border border-white/10 bg-white/5 p-6 shadow-lg backdrop-blur">
         <div className="space-y-2">
-          <h2 className="text-base font-semibold uppercase tracking-wide text-emerald-200">
+          <h2 className="text-base font-semibold uppercase tracking-wide text-white/60">
             Briefing d’entraînement
           </h2>
-          <label htmlFor="prompt" className="block text-sm font-semibold text-emerald-100">
+          <label htmlFor="prompt" className="block text-sm font-semibold text-white">
             Que veux-tu faire aujourd’hui et quelles sont tes contraintes ? *
           </label>
           <textarea
@@ -117,7 +117,7 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated }: TrainingPlanGener
             onChange={(event) => setPrompt(event.target.value)}
             rows={6}
             placeholder="Ex. je veux faire une séance cardio de 45 min, genou fragile, pas d’équipement, dispo ce soir."
-            className="min-h-[140px] w-full rounded-md border border-emerald-700/40 bg-emerald-950/60 px-3 py-2 text-sm text-emerald-50 placeholder:text-emerald-200/40 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
+            className="min-h-[140px] w-full rounded-md border border-white/15 bg-black/30 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:border-white/60 focus:outline-none focus:ring-2 focus:ring-white/30"
             required
           />
         </div>
@@ -127,15 +127,15 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated }: TrainingPlanGener
         <button
           type="submit"
           disabled={isLoading}
-          className="inline-flex w-full items-center justify-center rounded-md border border-emerald-500/60 bg-emerald-500/20 px-4 py-2 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-500/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300 disabled:cursor-wait disabled:opacity-60"
+          className="inline-flex w-full items-center justify-center rounded-md border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60 disabled:cursor-wait disabled:opacity-60"
         >
           {isLoading ? loadingMessage : "Générer le plan"}
         </button>
       </form>
 
       {plan ? (
-        <div className="space-y-4 rounded-2xl border border-white/10 bg-white/5 p-6 text-sm leading-relaxed text-white">
-          <h2 className="text-lg font-semibold text-emerald-200">Plan d’entraînement personnalisé</h2>
+        <div className="space-y-4 rounded-2xl border border-white/10 bg-white/5 p-6 text-sm leading-relaxed text-white backdrop-blur">
+          <h2 className="text-lg font-semibold text-white/70">Plan d’entraînement personnalisé</h2>
           <MarkdownPlan content={plan} className="text-sm leading-relaxed" />
         </div>
       ) : null}

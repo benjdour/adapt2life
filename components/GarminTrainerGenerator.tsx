@@ -209,8 +209,8 @@ export function GarminTrainerGenerator({ sourcePlan }: GarminTrainerGeneratorPro
   return (
     <div className="space-y-6">
       <div className="space-y-4">
-        <div className="rounded-xl border border-white/15 bg-black/30 p-4 text-left text-sm text-white">
-          <p className="text-sm font-semibold text-emerald-200">Plan utilisé pour la conversion</p>
+        <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-left text-sm text-white backdrop-blur">
+          <p className="text-sm font-semibold text-white/70">Plan utilisé pour la conversion</p>
           <p className="mt-2 text-xs text-white/60">
             Le plan généré est copié automatiquement ici. Tu peux l’ajuster avant de lancer la conversion Garmin.
           </p>
@@ -218,7 +218,7 @@ export function GarminTrainerGenerator({ sourcePlan }: GarminTrainerGeneratorPro
             value={conversionInput}
             onChange={(event) => setConversionInput(event.target.value)}
             placeholder="Colle ou édite ici le plan à convertir"
-            className="mt-3 w-full max-h-60 min-h-[160px] resize-y rounded-md border border-white/15 bg-black/20 p-3 font-mono text-xs leading-relaxed text-emerald-100/80 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-300/40"
+            className="mt-3 w-full max-h-60 min-h-[160px] resize-y rounded-md border border-white/15 bg-black/30 p-3 font-mono text-xs leading-relaxed text-white/80 focus:border-white/60 focus:outline-none focus:ring-2 focus:ring-white/30"
           />
         </div>
 
@@ -226,7 +226,7 @@ export function GarminTrainerGenerator({ sourcePlan }: GarminTrainerGeneratorPro
           type="button"
           onClick={handleGenerateWorkout}
           disabled={isLoading || conversionInput.trim().length === 0}
-          className="inline-flex h-11 w-full items-center justify-center rounded-md border border-emerald-400/60 bg-emerald-400/20 px-6 font-semibold text-white transition hover:bg-emerald-400/30 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex h-11 w-full items-center justify-center rounded-md border border-white/20 bg-white/10 px-6 font-semibold text-white transition hover:bg-white/15 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-white/60 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isLoading ? loadingMessage : "Convertir le plan en JSON Garmin"}
         </button>
@@ -234,9 +234,9 @@ export function GarminTrainerGenerator({ sourcePlan }: GarminTrainerGeneratorPro
         {error ? <p className="text-sm text-red-300">{error}</p> : null}
 
         {rawResult ? (
-          <div className="space-y-3 rounded-xl border border-white/15 bg-black/40 p-4 text-left text-sm text-white">
-            <h2 className="text-base font-semibold text-emerald-200">Résultat brut</h2>
-            <pre className="max-h-[32rem] overflow-auto whitespace-pre-wrap break-words font-mono text-xs leading-relaxed text-emerald-100/80">
+          <div className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-4 text-left text-sm text-white backdrop-blur">
+            <h2 className="text-base font-semibold text-white/70">Résultat brut</h2>
+            <pre className="max-h-[32rem] overflow-auto whitespace-pre-wrap break-words font-mono text-xs leading-relaxed text-white/80">
               {rawResult}
             </pre>
           </div>
@@ -244,9 +244,9 @@ export function GarminTrainerGenerator({ sourcePlan }: GarminTrainerGeneratorPro
       </div>
 
       {trainingJson ? (
-        <div className="space-y-3 rounded-xl border border-emerald-600/40 bg-emerald-950/40 p-4 text-left text-sm text-white">
+        <div className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-4 text-left text-sm text-white backdrop-blur">
           <div className="space-y-1">
-            <h2 className="text-base font-semibold text-emerald-200">Synchroniser avec Garmin</h2>
+            <h2 className="text-base font-semibold text-white/70">Synchroniser avec Garmin</h2>
             <p className="text-xs text-white/70">
               Vérifie que l’entraînement correspond à la documentation puis envoie-le vers ton compte Garmin connecté.
             </p>
@@ -256,16 +256,16 @@ export function GarminTrainerGenerator({ sourcePlan }: GarminTrainerGeneratorPro
             type="button"
             onClick={handlePushToGarmin}
             disabled={isPushing}
-            className="inline-flex h-11 w-full items-center justify-center rounded-md border border-emerald-400/60 bg-emerald-400/20 px-6 font-semibold text-white transition hover:bg-emerald-400/30 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-emerald-100 disabled:cursor-wait disabled:opacity-60"
+            className="inline-flex h-11 w-full items-center justify-center rounded-md border border-white/20 bg-white/10 px-6 font-semibold text-white transition hover:bg-white/15 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-white/60 disabled:cursor-wait disabled:opacity-60"
           >
             {isPushing ? "Envoi vers Garmin..." : "Envoyer l’entraînement sur Garmin"}
           </button>
 
           {pushError ? <p className="text-xs text-red-300">{pushError}</p> : null}
-          {pushSuccess ? <p className="text-xs text-emerald-200">{pushSuccess}</p> : null}
+          {pushSuccess ? <p className="text-xs text-white/70">{pushSuccess}</p> : null}
 
           {pushDetails ? (
-            <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-white/10 bg-black/40 p-3 font-mono text-[11px] leading-relaxed text-emerald-100/80">
+            <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-white/10 bg-black/40 p-3 font-mono text-[11px] leading-relaxed text-white/80">
               {pushDetails}
             </pre>
           ) : null}

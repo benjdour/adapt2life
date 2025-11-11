@@ -114,7 +114,7 @@ export function GarminIntegrationActions({
             window.location.href = "/api/garmin/oauth/start";
           })
         }
-        className="inline-flex items-center justify-center rounded-md bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400 disabled:cursor-not-allowed disabled:opacity-70"
+        className="inline-flex items-center justify-center rounded-md border border-white/20 bg-white/10 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60 disabled:cursor-not-allowed disabled:opacity-70"
         disabled={isPending || isDisconnecting}
       >
         {isPending ? "Ouverture..." : nextActionLabel}
@@ -144,13 +144,13 @@ export function GarminIntegrationActions({
                 }
               })
             }
-            className="inline-flex w-full items-center justify-center rounded-md border border-emerald-500/60 bg-transparent px-5 py-2.5 text-sm font-semibold text-emerald-200 transition hover:bg-emerald-500/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400 disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
+            className="inline-flex w-full items-center justify-center rounded-md border border-white/20 bg-transparent px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60 disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
             disabled={isPending || isDisconnecting}
           >
             {isDisconnecting ? "Déconnexion..." : "Se déconnecter de Garmin"}
           </button>
           {garminUserId ? (
-            <span className="inline-flex flex-1 items-center justify-center rounded-md border border-emerald-700/40 bg-emerald-900/40 px-4 py-2 text-xs font-mono text-emerald-100">
+            <span className="inline-flex flex-1 items-center justify-center rounded-md border border-white/15 bg-black/30 px-4 py-2 text-xs font-mono text-white/80">
               userId&nbsp;: {garminUserId}
             </span>
           ) : null}
@@ -160,7 +160,7 @@ export function GarminIntegrationActions({
       )}
 
       {isConnected && nextExpiryLabel ? (
-        <p className="text-xs text-emerald-200/70">Token valide jusqu&apos;au : {nextExpiryLabel}</p>
+        <p className="text-xs text-white/60">Token valide jusqu&apos;au : {nextExpiryLabel}</p>
       ) : null}
     </div>
   );

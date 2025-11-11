@@ -42,7 +42,7 @@ export default async function GarminDataPage() {
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-4xl flex-col gap-10 px-6 py-12 text-white">
       <header className="space-y-2">
-        <p className="text-sm uppercase tracking-wide text-emerald-400">Garmin</p>
+        <p className="text-sm uppercase tracking-wide text-white/60">Garmin</p>
         <h1 className="text-3xl font-semibold">Données synchronisées</h1>
         <p className="max-w-2xl text-sm text-white/70">
           Cette page présente les métriques clés envoyées par Garmin Connect.

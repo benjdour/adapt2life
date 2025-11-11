@@ -330,31 +330,31 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-3xl flex-col gap-10 px-6 py-12 text-white">
       <header className="space-y-2">
-        <p className="text-sm uppercase tracking-wide text-emerald-400">Compte</p>
+        <p className="text-sm uppercase tracking-wide text-white/60">Compte</p>
         <h1 className="text-3xl font-semibold">Informations utilisateur</h1>
         <p className="max-w-2xl text-sm text-white/70">
           Consulte les informations essentielles associées à ton profil Adapt2Life et à ton compte Stack Auth.
         </p>
       </header>
 
-      <section className="space-y-6 rounded-3xl border border-emerald-700/40 bg-emerald-900/20 p-8 shadow-xl backdrop-blur">
+      <section className="space-y-6 rounded-3xl border border-white/10 bg-white/5 p-8 shadow-xl backdrop-blur">
         <div>
-          <p className="text-sm uppercase tracking-wide text-emerald-300">Profil Adapt2Life</p>
-          <p className="text-sm text-emerald-100/80">
+          <p className="text-sm uppercase tracking-wide text-white/60">Profil Adapt2Life</p>
+          <p className="text-sm text-white/70">
             {localUser
               ? "Informations synchronisées avec la base de données interne."
               : "Complète le formulaire ci-dessous pour enregistrer ton profil Adapt2Life."}
           </p>
         </div>
 
-        <form action={updateProfile} className="space-y-6 rounded-2xl border border-emerald-700/30 bg-emerald-900/30 p-6">
+        <form action={updateProfile} className="space-y-6 rounded-2xl border border-white/10 bg-black/30 p-6">
           {statusMessage ? (
-            <p className="rounded-md border border-emerald-500/60 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-100">{statusMessage}</p>
+            <p className="rounded-md border border-white/15 bg-white/10 px-4 py-2 text-sm text-white">{statusMessage}</p>
           ) : null}
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2 sm:col-span-2">
-              <label htmlFor="pseudo" className="text-sm font-semibold text-emerald-100">
+              <label htmlFor="pseudo" className="text-sm font-semibold text-white">
                 Pseudo
               </label>
               <input
@@ -363,12 +363,12 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
                 type="text"
                 defaultValue={localUser?.pseudo ?? ""}
                 placeholder="Ex. IronRunner"
-                className="rounded-md border border-emerald-700/40 bg-emerald-950/60 px-3 py-2 text-sm text-emerald-50 placeholder:text-emerald-200/40 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
+                className="rounded-md border border-white/15 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:border-white/60 focus:outline-none focus:ring-2 focus:ring-white/30"
               />
             </div>
 
             <div className="flex flex-col gap-2">
-              <label htmlFor="lastName" className="text-sm font-semibold text-emerald-100">
+              <label htmlFor="lastName" className="text-sm font-semibold text-white">
                 Nom
               </label>
               <input
@@ -377,13 +377,13 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
                 type="text"
                 defaultValue={localUser?.lastName ?? ""}
                 placeholder="Ex. Dupont"
-                className="rounded-md border border-emerald-700/40 bg-emerald-950/60 px-3 py-2 text-sm text-emerald-50 placeholder:text-emerald-200/40 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
+                className="rounded-md border border-white/15 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:border-white/60 focus:outline-none focus:ring-2 focus:ring-white/30"
                 autoComplete="family-name"
               />
             </div>
 
             <div className="flex flex-col gap-2">
-              <label htmlFor="firstName" className="text-sm font-semibold text-emerald-100">
+              <label htmlFor="firstName" className="text-sm font-semibold text-white">
                 Prénom
               </label>
               <input
@@ -392,20 +392,20 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
                 type="text"
                 defaultValue={localUser?.firstName ?? ""}
                 placeholder="Ex. Marie"
-                className="rounded-md border border-emerald-700/40 bg-emerald-950/60 px-3 py-2 text-sm text-emerald-50 placeholder:text-emerald-200/40 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
+                className="rounded-md border border-white/15 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:border-white/60 focus:outline-none focus:ring-2 focus:ring-white/30"
                 autoComplete="given-name"
               />
             </div>
 
             <div className="flex flex-col gap-2">
-              <label htmlFor="gender" className="text-sm font-semibold text-emerald-100">
+              <label htmlFor="gender" className="text-sm font-semibold text-white">
                 Genre
               </label>
               <select
                 id="gender"
                 name="gender"
                 defaultValue={localUser?.gender ?? ""}
-                className="rounded-md border border-emerald-700/40 bg-emerald-950/60 px-3 py-2 text-sm text-emerald-50 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
+                className="rounded-md border border-white/15 bg-white/5 px-3 py-2 text-sm text-white focus:border-white/60 focus:outline-none focus:ring-2 focus:ring-white/30"
               >
                 <option value="">Sélectionne ton genre</option>
                 {genderOptions.map((option) => (
@@ -417,7 +417,7 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
             </div>
 
             <div className="flex flex-col gap-2">
-              <label htmlFor="birthDate" className="text-sm font-semibold text-emerald-100">
+              <label htmlFor="birthDate" className="text-sm font-semibold text-white">
                 Date de naissance
               </label>
               <input
@@ -425,13 +425,13 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
                 name="birthDate"
                 type="date"
                 defaultValue={localUser?.birthDate ?? ""}
-                className="rounded-md border border-emerald-700/40 bg-emerald-950/60 px-3 py-2 text-sm text-emerald-50 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
+                className="rounded-md border border-white/15 bg-white/5 px-3 py-2 text-sm text-white focus:border-white/60 focus:outline-none focus:ring-2 focus:ring-white/30"
                 autoComplete="bday"
               />
             </div>
 
             <div className="flex flex-col gap-2">
-              <label htmlFor="age" className="text-sm font-semibold text-emerald-100">
+              <label htmlFor="age" className="text-sm font-semibold text-white">
                 Âge (calculé)
               </label>
               <input
@@ -440,12 +440,12 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
                 readOnly
                 value={computedAge ?? ""}
                 placeholder="Ex. 29"
-                className="rounded-md border border-emerald-700/40 bg-emerald-950/40 px-3 py-2 text-sm text-emerald-50 placeholder:text-emerald-200/40 focus:outline-none"
+                className="rounded-md border border-white/15 bg-white/10 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:outline-none"
               />
             </div>
 
             <div className="flex flex-col gap-2">
-              <label htmlFor="heightCm" className="text-sm font-semibold text-emerald-100">
+              <label htmlFor="heightCm" className="text-sm font-semibold text-white">
                 Taille (cm)
               </label>
               <input
@@ -456,13 +456,13 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
                 step="1"
                 defaultValue={typeof localUser?.heightCm === "number" ? String(localUser.heightCm) : ""}
                 placeholder="Ex. 172"
-                className="rounded-md border border-emerald-700/40 bg-emerald-950/60 px-3 py-2 text-sm text-emerald-50 placeholder:text-emerald-200/40 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
+                className="rounded-md border border-white/15 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:border-white/60 focus:outline-none focus:ring-2 focus:ring-white/30"
                 inputMode="numeric"
               />
             </div>
 
             <div className="flex flex-col gap-2">
-              <label htmlFor="weightKg" className="text-sm font-semibold text-emerald-100">
+              <label htmlFor="weightKg" className="text-sm font-semibold text-white">
                 Poids (kg)
               </label>
               <input
@@ -473,23 +473,23 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
                 step="0.01"
                 defaultValue={weightInputDefault}
                 placeholder="Ex. 68.5"
-                className="rounded-md border border-emerald-700/40 bg-emerald-950/60 px-3 py-2 text-sm text-emerald-50 placeholder:text-emerald-200/40 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
+                className="rounded-md border border-white/15 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:border-white/60 focus:outline-none focus:ring-2 focus:ring-white/30"
                 inputMode="decimal"
               />
               {showGarminHint ? (
-                <p className="text-xs text-emerald-200/60">Valeur suggérée d’après ta dernière mesure Garmin.</p>
+                <p className="text-xs text-white/60">Valeur suggérée d’après ta dernière mesure Garmin.</p>
               ) : null}
             </div>
 
             <div className="flex flex-col gap-2 sm:col-span-2">
-              <label htmlFor="sportLevel" className="text-sm font-semibold text-emerald-100">
+              <label htmlFor="sportLevel" className="text-sm font-semibold text-white">
                 Niveau sportif
               </label>
               <select
                 id="sportLevel"
                 name="sportLevel"
                 defaultValue={localUser?.sportLevel ? String(localUser.sportLevel) : ""}
-                className="rounded-md border border-emerald-700/40 bg-emerald-950/60 px-3 py-2 text-sm text-emerald-50 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
+                className="rounded-md border border-white/15 bg-white/5 px-3 py-2 text-sm text-white focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-300/50"
               >
                 <option value="">Sélectionne ton niveau</option>
                 {sportLevelOptions.map((option) => (
@@ -501,7 +501,7 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
             </div>
 
             <div className="flex flex-col gap-2 sm:col-span-2">
-              <label htmlFor="trainingGoal" className="text-sm font-semibold text-emerald-100">
+              <label htmlFor="trainingGoal" className="text-sm font-semibold text-white">
                 Objectif sportif principal
               </label>
               <textarea
@@ -510,7 +510,7 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
                 defaultValue={localUser?.trainingGoal ?? ""}
                 rows={3}
                 placeholder="Ex. Terminer un marathon en moins de 4h, améliorer ma VO2max, préparer un triathlon sprint..."
-                className="min-h-[96px] rounded-md border border-emerald-700/40 bg-emerald-950/60 px-3 py-2 text-sm text-emerald-50 placeholder:text-emerald-200/40 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
+                className="min-h-[96px] rounded-md border border-white/15 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-300/50"
               />
             </div>
           </div>
@@ -518,7 +518,7 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
           <div className="flex justify-end">
             <button
               type="submit"
-              className="inline-flex items-center justify-center rounded-md border border-emerald-500/60 bg-emerald-500/20 px-4 py-2 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-500/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300"
+              className="inline-flex items-center justify-center rounded-md border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60"
             >
               Enregistrer le profil
             </button>
@@ -534,12 +534,6 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
           className="inline-flex items-center justify-center rounded-md border border-white/20 bg-white/5 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/80"
         >
           Retour à l’accueil
-        </Link>
-        <Link
-          href="/integrations/garmin"
-          className="inline-flex items-center justify-center rounded-md border border-emerald-500/60 bg-emerald-500/10 px-5 py-2.5 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-500/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300"
-        >
-          Gérer l’intégration Garmin
         </Link>
       </div>
     </div>
