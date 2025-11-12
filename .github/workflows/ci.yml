@@ -49,7 +49,7 @@ jobs:
         run: npm run typecheck
 
       - name: Unit tests
-        run: npm run test -- --runInBand
+        run: npm run test
 
       - name: Build
         run: npm run build
