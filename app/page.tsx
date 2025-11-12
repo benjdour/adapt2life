@@ -113,7 +113,7 @@ export default async function Home({ searchParams }: HomePageProps) {
   const user = await stackServerApp.getUser({ or: "return-null", tokenStore: "nextjs-cookie" });
   let firstName = extractFirstName(user);
   let localUser:
-    | { id: number; firstName: string | null; name: string | null; pseudo: string | null }
+    | { id: number; firstName: string | null; name: string | null; pseudo: string | null; gender: string | null }
     | undefined;
 
   if (user) {
