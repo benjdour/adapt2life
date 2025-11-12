@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest",
+    "test:routes": "vitest run tests/app/**/*.test.ts",
     "typecheck": "tsc --noEmit",
     "audit": "npm audit --audit-level=moderate",
     "db:push": "drizzle-kit push --config drizzle.config.ts",
@@ -15,6 +16,7 @@
   },
   "dependencies": {
     "@stackframe/stack": "^2.8.47",
+    "@radix-ui/react-slot": "^1.0.4",
     "dotenv": "^17.2.3",
     "drizzle-kit": "^0.31.6",
     "drizzle-orm": "^0.44.7",

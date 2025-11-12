@@ -5,6 +5,10 @@ import { toast } from "sonner";
 
 import { MarkdownPlan } from "@/components/MarkdownPlan";
 import { TRAINING_LOADING_MESSAGES } from "@/constants/loadingMessages";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { AppError, describeAppError, getErrorDescriptor } from "@/lib/errors";
 
 export type GeneratedPlanPayload = {
@@ -113,40 +117,47 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated }: TrainingPlanGener
 
   return (
     <div className="space-y-6">
-      <form onSubmit={handleSubmit} className="space-y-6 rounded-2xl border border-white/10 bg-white/5 p-6 shadow-lg backdrop-blur">
-        <div className="space-y-2">
-          <h2 className="text-base font-semibold uppercase tracking-wide text-white/60">
-            Briefing d’entraînement
-          </h2>
-          <label htmlFor="prompt" className="block text-sm font-semibold text-white">
-            Que veux-tu faire aujourd’hui et quelles sont tes contraintes ? *
-          </label>
-          <textarea
-            id="prompt"
-            name="prompt"
-            value={prompt}
-            onChange={(event) => setPrompt(event.target.value)}
-            rows={6}
-            placeholder="Ex. je veux faire une séance cardio de 45 min, genou fragile, pas d’équipement, dispo ce soir."
-            className="min-h-[140px] w-full rounded-md border border-white/15 bg-black/30 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:border-white/60 focus:outline-none focus:ring-2 focus:ring-white/30"
-            required
-          />
-        </div>
+      <Card className="backdrop-blur">
+        <CardHeader>
+          <CardTitle>Briefing d’entraînement</CardTitle>
+          <CardDescription>
+            Décris ton objectif, tes contraintes et ton ressenti du jour pour générer une séance adaptée.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="prompt" requiredIndicator>
+                Que veux-tu faire aujourd’hui et quelles sont tes contraintes ?
+              </Label>
+              <Textarea
+                id="prompt"
+                name="prompt"
+                value={prompt}
+                onChange={(event) => setPrompt(event.target.value)}
+                rows={6}
+                placeholder="Ex. je veux faire une séance cardio de 45 min, genou fragile, pas d’équipement, dispo ce soir."
+                required
+              />
+            </div>
 
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="inline-flex w-full items-center justify-center rounded-md border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60 disabled:cursor-wait disabled:opacity-60"
-        >
-          {isLoading ? loadingMessage : "Générer le plan"}
-        </button>
-      </form>
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? loadingMessage : "Générer le plan"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
 
       {plan ? (
-        <div className="space-y-4 rounded-2xl border border-white/10 bg-white/5 p-6 text-sm leading-relaxed text-white backdrop-blur">
-          <h2 className="text-lg font-semibold text-white/70">Plan d’entraînement personnalisé</h2>
-          <MarkdownPlan content={plan} className="text-sm leading-relaxed" />
-        </div>
+        <Card className="text-sm leading-relaxed text-white">
+          <CardHeader>
+            <CardTitle>Plan d’entraînement personnalisé</CardTitle>
+            <CardDescription className="text-white/70">Garde ce rendu en référence ou convertis-le en JSON Garmin.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <MarkdownPlan content={plan} className="text-sm leading-relaxed" />
+          </CardContent>
+        </Card>
       ) : null}
     </div>
   );

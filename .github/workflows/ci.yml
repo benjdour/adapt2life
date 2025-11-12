@@ -51,6 +51,9 @@ jobs:
       - name: Unit tests
         run: npm run test
 
+      - name: Route handler tests
+        run: npm run test:routes
+
       - name: Build
         run: npm run build
 
