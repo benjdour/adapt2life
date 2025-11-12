@@ -5,6 +5,10 @@ import { eq } from "drizzle-orm";
 import { stackServerApp } from "@/stack/server";
 import { db } from "@/db";
 import { users } from "@/db/schema";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { DashboardGrid } from "@/components/ui/dashboard-grid";
+import { AIScoreGraph } from "@/components/ui/ai-score-graph";
 
 const normalizeFirstName = (value: unknown): string | null => {
   if (typeof value !== "string") {
@@ -112,76 +116,112 @@ export default async function Home({ searchParams }: HomePageProps) {
   }
 
   const authState = readParam(searchParams?.auth);
+  const heroScore = user ? 82 : 64;
+
+  const quickActions = [
+    {
+      title: "Générateur IA",
+      description: "Crée ta séance personnalisée en quelques secondes.",
+      href: "/generateur-entrainement",
+    },
+    {
+      title: "Données Garmin",
+      description: "Visualise tes métriques synchronisées.",
+      href: "/secure/garmin-data",
+    },
+    {
+      title: "Profil Adapt2Life",
+      description: "Mets à jour tes informations et objectifs.",
+      href: "/secure/user-information",
+    },
+    {
+      title: "Intégration Garmin",
+      description: "Connecte ou gère ton compte Garmin.",
+      href: "/integrations/garmin",
+    },
+  ];
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-slate-950 px-6 py-16 text-white">
-      <section className="w-full max-w-md space-y-6 rounded-2xl border border-white/10 bg-white/5 p-8 text-center shadow-lg backdrop-blur">
+    <main className="min-h-screen bg-background px-6 py-12 text-foreground">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
         {authState === "unauthorized" ? (
-          <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-left text-sm text-red-100">
-            <p className="font-semibold text-red-200">Accès refusé</p>
-            <p className="text-red-100/80">
-              Tu dois être connecté avec un compte autorisé pour accéder à cette page.
-            </p>
-          </div>
+          <Card className="border-error/40 bg-error/5 text-error">
+            <CardContent className="py-4 text-sm">
+              <p className="font-semibold">Accès refusé</p>
+              <p className="text-error/80">Tu dois être connecté avec un compte autorisé pour accéder à cette page.</p>
+            </CardContent>
+          </Card>
         ) : null}
-        <header className="space-y-2">
-          <h1 className="text-3xl font-semibold">Adapt2Life</h1>
-          <p className="text-sm text-white/70">
-            {user ? "Bienvenue dans l’espace Garmin." : "Connecte-toi pour accéder à l’espace sécurisé Garmin."}
-          </p>
-        </header>
 
-        {user ? (
-          <div className="space-y-4">
-            <p className="text-lg">Bonjour {firstName ?? "athlète"} 👋</p>
-            <Link
-              href="/generateur-entrainement"
-              className="inline-flex h-11 w-full items-center justify-center rounded-md bg-emerald-500 font-semibold text-white transition hover:bg-emerald-600 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-emerald-300"
-            >
-              Générateur d’entraînement
-            </Link>
-            <Link
-              href="/secure/garmin-data"
-              className="inline-flex h-11 w-full items-center justify-center rounded-md border border-white/20 bg-white/5 font-semibold text-white transition hover:bg-white/10 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-white/60"
-            >
-              Voir les données Garmin
-            </Link>
-            <Link
-              href="/secure/user-information"
-              className="inline-flex h-11 w-full items-center justify-center rounded-md border border-white/20 bg-white/5 font-semibold text-white transition hover:bg-white/10 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-white/60"
-            >
-              Voir les informations utilisateur
-            </Link>
-            <Link
-              href="/integrations/garmin"
-              className="inline-flex h-11 w-full items-center justify-center rounded-md border border-white/20 bg-white/5 font-semibold text-white transition hover:bg-white/10 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-white/60"
-            >
-              Accéder à la page Garmin
-            </Link>
-            <form action="/handler/sign-out" method="post" className="inline-flex w-full">
-              <input type="hidden" name="redirect" value="/" />
-              <button
-                type="submit"
-                className="inline-flex h-11 w-full items-center justify-center rounded-md border border-white/20 bg-white/5 font-semibold text-white transition hover:bg-white/10 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-white/60"
-              >
-                Se déconnecter d’Adapt2Life
-              </button>
-            </form>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <p className="text-sm text-white/70">
-              Clique sur le bouton ci-dessous pour te connecter via Stack Auth, puis accéder à l’intégration Garmin.
-            </p>
-            <Link
-              href="/handler/sign-in?redirect=/integrations/garmin"
-              className="inline-flex h-11 w-full items-center justify-center rounded-md bg-emerald-500 font-semibold text-white transition hover:bg-emerald-600 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-emerald-300"
-            >
-              Se connecter / Créer un compte
-            </Link>
-          </div>
-        )}
-      </section>
+        <Card className="overflow-hidden">
+          <CardContent className="grid gap-8 p-8 lg:grid-cols-[1fr_320px]">
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <p className="text-sm uppercase tracking-wide text-muted-foreground">Bienvenue sur Adapt2Life</p>
+                <h1 className="text-4xl font-heading">
+                  {user ? `Bonjour ${firstName ?? "athlète"} 👋` : "Pilote ton énergie au quotidien"}
+                </h1>
+                <p className="text-base text-muted-foreground">
+                  {user
+                    ? "Accède à tes données Garmin, génère des plans IA et synchronise-les en un geste."
+                    : "Connecte ton compte pour accéder à l’espace sécurisé Garmin et commencer tes plans adaptatifs."}
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-3 sm:flex-row">
+                {user ? (
+                  <>
+                    <Button asChild className="flex-1">
+                      <Link href="/generateur-entrainement">Lancer le générateur IA</Link>
+                    </Button>
+                    <Button asChild variant="secondary" className="flex-1">
+                      <Link href="/secure/garmin-data">Voir les données Garmin</Link>
+                    </Button>
+                  </>
+                ) : (
+                  <Button asChild className="flex-1">
+                    <Link href="/handler/sign-in?redirect=/integrations/garmin">Se connecter / Créer un compte</Link>
+                  </Button>
+                )}
+              </div>
+
+              {user ? (
+                <form action="/handler/sign-out" method="post" className="flex justify-start">
+                  <input type="hidden" name="redirect" value="/" />
+                  <Button type="submit" variant="ghost" className="text-sm text-muted-foreground">
+                    Se déconnecter d’Adapt2Life
+                  </Button>
+                </form>
+              ) : null}
+            </div>
+
+            <div className="flex flex-col items-center justify-center rounded-3xl border border-white/10 bg-black/30 p-6">
+              <AIScoreGraph score={heroScore} label="AI Energy Score" trend={user ? "up" : "stable"} />
+              <p className="mt-4 text-center text-sm text-muted-foreground">
+                {user
+                  ? "Score calculé à partir de ta dernière synchronisation Garmin."
+                  : "Connecte ta montre pour obtenir ton score personnalisé."}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <DashboardGrid columns={{ sm: 1, md: 2, lg: 2, xl: 4 }} gap="md">
+          {quickActions.map((action) => (
+            <Card key={action.href} className="h-full border-white/10 bg-card/90">
+              <CardHeader>
+                <CardTitle className="text-xl">{action.title}</CardTitle>
+                <CardDescription>{action.description}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button asChild variant="ghost" className="w-full justify-start">
+                  <Link href={action.href}>Accéder</Link>
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </DashboardGrid>
+      </div>
     </main>
   );
 }

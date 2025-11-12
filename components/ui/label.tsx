@@ -6,9 +6,9 @@ const Label = React.forwardRef<
   HTMLLabelElement,
   React.LabelHTMLAttributes<HTMLLabelElement> & { requiredIndicator?: boolean }
 >(({ className, requiredIndicator, children, ...props }, ref) => (
-  <label ref={ref} className={cn("text-sm font-semibold text-white", className)} {...props}>
+  <label ref={ref} className={cn("text-sm font-semibold text-foreground", className)} {...props}>
     {children}
-    {requiredIndicator ? <span className="ml-1 text-xs text-emerald-300">*</span> : null}
+    {requiredIndicator ? <span className="ml-1 text-xs text-secondary">*</span> : null}
   </label>
 ));
 Label.displayName = "Label";

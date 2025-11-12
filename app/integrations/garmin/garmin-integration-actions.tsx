@@ -4,6 +4,8 @@ import { useEffect, useMemo, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
+import { Button } from "@/components/ui/button";
+
 type Props = {
   isConnected: boolean;
   garminUserId?: string;
@@ -107,23 +109,26 @@ export function GarminIntegrationActions({
 
   return (
     <div className="mt-6 space-y-4">
-      <button
+      <Button
         type="button"
         onClick={() =>
           startTransition(() => {
             window.location.href = "/api/garmin/oauth/start";
           })
         }
-        className="inline-flex items-center justify-center rounded-md border border-white/20 bg-white/10 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60 disabled:cursor-not-allowed disabled:opacity-70"
+        variant="primary"
+        className="w-full"
         disabled={isPending || isDisconnecting}
+        isLoading={isPending}
       >
-        {isPending ? "Ouverture..." : nextActionLabel}
-      </button>
+        {nextActionLabel}
+      </Button>
 
       {isConnected ? (
         <div className="flex flex-col gap-3 sm:flex-row">
-          <button
+          <Button
             type="button"
+            variant="outline"
             onClick={() =>
               startDisconnect(async () => {
                 try {
@@ -144,23 +149,24 @@ export function GarminIntegrationActions({
                 }
               })
             }
-            className="inline-flex w-full items-center justify-center rounded-md border border-white/20 bg-transparent px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60 disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
+            className="w-full sm:w-auto"
             disabled={isPending || isDisconnecting}
+            isLoading={isDisconnecting}
           >
-            {isDisconnecting ? "Déconnexion..." : "Se déconnecter de Garmin"}
-          </button>
+            Se déconnecter de Garmin
+          </Button>
           {garminUserId ? (
-            <span className="inline-flex flex-1 items-center justify-center rounded-md border border-white/15 bg-black/30 px-4 py-2 text-xs font-mono text-white/80">
+            <span className="inline-flex flex-1 items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-mono text-muted-foreground">
               userId&nbsp;: {garminUserId}
             </span>
           ) : null}
         </div>
       ) : (
-        <p className="text-sm text-white/70">Aucun compte Garmin lié. Cliquez sur le bouton pour démarrer l&apos;OAuth.</p>
+        <p className="text-sm text-muted-foreground">Aucun compte Garmin lié. Clique sur le bouton pour démarrer l’OAuth.</p>
       )}
 
       {isConnected && nextExpiryLabel ? (
-        <p className="text-xs text-white/60">Token valide jusqu&apos;au : {nextExpiryLabel}</p>
+        <p className="text-xs text-muted-foreground">Token valide jusqu&apos;au : {nextExpiryLabel}</p>
       ) : null}
     </div>
   );

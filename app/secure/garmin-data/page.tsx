@@ -10,6 +10,8 @@ import { users } from "@/db/schema";
 import { fetchGarminData } from "@/lib/garminData";
 import { mockGarminData } from "@/lib/trainingScore";
 import { stackServerApp } from "@/stack/server";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
   title: "Adapt2Life — Données Garmin",
@@ -40,33 +42,36 @@ export default async function GarminDataPage() {
   const data = await fetchGarminData(localUser.id);
 
   return (
-    <div className="mx-auto flex min-h-[70vh] max-w-4xl flex-col gap-10 px-6 py-12 text-white">
-      <header className="space-y-2">
-        <p className="text-sm uppercase tracking-wide text-white/60">Garmin</p>
-        <h1 className="text-3xl font-semibold">Données synchronisées</h1>
-        <p className="max-w-2xl text-sm text-white/70">
-          Cette page présente les métriques clés envoyées par Garmin Connect.
-        </p>
-      </header>
+    <div className="mx-auto flex min-h-screen max-w-5xl flex-col gap-8 px-6 py-12 text-foreground">
+      <Card>
+        <CardHeader>
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">Garmin</p>
+          <CardTitle>Données synchronisées</CardTitle>
+          <CardDescription>
+            Visualise les métriques clés envoyées par Garmin Connect : body battery, sommeil, stress, activités et webhooks récents.
+          </CardDescription>
+        </CardHeader>
+      </Card>
 
-      <GarminDataClient
-        initialData={
-          data ?? {
-            connection: null,
-            sections: [],
-            trainingGaugeData: mockGarminData(),
-            usedRealtimeMetrics: false,
-          }
-        }
-      />
+      <Card className="overflow-hidden">
+        <CardContent className="p-0">
+          <GarminDataClient
+            initialData={
+              data ?? {
+                connection: null,
+                sections: [],
+                trainingGaugeData: mockGarminData(),
+                usedRealtimeMetrics: false,
+              }
+            }
+          />
+        </CardContent>
+      </Card>
 
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <Link
-          href="/"
-          className="inline-flex items-center justify-center rounded-md border border-white/20 bg-white/5 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/80"
-        >
-          Retour à l’accueil
-        </Link>
+      <div className="flex justify-end">
+        <Button asChild variant="ghost">
+          <Link href="/">Retour à l’accueil</Link>
+        </Button>
       </div>
     </div>
   );

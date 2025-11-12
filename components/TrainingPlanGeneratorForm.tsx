@@ -141,7 +141,7 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated }: TrainingPlanGener
               />
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full" disabled={isLoading} isLoading={isLoading}>
               {isLoading ? loadingMessage : "Générer le plan"}
             </Button>
           </form>

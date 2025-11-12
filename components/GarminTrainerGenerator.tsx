@@ -8,6 +8,7 @@ import { AppError, describeAppError, getErrorDescriptor } from "@/lib/errors";
 import type { GarminTrainerWorkout } from "@/schemas/garminTrainer.schema";
 import type { GeneratedPlanPayload } from "@/components/TrainingPlanGeneratorForm";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 
 type GenerateTrainingResponse = {
@@ -204,62 +205,66 @@ export function GarminTrainerGenerator({ sourcePlan }: GarminTrainerGeneratorPro
 
   return (
     <div className="space-y-6">
-      <div className="space-y-4">
-        <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-left text-sm text-white backdrop-blur">
-          <p className="text-sm font-semibold text-white/70">Plan utilisé pour la conversion</p>
-          <p className="mt-2 text-xs text-white/60">
+      <Card>
+        <CardHeader>
+          <CardTitle>Plan utilisé pour la conversion</CardTitle>
+          <CardDescription>
             Le plan généré est copié automatiquement ici. Tu peux l’ajuster avant de lancer la conversion Garmin.
-          </p>
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
           <Textarea
             value={conversionInput}
             onChange={(event) => setConversionInput(event.target.value)}
             placeholder="Colle ou édite ici le plan à convertir"
-            className="mt-3 max-h-60 min-h-[160px] resize-y font-mono text-xs leading-relaxed text-white/80"
+            className="max-h-60 min-h-[160px] resize-y font-mono text-xs leading-relaxed"
           />
-        </div>
 
-        <Button
-          type="button"
-          onClick={handleGenerateWorkout}
-          disabled={isLoading || conversionInput.trim().length === 0}
-          variant="secondary"
-          className="h-11 w-full"
-        >
-          {isLoading ? loadingMessage : "Convertir le plan en JSON Garmin"}
-        </Button>
-
-        {rawResult ? (
-          <div className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-4 text-left text-sm text-white backdrop-blur">
-            <h2 className="text-base font-semibold text-white/70">Résultat brut</h2>
-            <pre className="max-h-[32rem] overflow-auto whitespace-pre-wrap break-words font-mono text-xs leading-relaxed text-white/80">
-              {rawResult}
-            </pre>
-          </div>
-        ) : null}
-      </div>
-
-      {trainingJson ? (
-        <div className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-4 text-left text-sm text-white backdrop-blur">
-          <div className="space-y-1">
-            <h2 className="text-base font-semibold text-white/70">Synchroniser avec Garmin</h2>
-            <p className="text-xs text-white/70">
-              Vérifie que l’entraînement correspond à la documentation puis envoie-le vers ton compte Garmin connecté.
-            </p>
-          </div>
-
-          <Button type="button" onClick={handlePushToGarmin} disabled={isPushing} className="h-11 w-full">
-            {isPushing ? "Envoi vers Garmin..." : "Envoyer l’entraînement sur Garmin"}
+          <Button
+            type="button"
+            onClick={handleGenerateWorkout}
+            disabled={isLoading || conversionInput.trim().length === 0}
+            variant="secondary"
+            className="w-full"
+            isLoading={isLoading}
+          >
+            {isLoading ? loadingMessage : "Convertir en JSON Garmin"}
           </Button>
 
-          {pushDetails ? (
-            <div className="space-y-2">
-              <p className="text-xs uppercase tracking-wide text-white/50">Dernière réponse Garmin</p>
-              <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-white/10 bg-black/40 p-3 font-mono text-[11px] leading-relaxed text-white/80">
-                {pushDetails}
+          {rawResult ? (
+            <div className="space-y-2 rounded-2xl border border-white/10 bg-black/30 p-4">
+              <h3 className="text-sm font-semibold text-muted-foreground">Résultat brut</h3>
+              <pre className="max-h-[32rem] overflow-auto whitespace-pre-wrap break-words font-mono text-xs leading-relaxed text-muted-foreground">
+                {rawResult}
               </pre>
             </div>
           ) : null}
-        </div>
+        </CardContent>
+      </Card>
+
+      {trainingJson ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Synchroniser avec Garmin</CardTitle>
+            <CardDescription>
+              Vérifie que l’entraînement correspond à la documentation puis envoie-le vers ton compte Garmin connecté.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Button type="button" onClick={handlePushToGarmin} disabled={isPushing} className="w-full" isLoading={isPushing}>
+              Envoyer l’entraînement sur Garmin
+            </Button>
+
+            {pushDetails ? (
+              <div className="space-y-2">
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Dernière réponse Garmin</p>
+                <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-words rounded-2xl border border-white/10 bg-black/30 p-3 font-mono text-[11px] leading-relaxed text-muted-foreground">
+                  {pushDetails}
+                </pre>
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
       ) : null}
     </div>
   );

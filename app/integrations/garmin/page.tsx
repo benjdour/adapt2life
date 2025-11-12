@@ -7,6 +7,9 @@ import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { garminConnections, users } from "@/db/schema";
 import { stackServerApp } from "@/stack/server";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { DashboardGrid } from "@/components/ui/dashboard-grid";
+import { Button } from "@/components/ui/button";
 
 import { GarminIntegrationActions } from "./garmin-integration-actions";
 
@@ -94,91 +97,87 @@ export default async function GarminIntegrationPage({ searchParams }: PageProps)
   const isConnected = Boolean(connection);
 
   return (
-    <div className="mx-auto flex min-h-[70vh] max-w-3xl flex-col gap-10 px-6 py-12 text-white">
-      <header className="space-y-2">
-        <p className="text-sm uppercase tracking-wide text-white/60">Intégrations</p>
-        <h1 className="text-3xl font-semibold text-white">Garmin Connect</h1>
-        {isConnected ? (
-          <p className="max-w-2xl text-sm text-white/70">
-            Ton compte Garmin est déjà lié à Adapt2Life. Tu peux le gérer ou te déconnecter ci-dessous.
-          </p>
-        ) : (
-          <p className="max-w-2xl text-sm text-white/70">
-            Teste l&apos;autorisation Garmin Connect via OAuth2 PKCE. Une fois connecté, Adapt2Life pourra synchroniser tes
-            activités et métriques quotidiennes.
-          </p>
-        )}
-      </header>
+    <div className="mx-auto flex min-h-screen max-w-5xl flex-col gap-8 px-6 py-12 text-foreground">
+      <Card>
+        <CardHeader>
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">Intégrations</p>
+          <CardTitle>Garmin Connect</CardTitle>
+          <CardDescription>
+            {isConnected
+              ? "Ton compte Garmin est lié à Adapt2Life. Tu peux relier un autre compte ou te déconnecter à tout moment."
+              : "Connecte ton compte Garmin via OAuth2 PKCE afin de synchroniser automatiquement tes activités et métriques quotidiennes."}
+          </CardDescription>
+        </CardHeader>
+      </Card>
 
-      {isConnected ? (
-        <section className="space-y-6 rounded-3xl border border-white/10 bg-white/5 p-8 shadow-xl backdrop-blur">
-          <div className="space-y-2">
-            <p className="text-sm font-medium uppercase tracking-wide text-white/60">Statut</p>
-            <h2 className="text-2xl font-semibold text-white">Garmin est connecté ✅</h2>
-            <p className="text-sm text-white/70">
-              Adapt2Life peut collecter tes activités depuis Garmin. Tu peux relier un autre compte ou te déconnecter à tout moment.
-            </p>
-          </div>
+      <DashboardGrid columns={{ sm: 1, md: 1, lg: 2, xl: 2 }}>
+        <Card className="h-full">
+          <CardHeader>
+            <CardTitle>{isConnected ? "Connexion active" : "Connexion requise"}</CardTitle>
+            <CardDescription>
+              {isConnected
+                ? "Adapt2Life collecte tes données Garmin en toute sécurité."
+                : "Aucun compte n’est lié pour le moment. Lance l’OAuth afin d’activer la synchronisation."}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {isConnected ? (
+              <dl className="grid gap-4 rounded-2xl border border-white/10 bg-black/30 p-4 text-sm">
+                <div>
+                  <dt className="text-xs uppercase tracking-wide text-muted-foreground">Garmin userId</dt>
+                  <dd className="mt-1 font-mono text-base">{connection?.garminUserId}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs uppercase tracking-wide text-muted-foreground">Token valide jusqu&apos;au</dt>
+                  <dd className="mt-1 font-medium text-foreground">
+                    {connection?.accessTokenExpiresAt ? connection.accessTokenExpiresAt.toLocaleString() : "—"}
+                  </dd>
+                </div>
+              </dl>
+            ) : (
+              <p className="rounded-2xl border border-white/10 bg-black/30 p-4 text-sm text-muted-foreground">
+                Connecte-toi puis clique sur “Connecter Garmin” pour démarrer l’autorisation OAuth2 PKCE.
+              </p>
+            )}
 
-          <dl className="grid gap-4 rounded-2xl border border-white/10 bg-black/30 p-6 text-sm text-white sm:grid-cols-2">
+            <GarminIntegrationActions
+              isConnected={isConnected}
+              garminUserId={connection?.garminUserId ?? undefined}
+              accessTokenExpiresAt={connection?.accessTokenExpiresAt?.toISOString()}
+              status={status === "success" || status === "error" ? status : undefined}
+              reason={typeof reason === "string" ? reason : undefined}
+            />
+          </CardContent>
+        </Card>
+
+        <Card className="h-full">
+          <CardHeader>
+            <CardTitle>Profil Adapt2Life</CardTitle>
+            <CardDescription>Mise à jour automatique après chaque connexion Stack Auth.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4 text-sm text-muted-foreground">
             <div>
-              <dt className="text-xs uppercase tracking-wide text-white/60">Garmin userId</dt>
-              <dd className="mt-1 font-mono text-base">{connection?.garminUserId}</dd>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Utilisateur</p>
+              <p className="text-lg font-semibold text-foreground">
+                {localUser?.name ?? stackUser.displayName ?? "Profil sans nom"}
+              </p>
+              <p>{localUser?.email ?? stackUser.primaryEmail ?? "Email non renseigné"}</p>
             </div>
-            <div>
-              <dt className="text-xs uppercase tracking-wide text-white/60">Token valide jusqu&apos;au</dt>
-              <dd className="mt-1 font-medium text-white/80">
-                {connection?.accessTokenExpiresAt ? connection.accessTokenExpiresAt.toLocaleString() : "—"}
-              </dd>
+            <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Statut Adapt2Life</p>
+              <p className="mt-1 text-sm text-foreground">
+                {isConnected ? "Synchronisation active ✅" : "En attente de connexion Garmin"}
+              </p>
             </div>
-            <div>
-              <dt className="text-xs uppercase tracking-wide text-white/60">Utilisateur Adapt2Life</dt>
-              <dd className="mt-1 font-medium text-white/80">{localUser?.name ?? stackUser.displayName ?? "Profil sans nom"}</dd>
-            </div>
-            <div>
-              <dt className="text-xs uppercase tracking-wide text-white/60">Email</dt>
-              <dd className="mt-1 font-medium text-white/80">{localUser?.email ?? stackUser.primaryEmail ?? "Email non renseigné"}</dd>
-            </div>
-          </dl>
+          </CardContent>
+        </Card>
+      </DashboardGrid>
 
-          <GarminIntegrationActions
-            isConnected
-            garminUserId={connection?.garminUserId ?? undefined}
-            accessTokenExpiresAt={connection?.accessTokenExpiresAt?.toISOString()}
-            status={status === "success" || status === "error" ? status : undefined}
-            reason={typeof reason === "string" ? reason : undefined}
-          />
-
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <Link
-            href="/"
-            className="inline-flex items-center justify-center rounded-md border border-white/20 bg-white/10 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60 sm:w-auto"
-          >
-            Retour à l’accueil Adapt2Life
-          </Link>
-        </div>
-        </section>
-      ) : (
-        <section className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-xl backdrop-blur-lg">
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-white/70">Utilisateur Stack Auth</p>
-            <p className="text-lg font-semibold text-white">
-              {localUser?.name ?? stackUser.displayName ?? "Profil sans nom"}
-            </p>
-            <p className="text-sm text-white/70">
-              {localUser?.email ?? stackUser.primaryEmail ?? "Email non renseigné"}
-            </p>
-          </div>
-
-          <GarminIntegrationActions
-            isConnected={false}
-            garminUserId={undefined}
-            accessTokenExpiresAt={undefined}
-            status={status === "success" || status === "error" ? status : undefined}
-            reason={typeof reason === "string" ? reason : undefined}
-          />
-        </section>
-      )}
+      <div className="flex justify-end">
+        <Button asChild variant="ghost">
+          <Link href="/">Retour à l’accueil Adapt2Life</Link>
+        </Button>
+      </div>
     </div>
   );
 }
