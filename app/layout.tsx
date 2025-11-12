@@ -54,7 +54,7 @@ export default async function RootLayout({
           <StackTheme>
             <div className="flex min-h-screen flex-col">
               <TopNav isAuthenticated={Boolean(user)} />
-              <main className="flex-1 px-4 py-8">{children}</main>
+              <main className="flex-1 px-4 py-6 md:py-8">{children}</main>
               <Footer />
             </div>
             <UiToaster />

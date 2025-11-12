@@ -12,7 +12,7 @@ type TopNavProps = {
 };
 
 const authenticatedLinks = [
-  { label: "Accueil", href: "/" },
+  { label: "Dashboard", href: "/" },
   { label: "Générateur", href: "/generateur-entrainement" },
   { label: "Données Garmin", href: "/secure/garmin-data" },
   { label: "Profil", href: "/secure/user-information" },
@@ -24,7 +24,6 @@ const guestLinks = [
   { label: "Fonctionnalités", href: "/features" },
   { label: "Comment ça marche", href: "/how-it-works" },
   { label: "Contact", href: "/contact" },
-  { label: "Créer un compte", href: "/handler/sign-in?redirect=/integrations/garmin" },
 ];
 
 export const TopNav = ({ isAuthenticated }: TopNavProps) => {

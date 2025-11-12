@@ -4,8 +4,9 @@ import Link from "next/link";
 
 const navigationLinks = [
   { label: "Accueil", href: "/" },
-  { label: "Fonctionnalités", href: "/#features" },
-  { label: "Contact", href: "/#contact" },
+  { label: "Fonctionnalités", href: "/features" },
+  { label: "Comment ça marche", href: "/how-it-works" },
+  { label: "Contact", href: "/contact" },
 ];
 
 const legalLinks = [
