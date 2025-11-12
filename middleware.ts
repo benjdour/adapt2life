@@ -4,65 +4,19 @@ import { StackServerApp } from "@stackframe/stack";
 
 import { enforceRateLimit } from "@/lib/security/rateLimiter";
 
-type RoutePolicy = {
-  pattern: RegExp;
-  allowedRoles?: string[];
-};
-
 const stackMiddlewareApp = new StackServerApp({
   tokenStore: "nextjs-cookie",
 });
 
-const PROTECTED_ROUTES: RoutePolicy[] = [
-  { pattern: /^\/secure(?:\/|$)/ },
-  { pattern: /^\/generateur-entrainement(?:\/|$)/ },
-  { pattern: /^\/garmin-trainer(?:\/|$)/ },
-  { pattern: /^\/integrations\/garmin(?:\/|$)/ },
-];
+const PROTECTED_PATHS = [/^\/secure(?:\/|$)/, /^\/generateur-entrainement(?:\/|$)/, /^\/garmin-trainer(?:\/|$)/, /^\/integrations\/garmin(?:\/|$)/];
 
-const FORBIDDEN_REDIRECT = "/?auth=unauthorized";
+const isProtected = (pathname: string) => PROTECTED_PATHS.some((pattern) => pattern.test(pathname));
 
-const coerceRoleList = (value: unknown): string[] => {
-  if (!value) return [];
-  if (Array.isArray(value)) {
-    return value.filter((entry): entry is string => typeof entry === "string");
-  }
-  if (typeof value === "string") {
-    return [value];
-  }
-  return [];
+const redirectToSignIn = (request: NextRequest) => {
+  const signInUrl = new URL("/handler/sign-in", request.url);
+  signInUrl.searchParams.set("redirect", `${request.nextUrl.pathname}${request.nextUrl.search}` || "/");
+  return NextResponse.redirect(signInUrl);
 };
-
-const extractUserRoles = (user: unknown): string[] => {
-  if (!user || typeof user !== "object") return [];
-  const record = user as Record<string, unknown>;
-  const sources: unknown[] = [
-    record.roles,
-    record.role,
-    record.clientMetadata && typeof record.clientMetadata === "object"
-      ? (record.clientMetadata as Record<string, unknown>).roles
-      : undefined,
-    record.clientReadOnlyMetadata && typeof record.clientReadOnlyMetadata === "object"
-      ? (record.clientReadOnlyMetadata as Record<string, unknown>).roles
-      : undefined,
-    record.serverMetadata && typeof record.serverMetadata === "object"
-      ? (record.serverMetadata as Record<string, unknown>).roles
-      : undefined,
-  ];
-
-  const uniqueRoles = new Set<string>();
-  for (const source of sources) {
-    for (const role of coerceRoleList(source)) {
-      uniqueRoles.add(role);
-    }
-  }
-  return [...uniqueRoles];
-};
-
-const findRoutePolicy = (pathname: string): RoutePolicy | undefined =>
-  PROTECTED_ROUTES.find((policy) => policy.pattern.test(pathname));
-
-const buildRedirectUrl = (request: NextRequest, basePath: string) => new URL(basePath, request.url);
 
 export async function middleware(request: NextRequest) {
   const rateLimitResponse = enforceRateLimit(request);
@@ -70,28 +24,13 @@ export async function middleware(request: NextRequest) {
     return rateLimitResponse;
   }
 
-  const { pathname } = request.nextUrl;
-  const policy = findRoutePolicy(pathname);
-
-  if (!policy) {
+  if (!isProtected(request.nextUrl.pathname)) {
     return NextResponse.next();
   }
 
   const user = await stackMiddlewareApp.getUser({ or: "return-null", tokenStore: request });
-
   if (!user) {
-    const signInUrl = buildRedirectUrl(request, "/handler/sign-in");
-    const returnTo = `${request.nextUrl.pathname}${request.nextUrl.search}`;
-    signInUrl.searchParams.set("redirect", returnTo || "/");
-    return NextResponse.redirect(signInUrl);
-  }
-
-  if (policy.allowedRoles && policy.allowedRoles.length > 0) {
-    const userRoles = extractUserRoles(user);
-    const isAuthorized = policy.allowedRoles.some((role) => userRoles.includes(role));
-    if (!isAuthorized) {
-      return NextResponse.redirect(buildRedirectUrl(request, FORBIDDEN_REDIRECT));
-    }
+    return redirectToSignIn(request);
   }
 
   return NextResponse.next();
