@@ -21,9 +21,9 @@ const authenticatedLinks = [
 
 const guestLinks = [
   { label: "Accueil", href: "/" },
-  { label: "Fonctionnalités", href: "/#features" },
-  { label: "Comment ça marche", href: "/#how-it-works" },
-  { label: "Contact", href: "/#contact" },
+  { label: "Fonctionnalités", href: "/features" },
+  { label: "Comment ça marche", href: "/how-it-works" },
+  { label: "Contact", href: "/contact" },
   { label: "Créer un compte", href: "/handler/sign-in?redirect=/integrations/garmin" },
 ];
 

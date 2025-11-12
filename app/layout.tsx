@@ -47,12 +47,16 @@ export default async function RootLayout({
 
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${poppins.variable} ${orbitron.variable} font-sans bg-background text-foreground`}>
+      <body
+        className={`${inter.variable} ${poppins.variable} ${orbitron.variable} min-h-screen bg-background text-foreground`}
+      >
         <StackProvider app={stackClientApp}>
           <StackTheme>
-            <TopNav isAuthenticated={Boolean(user)} />
-            <div className="pt-2">{children}</div>
-            <Footer />
+            <div className="flex min-h-screen flex-col">
+              <TopNav isAuthenticated={Boolean(user)} />
+              <main className="flex-1 px-4 py-8">{children}</main>
+              <Footer />
+            </div>
             <UiToaster />
           </StackTheme>
         </StackProvider>

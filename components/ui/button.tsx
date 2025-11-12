@@ -45,13 +45,6 @@ export interface ButtonProps
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, isLoading = false, children, disabled, ...props }, ref) => {
     const Comp = asChild ? Slot : "button";
-    const content = (
-      <>
-        {isLoading ? <LoadingSpinner /> : null}
-        <span className="flex items-center gap-2">{children}</span>
-      </>
-    );
-
     const sharedProps = {
       className: cn(buttonVariants({ variant, size, className }), isLoading && "cursor-progress"),
       ref,
@@ -62,14 +55,17 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     if (asChild) {
       return (
         <Comp {...sharedProps} {...props}>
-          {content}
+          {children}
         </Comp>
       );
     }
 
     return (
       <Comp {...sharedProps} disabled={disabled || isLoading} {...props}>
-        {content}
+        <>
+          {isLoading ? <LoadingSpinner /> : null}
+          <span className="flex items-center gap-2">{children}</span>
+        </>
       </Comp>
     );
   },
