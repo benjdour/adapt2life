@@ -37,7 +37,7 @@ export default function ContactPage() {
 
     const validation = contactSchema.safeParse(formState);
     if (!validation.success) {
-      setStatus({ type: "error", message: validation.error.errors[0]?.message ?? "Formulaire invalide." });
+      setStatus({ type: "error", message: validation.error.issues?.[0]?.message ?? "Formulaire invalide." });
       return;
     }
 
