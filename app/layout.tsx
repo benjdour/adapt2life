@@ -7,6 +7,7 @@ import { stackServerApp } from "@/stack/server";
 import "./globals.css";
 import { UiToaster } from "@/components/ui/ui-toaster";
 import { TopNav } from "@/components/TopNav";
+import { Footer } from "@/components/Footer";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -51,6 +52,7 @@ export default async function RootLayout({
           <StackTheme>
             <TopNav isAuthenticated={Boolean(user)} />
             <div className="pt-4">{children}</div>
+            <Footer />
             <UiToaster />
           </StackTheme>
         </StackProvider>

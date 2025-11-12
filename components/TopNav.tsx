@@ -11,7 +11,7 @@ type TopNavProps = {
   isAuthenticated: boolean;
 };
 
-const navLinks = [
+const authenticatedLinks = [
   { label: "Accueil", href: "/" },
   { label: "Générateur", href: "/generateur-entrainement" },
   { label: "Données Garmin", href: "/secure/garmin-data" },
@@ -19,8 +19,17 @@ const navLinks = [
   { label: "Intégrations", href: "/integrations/garmin" },
 ];
 
+const guestLinks = [
+  { label: "Accueil", href: "/" },
+  { label: "Fonctionnalités", href: "/#features" },
+  { label: "Comment ça marche", href: "/#how-it-works" },
+  { label: "Contact", href: "/#contact" },
+  { label: "Créer un compte", href: "/handler/sign-in?redirect=/integrations/garmin" },
+];
+
 export const TopNav = ({ isAuthenticated }: TopNavProps) => {
   const [isOpen, setIsOpen] = useState(false);
+  const links = isAuthenticated ? authenticatedLinks : guestLinks;
 
   const handleSignOut = () => {
     const form = document.createElement("form");
@@ -46,7 +55,7 @@ export const TopNav = ({ isAuthenticated }: TopNavProps) => {
         </Link>
 
         <nav className="hidden items-center gap-4 text-sm text-muted-foreground md:flex">
-          {navLinks.map((link) => (
+          {links.map((link) => (
             <Link
               key={link.href}
               href={link.href}
@@ -91,7 +100,7 @@ export const TopNav = ({ isAuthenticated }: TopNavProps) => {
       <div className={cn("border-t border-white/10 bg-background/95 md:hidden", isOpen ? "block" : "hidden")}>
         <div className="space-y-4 px-4 py-6 text-sm text-muted-foreground">
           <nav className="space-y-2">
-            {navLinks.map((link) => (
+            {links.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
