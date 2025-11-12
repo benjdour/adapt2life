@@ -18,7 +18,7 @@ const redirectToSignIn = (request: NextRequest) => {
   return NextResponse.redirect(signInUrl);
 };
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const rateLimitResponse = enforceRateLimit(request);
   if (rateLimitResponse) {
     return rateLimitResponse;
