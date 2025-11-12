@@ -3,6 +3,7 @@ import { StackProvider, StackTheme } from "@stackframe/stack";
 import { Inter, Orbitron, Poppins } from "next/font/google";
 
 import { stackClientApp } from "@/stack/client";
+import { stackServerApp } from "@/stack/server";
 import "./globals.css";
 import { UiToaster } from "@/components/ui/ui-toaster";
 import { TopNav } from "@/components/TopNav";
