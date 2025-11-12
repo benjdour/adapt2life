@@ -187,12 +187,26 @@ export default async function Home({ searchParams }: HomePageProps) {
               <div className="flex flex-col gap-3 sm:flex-row">
                 {user ? (
                   <>
-                    <Button asChild className="flex-1">
-                      <Link href="/generateur-entrainement">Lancer le générateur IA</Link>
-                    </Button>
-                    <Button asChild variant="secondary" className="flex-1">
-                      <Link href="/secure/garmin-data">Voir les données Garmin</Link>
-                    </Button>
+                    <Link
+                      href="/generateur-entrainement"
+                      className="flex flex-1 items-center justify-between rounded-2xl border border-white/15 bg-gradient-primary px-5 py-4 text-left text-white shadow-lg shadow-primary/40 transition hover:brightness-110"
+                    >
+                      <div>
+                        <p className="text-sm uppercase tracking-wide text-white/70">Générateur IA</p>
+                        <p className="text-lg font-semibold">Lancer une séance</p>
+                      </div>
+                      <span aria-hidden className="text-xl">→</span>
+                    </Link>
+                    <Link
+                      href="/secure/garmin-data"
+                      className="flex flex-1 items-center justify-between rounded-2xl border border-white/15 bg-card px-5 py-4 text-left text-foreground shadow-lg transition hover:bg-card/80"
+                    >
+                      <div>
+                        <p className="text-sm uppercase tracking-wide text-muted-foreground">Garmin</p>
+                        <p className="text-lg font-semibold">Voir les données</p>
+                      </div>
+                      <span aria-hidden className="text-xl text-muted-foreground">→</span>
+                    </Link>
                   </>
                 ) : (
                   <Button asChild className="flex-1">
@@ -200,15 +214,6 @@ export default async function Home({ searchParams }: HomePageProps) {
                   </Button>
                 )}
               </div>
-
-              {user ? (
-                <form action="/handler/sign-out" method="post" className="flex justify-start">
-                  <input type="hidden" name="redirect" value="/" />
-                  <Button type="submit" variant="ghost" className="text-sm text-muted-foreground">
-                    Se déconnecter d’Adapt2Life
-                  </Button>
-                </form>
-              ) : null}
             </div>
 
             {user && heroScore !== null && heroTrend ? (
@@ -221,9 +226,6 @@ export default async function Home({ searchParams }: HomePageProps) {
             ) : (
               <div className="flex flex-col gap-4 rounded-3xl border border-dashed border-white/15 bg-black/20 p-6 text-center text-sm text-muted-foreground">
                 <p>Connecte ta montre Garmin pour débloquer ton AI Energy Score personnalisé.</p>
-                <Button asChild variant="ghost" className="mx-auto">
-                  <Link href="/integrations/garmin">Connecter Garmin</Link>
-                </Button>
               </div>
             )}
           </CardContent>
