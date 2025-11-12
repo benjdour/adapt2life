@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
+
+import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
   title: "Comment ça marche — Adapt2Life",
@@ -64,6 +67,26 @@ export default function HowItWorksPage() {
           </li>
         ))}
       </ol>
+
+      <section className="mt-6 rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/20 via-background to-background p-8 text-center md:text-left">
+        <p className="text-sm uppercase tracking-[0.35em] text-primary">Passe à l’action</p>
+        <div className="mt-4 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+          <div className="space-y-3">
+            <h2 className="text-3xl font-heading text-foreground">Envie d’essayer Adapt2Life ?</h2>
+            <p className="text-base text-muted-foreground">
+              Connecte ton compte, génère un plan IA et synchronise-le directement avec Garmin Connect.
+            </p>
+          </div>
+          <div className="flex flex-col gap-3 md:flex-row">
+            <Button asChild size="lg" className="px-8 text-base font-semibold">
+              <Link href="/handler/sign-in?redirect=/generateur-entrainement">Commencer maintenant</Link>
+            </Button>
+            <Button asChild variant="outline" size="lg" className="px-8 text-base">
+              <Link href="/contact">Parler à l’équipe</Link>
+            </Button>
+          </div>
+        </div>
+      </section>
     </main>
   );
 }

@@ -6,8 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 export default function Handler(props: unknown) {
   return (
-    <main className="flex min-h-[calc(100vh-160px)] items-center bg-background px-6 py-10 text-foreground">
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 md:flex-row md:items-center">
+    <main className="bg-background px-4 py-10 text-foreground md:px-6">
+      <div className="mx-auto mt-2 flex min-h-[calc(100vh-150px)] w-full max-w-5xl flex-col gap-8 md:flex-row md:items-center">
         <section className="space-y-4 md:w-1/2">
           <p className="text-sm uppercase tracking-[0.3em] text-primary">Adapt2Life</p>
           <h1 className="text-4xl font-heading md:text-5xl">Connecte-toi pour débloquer ton coach IA</h1>
