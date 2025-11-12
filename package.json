@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest",
-    "test:routes": "vitest run tests/app/**/*.test.ts",
+    "test:routes": "vitest run tests/app",
     "typecheck": "tsc --noEmit",
     "audit": "npm audit --audit-level=moderate",
     "db:push": "drizzle-kit push --config drizzle.config.ts",
