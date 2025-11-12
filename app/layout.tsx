@@ -1,19 +1,30 @@
 import type { Metadata } from "next";
 import { StackProvider, StackTheme } from "@stackframe/stack";
-import { Geist, Geist_Mono } from "next/font/google";
-import { Toaster } from "sonner";
+import { Inter, Orbitron, Poppins } from "next/font/google";
 
 import { stackClientApp } from "@/stack/client";
 import "./globals.css";
+import { UiToaster } from "@/components/ui/ui-toaster";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
   subsets: ["latin"],
+  variable: "--font-sans",
+  weight: ["400", "500", "600"],
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const poppins = Poppins({
   subsets: ["latin"],
+  variable: "--font-heading",
+  weight: ["500", "600", "700"],
+  display: "swap",
+});
+
+const orbitron = Orbitron({
+  variable: "--font-accent",
+  subsets: ["latin"],
+  weight: ["500"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -28,11 +39,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-900 text-white`}>
+      <body className={`${inter.variable} ${poppins.variable} ${orbitron.variable} font-sans bg-background text-foreground`}>
         <StackProvider app={stackClientApp}>
           <StackTheme>
             {children}
-            <Toaster richColors position="top-center" expand />
+            <UiToaster />
           </StackTheme>
         </StackProvider>
       </body>

@@ -106,7 +106,15 @@ Les colonnes sensibles `access_token_encrypted` et `refresh_token_encrypted` son
 - `app/` : routes Next.js (App Router) et composants front
 - `db/` : schéma Drizzle + helpers
 - `lib/` : utilitaires partagés (helpers Tailwind, logique métier)
+- `design/` : tokens et thème Adapt2Life (Design System V6)
 - `stack/` : configuration Stack Auth (client + server)
 - `drizzle/` : migrations générées automatiquement
 
 Ce setup fournit un socle prêt pour construire le MVP Adapt2Life : helper `cn`, theming, auth Stack et couche database sont déjà intégrés, à compléter avec les modules Garmin, coaching et analytics décrits dans les spécifications. 
+
+## Design System (V6)
+
+- Les tokens officiels sont disponibles dans `design/theme.ts` et exposés à Tailwind via `tailwind.config.ts`.
+- Les composants UI de base (`Button`, `Input`, `Modal`, `Toast`, `DashboardGrid`, `AIScoreGraph`, `Sidebar`, `Card`…) sont alignés sur `docs/design_spec_v6.md`.
+- Les fonts Poppins/Inter/Orbitron et les toasts Sonner customisés sont chargés dans `app/layout.tsx`.
+- Pour générer de nouveaux écrans, se référer à `docs/design_spec_v6.md` ou lancer la commande `codex design "Generate Adapt2Life components and dashboard layout based on design_spec_v6.md"`.

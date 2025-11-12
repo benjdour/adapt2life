@@ -5,39 +5,73 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center rounded-md text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60 disabled:pointer-events-none disabled:opacity-70",
+  "group relative inline-flex items-center justify-center rounded-md text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary/60 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       variant: {
-        default: "bg-emerald-500 text-white shadow hover:bg-emerald-400 focus-visible:outline-emerald-200",
-        outline: "border border-white/20 bg-transparent text-white hover:bg-white/10",
-        secondary: "bg-white/10 text-white hover:bg-white/20",
-        ghost: "text-white hover:bg-white/10",
+        primary:
+          "bg-gradient-primary text-white shadow-lg shadow-primary/40 hover:shadow-2xl hover:brightness-110 border border-white/10",
+        secondary:
+          "border border-primary/40 text-primary bg-transparent hover:bg-primary/10 focus-visible:ring-secondary",
+        ghost: "text-muted-foreground hover:bg-muted/60",
+        outline: "border border-white/15 bg-card/30 text-foreground hover:bg-card/60",
+        error: "bg-error text-white hover:bg-[#d94c46]",
       },
       size: {
-        default: "h-11 px-4 py-2",
-        sm: "h-9 rounded-md px-3",
-        lg: "h-12 rounded-md px-6",
-        icon: "h-10 w-10",
+        default: "h-11 px-5",
+        sm: "h-9 rounded-md px-4",
+        lg: "h-12 rounded-lg px-6 text-base",
+        icon: "h-11 w-11",
       },
     },
     defaultVariants: {
-      variant: "default",
+      variant: "primary",
       size: "default",
     },
   },
+);
+
+const LoadingSpinner = () => (
+  <span className="mr-2 inline-flex h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white" />
 );
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean;
+  isLoading?: boolean;
 }
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
+  ({ className, variant, size, asChild = false, isLoading = false, children, disabled, ...props }, ref) => {
     const Comp = asChild ? Slot : "button";
-    return <Comp className={cn(buttonVariants({ variant, size, className }))} ref={ref} {...props} />;
+    const content = (
+      <>
+        {isLoading ? <LoadingSpinner /> : null}
+        <span className="flex items-center gap-2">{children}</span>
+      </>
+    );
+
+    const sharedProps = {
+      className: cn(buttonVariants({ variant, size, className }), isLoading && "cursor-progress"),
+      ref,
+      "aria-busy": isLoading,
+      "aria-live": "polite" as const,
+    };
+
+    if (asChild) {
+      return (
+        <Comp {...sharedProps} {...props}>
+          {content}
+        </Comp>
+      );
+    }
+
+    return (
+      <Comp {...sharedProps} disabled={disabled || isLoading} {...props}>
+        {content}
+      </Comp>
+    );
   },
 );
 Button.displayName = "Button";
