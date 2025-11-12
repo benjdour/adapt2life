@@ -30,6 +30,9 @@ const orbitron = Orbitron({
 export const metadata: Metadata = {
   title: "Adapt2Life",
   description: "Your AI-powered training companion",
+  icons: {
+    icon: "/brand/logo-main.png",
+  },
 };
 
 export default function RootLayout({

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { unstable_noStore as noStore } from "next/cache";
 import Link from "next/link";
 import { eq } from "drizzle-orm";
@@ -174,6 +175,10 @@ export default async function Home({ searchParams }: HomePageProps) {
         <Card className="overflow-hidden">
           <CardContent className="grid gap-8 p-8 lg:grid-cols-[1fr_320px]">
             <div className="space-y-6">
+              <div className="flex items-center gap-3 text-muted-foreground">
+                <Image src="/brand/logo-main.png" alt="Adapt2Life" width={40} height={40} className="h-10 w-10 rounded-full" />
+                <span className="text-sm font-semibold uppercase tracking-[0.2em] text-muted-foreground">Adapt2Life</span>
+              </div>
               <div className="space-y-2">
                 <p className="text-sm uppercase tracking-wide text-muted-foreground">Bienvenue sur Adapt2Life</p>
                 <h1 className="text-4xl font-heading">
