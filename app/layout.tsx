@@ -5,6 +5,7 @@ import { Inter, Orbitron, Poppins } from "next/font/google";
 import { stackClientApp } from "@/stack/client";
 import "./globals.css";
 import { UiToaster } from "@/components/ui/ui-toaster";
+import { TopNav } from "@/components/TopNav";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -45,7 +46,8 @@ export default function RootLayout({
       <body className={`${inter.variable} ${poppins.variable} ${orbitron.variable} font-sans bg-background text-foreground`}>
         <StackProvider app={stackClientApp}>
           <StackTheme>
-            {children}
+            <TopNav />
+            <div className="pt-4">{children}</div>
             <UiToaster />
           </StackTheme>
         </StackProvider>
