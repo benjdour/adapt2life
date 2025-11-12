@@ -1,5 +1,4 @@
 import { unstable_noStore as noStore } from "next/cache";
-import Link from "next/link";
 import { Metadata } from "next";
 import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
@@ -11,7 +10,6 @@ import { fetchGarminData } from "@/lib/garminData";
 import { mockGarminData } from "@/lib/trainingScore";
 import { stackServerApp } from "@/stack/server";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
   title: "Adapt2Life — Données Garmin",
@@ -68,11 +66,6 @@ export default async function GarminDataPage() {
         </CardContent>
       </Card>
 
-      <div className="flex justify-end">
-        <Button asChild variant="ghost">
-          <Link href="/">Retour à l’accueil</Link>
-        </Button>
-      </div>
     </div>
   );
 }

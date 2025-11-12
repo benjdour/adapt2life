@@ -1,6 +1,5 @@
 import { Metadata } from "next";
 import { unstable_noStore as noStore } from "next/cache";
-import Link from "next/link";
 import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 
@@ -9,7 +8,6 @@ import { garminConnections, users } from "@/db/schema";
 import { stackServerApp } from "@/stack/server";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DashboardGrid } from "@/components/ui/dashboard-grid";
-import { Button } from "@/components/ui/button";
 
 import { GarminIntegrationActions } from "./garmin-integration-actions";
 
@@ -105,7 +103,7 @@ export default async function GarminIntegrationPage({ searchParams }: PageProps)
           <CardDescription>
             {isConnected
               ? "Ton compte Garmin est lié à Adapt2Life. Tu peux relier un autre compte ou te déconnecter à tout moment."
-              : "Connecte ton compte Garmin via OAuth2 PKCE afin de synchroniser automatiquement tes activités et métriques quotidiennes."}
+              : "Connecte ton compte Garmin afin de synchroniser automatiquement tes activités et métriques quotidiennes."}
           </CardDescription>
         </CardHeader>
       </Card>
@@ -117,28 +115,15 @@ export default async function GarminIntegrationPage({ searchParams }: PageProps)
             <CardDescription>
               {isConnected
                 ? "Adapt2Life collecte tes données Garmin en toute sécurité."
-                : "Aucun compte n’est lié pour le moment. Lance l’OAuth afin d’activer la synchronisation."}
+                : "Aucun compte Garmin lié. Clique sur le bouton pour démarrer."}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {isConnected ? (
-              <dl className="grid gap-4 rounded-2xl border border-white/10 bg-black/30 p-4 text-sm">
-                <div>
-                  <dt className="text-xs uppercase tracking-wide text-muted-foreground">Garmin userId</dt>
-                  <dd className="mt-1 font-mono text-base">{connection?.garminUserId}</dd>
-                </div>
-                <div>
-                  <dt className="text-xs uppercase tracking-wide text-muted-foreground">Token valide jusqu&apos;au</dt>
-                  <dd className="mt-1 font-medium text-foreground">
-                    {connection?.accessTokenExpiresAt ? connection.accessTokenExpiresAt.toLocaleString() : "—"}
-                  </dd>
-                </div>
-              </dl>
-            ) : (
+            {!isConnected ? (
               <p className="rounded-2xl border border-white/10 bg-black/30 p-4 text-sm text-muted-foreground">
-                Connecte-toi puis clique sur “Connecter Garmin” pour démarrer l’autorisation OAuth2 PKCE.
+                Connecte-toi puis clique sur “Connecter Garmin” pour démarrer l’autorisation.
               </p>
-            )}
+            ) : null}
 
             <GarminIntegrationActions
               isConnected={isConnected}
@@ -173,11 +158,6 @@ export default async function GarminIntegrationPage({ searchParams }: PageProps)
         </Card>
       </DashboardGrid>
 
-      <div className="flex justify-end">
-        <Button asChild variant="ghost">
-          <Link href="/">Retour à l’accueil Adapt2Life</Link>
-        </Button>
-      </div>
     </div>
   );
 }

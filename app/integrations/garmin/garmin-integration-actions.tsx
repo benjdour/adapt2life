@@ -153,7 +153,7 @@ export function GarminIntegrationActions({
             disabled={isPending || isDisconnecting}
             isLoading={isDisconnecting}
           >
-            Se déconnecter de Garmin
+            Déconnecter Garmin
           </Button>
           {garminUserId ? (
             <span className="inline-flex flex-1 items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-mono text-muted-foreground">
@@ -161,9 +161,7 @@ export function GarminIntegrationActions({
             </span>
           ) : null}
         </div>
-      ) : (
-        <p className="text-sm text-muted-foreground">Aucun compte Garmin lié. Clique sur le bouton pour démarrer l’OAuth.</p>
-      )}
+      ) : null}
 
       {isConnected && nextExpiryLabel ? (
         <p className="text-xs text-muted-foreground">Token valide jusqu&apos;au : {nextExpiryLabel}</p>

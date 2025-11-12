@@ -1,22 +1,22 @@
 import { Metadata } from "next";
 import { redirect } from "next/navigation";
 
-import { TrainingGeneratorsSection } from "@/components/TrainingGeneratorsSection";
+import { TrainingGeneratorsDebugSection } from "@/components/TrainingGeneratorsDebugSection";
 import { stackServerApp } from "@/stack/server";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const metadata: Metadata = {
-  title: "Adapt2Life — Générateur d’entraînement",
+  title: "Adapt2Life — Générateur debug",
 };
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export default async function TrainingGeneratorPage() {
+export default async function TrainingGeneratorDebugPage() {
   const stackUser = await stackServerApp.getUser({ or: "return-null", tokenStore: "nextjs-cookie" });
 
   if (!stackUser) {
-    redirect("/handler/sign-in?redirect=/generateur-entrainement");
+    redirect("/handler/sign-in?redirect=/generateur-debug");
   }
 
   return (
@@ -24,21 +24,21 @@ export default async function TrainingGeneratorPage() {
       <Card>
         <CardHeader>
           <p className="text-xs uppercase tracking-wide text-muted-foreground">Coaching IA</p>
-          <CardTitle>Générateur d’entraînement</CardTitle>
+          <CardTitle>Générateur debug</CardTitle>
           <CardDescription>
-            Décris ton objectif et tes contraintes : Adapt2Life te conçoit un plan personnalisé en quelques secondes. Plus tu donnes de
-            contexte, plus la séance est pertinente.
+            Version technique du générateur pour reproduire ou comparer les sorties. Les fonctionnalités sont identiques mais isolées
+            pour les tests.
           </CardDescription>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
           <p>
-            Tu peux regénérer autant de fois que nécessaire, ajuster ton brief, puis convertir immédiatement le résultat en JSON prêt
-            pour Garmin Training API V2.
+            Utilise cette page pour rejouer rapidement différents prompts, vérifier les réponses du modèle ou capturer des logs avant
+            de publier une modification.
           </p>
         </CardContent>
       </Card>
 
-      <TrainingGeneratorsSection />
+      <TrainingGeneratorsDebugSection />
     </div>
   );
 }

@@ -9,15 +9,24 @@ import { cn } from "@/lib/utils";
 
 type TopNavProps = {
   isAuthenticated: boolean;
+  showDebugLink?: boolean;
 };
 
-const authenticatedLinks = [
-  { label: "Dashboard", href: "/" },
-  { label: "Générateur", href: "/generateur-entrainement" },
-  { label: "Données Garmin", href: "/secure/garmin-data" },
-  { label: "Profil", href: "/secure/user-information" },
-  { label: "Intégrations", href: "/integrations/garmin" },
-];
+const buildAuthenticatedLinks = (showDebugLink: boolean) => {
+  const links = [
+    { label: "Dashboard", href: "/" },
+    { label: "Générateur", href: "/generateur-entrainement" },
+    { label: "Données Garmin", href: "/secure/garmin-data" },
+    { label: "Profil", href: "/secure/user-information" },
+    { label: "Intégration Garmin", href: "/integrations/garmin" },
+  ];
+
+  if (showDebugLink) {
+    links.splice(2, 0, { label: "Générateur debug", href: "/generateur-debug" });
+  }
+
+  return links;
+};
 
 const guestLinks = [
   { label: "Accueil", href: "/" },
@@ -26,9 +35,9 @@ const guestLinks = [
   { label: "Contact", href: "/contact" },
 ];
 
-export const TopNav = ({ isAuthenticated }: TopNavProps) => {
+export const TopNav = ({ isAuthenticated, showDebugLink = false }: TopNavProps) => {
   const [isOpen, setIsOpen] = useState(false);
-  const links = isAuthenticated ? authenticatedLinks : guestLinks;
+  const links = isAuthenticated ? buildAuthenticatedLinks(showDebugLink) : guestLinks;
 
   const handleSignOut = () => {
     const form = document.createElement("form");

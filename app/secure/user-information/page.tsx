@@ -316,17 +316,18 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
     localUser.weightKg !== null && localUser.weightKg !== undefined
       ? Number.parseFloat(String(localUser.weightKg))
       : null;
+
+  const latestGarminWeight = await fetchLatestGarminWeightKg(localUser.id);
+
   let weightPrefillSource: "profile" | "garmin" | null = null;
-  let weightPrefill =
-    storedWeightValue !== null && Number.isFinite(storedWeightValue) ? storedWeightValue : null;
-  if (weightPrefill !== null) {
+  let weightPrefill: number | null = null;
+
+  if (latestGarminWeight !== null && Number.isFinite(latestGarminWeight)) {
+    weightPrefill = latestGarminWeight;
+    weightPrefillSource = "garmin";
+  } else if (storedWeightValue !== null && Number.isFinite(storedWeightValue)) {
+    weightPrefill = storedWeightValue;
     weightPrefillSource = "profile";
-  } else {
-    const garminWeight = await fetchLatestGarminWeightKg(localUser.id);
-    if (garminWeight !== null) {
-      weightPrefill = garminWeight;
-      weightPrefillSource = "garmin";
-    }
   }
   const weightInputDefault =
     weightPrefill !== null && Number.isFinite(weightPrefill) ? weightPrefill.toFixed(2) : "";
@@ -482,11 +483,6 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
           </CardContent>
         </Card>
 
-        <div className="flex justify-end">
-          <Button asChild variant="ghost">
-            <Link href="/">Retour à l’accueil</Link>
-          </Button>
-        </div>
       </section>
     </div>
   );

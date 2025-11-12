@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { AppError, describeAppError, getErrorDescriptor } from "@/lib/errors";
+import type { GarminTrainerWorkout } from "@/schemas/garminTrainer.schema";
 
 export type GeneratedPlanPayload = {
   plan: string;
@@ -23,13 +24,17 @@ type TrainingPlanResponse = {
 
 type TrainingPlanGeneratorFormProps = {
   onPlanGenerated?: (plan: GeneratedPlanPayload | null) => void;
+  enableInlineSend?: boolean;
 };
 
-export function TrainingPlanGeneratorForm({ onPlanGenerated }: TrainingPlanGeneratorFormProps) {
+export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = false }: TrainingPlanGeneratorFormProps) {
   const [prompt, setPrompt] = useState("");
   const [plan, setPlan] = useState<string | null>(null);
+  const [conversionSource, setConversionSource] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState<string>(TRAINING_LOADING_MESSAGES[0]);
+  const [isSending, setIsSending] = useState(false);
+  const [sendLoadingMessage, setSendLoadingMessage] = useState<string>(TRAINING_LOADING_MESSAGES[0]);
 
   useEffect(() => {
     if (!isLoading) {
@@ -55,9 +60,34 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated }: TrainingPlanGener
     return () => window.clearInterval(intervalId);
   }, [isLoading]);
 
+  useEffect(() => {
+    if (!isSending) {
+      setSendLoadingMessage(TRAINING_LOADING_MESSAGES[0]);
+      return;
+    }
+
+    const selectRandomMessage = (previous?: string | null) => {
+      if (TRAINING_LOADING_MESSAGES.length === 1) {
+        return TRAINING_LOADING_MESSAGES[0];
+      }
+      const candidates = TRAINING_LOADING_MESSAGES.filter((message) => message !== previous);
+      const index = Math.floor(Math.random() * candidates.length);
+      return candidates[index] ?? TRAINING_LOADING_MESSAGES[0];
+    };
+
+    setSendLoadingMessage((prev) => selectRandomMessage(prev));
+
+    const intervalId = window.setInterval(() => {
+      setSendLoadingMessage((prev) => selectRandomMessage(prev));
+    }, 5000);
+
+    return () => window.clearInterval(intervalId);
+  }, [isSending]);
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setPlan(null);
+    setConversionSource(null);
     onPlanGenerated?.(null);
 
     const trimmedPrompt = prompt.trim();
@@ -99,6 +129,7 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated }: TrainingPlanGener
       }
 
       setPlan(humanPlan);
+      setConversionSource(fallbackRaw.trim());
       onPlanGenerated?.({
         plan: humanPlan,
         rawPlan: fallbackRaw,
@@ -112,6 +143,70 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated }: TrainingPlanGener
       onPlanGenerated?.(null);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleSendToGarmin = async () => {
+    if (!conversionSource) {
+      toast.error("Aucun plan à envoyer", {
+        description: "Génère d’abord une séance avant de l’envoyer vers Garmin.",
+      });
+      return;
+    }
+
+    setIsSending(true);
+
+    try {
+      const conversionResponse = await fetch("/api/garmin-trainer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ exampleMarkdown: conversionSource }),
+      });
+
+      const conversionPayload = (await conversionResponse.json().catch(() => null)) as
+        | { trainingJson?: GarminTrainerWorkout; raw?: string; error?: string; parseError?: string }
+        | null;
+
+      if (!conversionResponse.ok || !conversionPayload?.trainingJson) {
+        const details =
+          conversionPayload?.error ??
+          conversionPayload?.parseError ??
+          "Impossible de convertir automatiquement ce plan.";
+        throw new AppError("garmin-trainer/request-failed", { details });
+      }
+
+      const pushResponse = await fetch("/api/garmin-trainer/push", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ workout: conversionPayload.trainingJson }),
+      });
+
+      const pushPayload = (await pushResponse.json().catch(() => null)) as
+        | { error?: string; workoutId?: string | number | null; scheduledFor?: string | null }
+        | null;
+
+      if (!pushResponse.ok) {
+        const code = pushResponse.status === 409 ? "garmin-trainer/push-unavailable" : "garmin-trainer/push-failed";
+        throw new AppError(code, { details: pushPayload?.error });
+      }
+
+      const details: string[] = [];
+      if (pushPayload?.workoutId) {
+        details.push(`ID Garmin ${pushPayload.workoutId}`);
+      }
+      if (pushPayload?.scheduledFor) {
+        details.push(`Planifié pour le ${pushPayload.scheduledFor}`);
+      }
+
+      toast.success("Entraînement envoyé à Garmin", {
+        description: details.join(" • ") || undefined,
+      });
+    } catch (error) {
+      const descriptor = describeAppError(error, "garmin-trainer/push-failed");
+      toast.error(descriptor.title, { description: descriptor.description });
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -154,8 +249,15 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated }: TrainingPlanGener
             <CardTitle>Plan d’entraînement personnalisé</CardTitle>
             <CardDescription className="text-white/70">Garde ce rendu en référence ou convertis-le en JSON Garmin.</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className={enableInlineSend ? "space-y-6" : undefined}>
             <MarkdownPlan content={plan} className="text-sm leading-relaxed" />
+            {enableInlineSend ? (
+              <div className="border-t border-white/10 pt-4">
+                <Button type="button" className="w-full" onClick={handleSendToGarmin} disabled={isSending} isLoading={isSending}>
+                  {isSending ? sendLoadingMessage : "Envoyer à Garmin Connect"}
+                </Button>
+              </div>
+            ) : null}
           </CardContent>
         </Card>
       ) : null}

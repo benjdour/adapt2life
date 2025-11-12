@@ -9,6 +9,11 @@ import { UiToaster } from "@/components/ui/ui-toaster";
 import { TopNav } from "@/components/TopNav";
 import { Footer } from "@/components/Footer";
 
+const debugGeneratorUserIds = (process.env.DEBUG_GENERATOR_USER_IDS ?? "")
+  .split(",")
+  .map((entry) => entry.trim())
+  .filter(Boolean);
+
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-sans",
@@ -34,7 +39,9 @@ export const metadata: Metadata = {
   title: "Adapt2Life",
   description: "Your AI-powered training companion",
   icons: {
-    icon: "/brand/logo-main.png",
+    icon: "/favicon.png",
+    shortcut: "/favicon.png",
+    apple: "/favicon.png",
   },
 };
 
@@ -53,7 +60,7 @@ export default async function RootLayout({
         <StackProvider app={stackClientApp}>
           <StackTheme>
             <div className="flex min-h-screen flex-col">
-              <TopNav isAuthenticated={Boolean(user)} />
+              <TopNav isAuthenticated={Boolean(user)} showDebugLink={Boolean(user?.id && debugGeneratorUserIds.includes(user.id))} />
               <main className="flex-1 px-4 py-6 md:py-8">{children}</main>
               <Footer />
             </div>
