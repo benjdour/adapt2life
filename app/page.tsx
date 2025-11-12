@@ -125,17 +125,14 @@ export default async function Home({ searchParams }: HomePageProps) {
 
   const authState = readParam(searchParams?.auth);
 
-  let trainingGaugeData = mockGarminData();
+  let heroScore: number | null = null;
+  let heroTrend: "up" | "down" | "stable" | null = null;
   if (user && localUser) {
     const garminData = await fetchGarminData(localUser.id);
-    trainingGaugeData = garminData?.trainingGaugeData ?? trainingGaugeData;
+    const trainingGaugeData = garminData?.trainingGaugeData ?? mockGarminData();
+    heroScore = Math.min(100, Math.max(0, computeTrainingScore(trainingGaugeData)));
+    heroTrend = heroScore >= 80 ? "up" : heroScore >= 60 ? "stable" : "down";
   }
-
-  let heroScore = Math.min(100, Math.max(0, computeTrainingScore(trainingGaugeData)));
-  if (!user) {
-    heroScore = 64;
-  }
-  const heroTrend = heroScore >= 80 ? "up" : heroScore >= 60 ? "stable" : "down";
 
   const quickActions = [
     {
@@ -214,14 +211,21 @@ export default async function Home({ searchParams }: HomePageProps) {
               ) : null}
             </div>
 
-            <div className="flex flex-col items-center justify-center rounded-3xl border border-white/10 bg-black/30 p-6">
-              <AIScoreGraph score={heroScore} label="AI Energy Score" trend={heroTrend} />
-              <p className="mt-4 text-center text-sm text-muted-foreground">
-                {user
-                  ? "Score calculé à partir de ta dernière synchronisation Garmin."
-                  : "Connecte ta montre pour obtenir ton score personnalisé."}
-              </p>
-            </div>
+            {user && heroScore !== null && heroTrend ? (
+              <div className="flex flex-col items-center justify-center rounded-3xl border border-white/10 bg-black/30 p-6">
+                <AIScoreGraph score={heroScore} label="AI Energy Score" trend={heroTrend} />
+                <p className="mt-4 text-center text-sm text-muted-foreground">
+                  Score calculé à partir de ta dernière synchronisation Garmin.
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-4 rounded-3xl border border-dashed border-white/15 bg-black/20 p-6 text-center text-sm text-muted-foreground">
+                <p>Connecte ta montre Garmin pour débloquer ton AI Energy Score personnalisé.</p>
+                <Button asChild variant="ghost" className="mx-auto">
+                  <Link href="/integrations/garmin">Connecter Garmin</Link>
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 
