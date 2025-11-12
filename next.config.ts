@@ -7,6 +7,9 @@ const buildCsp = () => {
     "'self'",
     "https://openrouter.ai",
     "https://apis.garmin.com",
+    "https://api.stack-auth.com",
+    "https://app.stack-auth.com",
+    "https://1.1.1.1",
     sanitize(process.env.APP_URL),
     sanitize(process.env.NEXT_PUBLIC_SITE_URL),
   ]
