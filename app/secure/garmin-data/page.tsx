@@ -28,7 +28,7 @@ export default async function GarminDataPage() {
   }
 
   const [localUser] = await db
-    .select({ id: users.id })
+    .select({ id: users.id, gender: users.gender })
     .from(users)
     .where(eq(users.stackId, stackUser.id))
     .limit(1);
@@ -37,13 +37,13 @@ export default async function GarminDataPage() {
     redirect("/integrations/garmin");
   }
 
-  const data = await fetchGarminData(localUser.id);
+  const data = await fetchGarminData(localUser.id, { gender: localUser.gender });
 
   return (
     <div className="mx-auto flex min-h-screen max-w-5xl flex-col gap-8 px-6 py-12 text-foreground">
       <Card>
         <CardHeader>
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">Garmin</p>
+          <p className="text-xs uppercase tracking-wide text-primary/80">Garmin</p>
           <CardTitle>Données synchronisées</CardTitle>
           <CardDescription>
             Visualise les métriques clés envoyées par Garmin Connect : body battery, sommeil, stress, activités et webhooks récents.

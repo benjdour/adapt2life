@@ -95,10 +95,10 @@ export default async function GarminIntegrationPage({ searchParams }: PageProps)
   const isConnected = Boolean(connection);
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-5xl flex-col gap-8 px-6 py-12 text-foreground">
+    <div className="mx-auto flex h-full w-full max-w-5xl flex-col gap-8 px-6 py-12 text-foreground">
       <Card>
         <CardHeader>
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">Intégrations</p>
+          <p className="text-xs uppercase tracking-wide text-primary/80">Intégrations</p>
           <CardTitle>Garmin Connect</CardTitle>
           <CardDescription>
             {isConnected

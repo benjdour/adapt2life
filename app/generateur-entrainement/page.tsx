@@ -20,22 +20,16 @@ export default async function TrainingGeneratorPage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-5xl flex-col gap-8 px-6 py-12 text-foreground">
+    <div className="mx-auto flex h-full w-full max-w-5xl flex-col gap-8 px-6 py-12 text-foreground">
       <Card>
         <CardHeader>
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">Coaching IA</p>
+          <p className="text-xs uppercase tracking-wide text-primary/80">Coaching IA</p>
           <CardTitle>Générateur d’entraînement</CardTitle>
           <CardDescription>
             Décris ton objectif et tes contraintes : Adapt2Life te conçoit un plan personnalisé en quelques secondes. Plus tu donnes de
             contexte, plus la séance est pertinente.
           </CardDescription>
         </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">
-          <p>
-            Tu peux regénérer autant de fois que nécessaire, ajuster ton brief, puis convertir immédiatement le résultat en JSON prêt
-            pour Garmin Training API V2.
-          </p>
-        </CardContent>
       </Card>
 
       <TrainingGeneratorsSection />

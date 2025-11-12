@@ -14,19 +14,19 @@ const features = [
   {
     title: "AI Ultra Coach",
     description:
-      "Génération de plans en temps réel qui s’adaptent à ta forme, à tes contraintes et à ton matériel. Chaque séance est recalibrée automatiquement.",
+      "Ton coach IA qui propose des séances sur mesure en fonction de ta forme, de ton temps et de ton matériel.",
     image: "/brand/feature-coach.jpg",
   },
   {
     title: "Connexion Garmin native",
     description:
-      "Synchronise ton compte Garmin Connect en OAuth2 PKCE, récupère tes métriques et renvoie les entraînements validés automatiquement.",
+      "Connecte ton compte Garmin pour récupérer tes données et envoyer tes séances validées, sans manipulations compliquées.",
     image: "/brand/feature-garmin.jpg",
   },
   {
     title: "IA adaptative",
     description:
-      "L’IA surveille ton Body Battery, ton sommeil, ton stress et ton historique pour t’indiquer quand pousser ou lever le pied.",
+      "On suit ton sommeil, ton stress et ta récupération pour te dire quand pousser et quand lever le pied.",
     image: "/brand/feature-adaptive.jpg",
   },
 ];
@@ -35,7 +35,7 @@ export default function FeaturesPage() {
   return (
     <main className="mx-auto flex max-w-6xl flex-col gap-8 px-6 py-12 text-foreground">
       <header className="space-y-3 text-center md:text-left">
-        <p className="text-sm uppercase tracking-[0.3em] text-primary">Fonctionnalités</p>
+        <p className="text-sm uppercase tracking-[0.3em] text-primary/80">Fonctionnalités</p>
         <h1 className="text-4xl font-heading">L’IA qui s’adapte à toi</h1>
         <p className="text-base text-muted-foreground">
           Adapt2Life analyse tes métriques, anticipe ta récupération et construit des entraînements réellement personnalisés.
@@ -63,7 +63,7 @@ export default function FeaturesPage() {
       </section>
 
       <section className="rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/20 via-background to-background p-8 text-center md:text-left">
-        <p className="text-sm uppercase tracking-[0.35em] text-primary">Passe à l’action</p>
+        <p className="text-sm uppercase tracking-[0.35em] text-primary/80">Passe à l’action</p>
         <div className="mt-4 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
           <div className="space-y-3">
             <h2 className="text-3xl font-heading text-foreground">Prêt à tester Adapt2Life ?</h2>

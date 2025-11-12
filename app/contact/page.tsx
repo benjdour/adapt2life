@@ -12,17 +12,19 @@ import { Textarea } from "@/components/ui/textarea";
 const contactSchema = z.object({
   name: z.string().min(2, "Merci d’indiquer votre nom."),
   email: z.string().email("Adresse e-mail invalide."),
+  subject: z.string().min(3, "Merci d’ajouter un objet."),
   message: z.string().min(10, "Merci de détailler votre message."),
 });
 
 type FormState = {
   name: string;
   email: string;
+  subject: string;
   message: string;
 };
 
 export default function ContactPage() {
-  const [formState, setFormState] = useState<FormState>({ name: "", email: "", message: "" });
+  const [formState, setFormState] = useState<FormState>({ name: "", email: "", subject: "", message: "" });
   const [status, setStatus] = useState<{ type: "success" | "error" | null; message?: string }>({ type: null });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -59,7 +61,7 @@ export default function ContactPage() {
 
       window.location.href = data.mailto;
       setStatus({ type: "success", message: "Votre logiciel de messagerie va s’ouvrir." });
-      setFormState({ name: "", email: "", message: "" });
+      setFormState({ name: "", email: "", subject: "", message: "" });
     } catch (error) {
       setStatus({
         type: "error",
@@ -73,7 +75,7 @@ export default function ContactPage() {
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-6 px-6 py-10 text-foreground">
       <header className="space-y-2 text-center md:text-left">
-        <p className="text-sm uppercase tracking-[0.3em] text-primary">Contact</p>
+        <p className="text-sm uppercase tracking-[0.3em] text-primary/80">Contact</p>
         <h1 className="text-4xl font-heading">Discutons de ton projet</h1>
         <p className="text-sm text-muted-foreground">Écris-nous via le formulaire ou directement à contact@adapt2life.app</p>
       </header>
@@ -106,6 +108,19 @@ export default function ContactPage() {
                   placeholder="exemple@adapt2life.app"
                 />
               </div>
+            </div>
+
+            <div>
+              <label htmlFor="subject" className="text-sm font-semibold text-foreground">
+                Objet
+              </label>
+              <Input
+                id="subject"
+                name="subject"
+                value={formState.subject}
+                onChange={handleChange}
+                placeholder="Ex. Question sur l’abonnement"
+              />
             </div>
 
             <div>

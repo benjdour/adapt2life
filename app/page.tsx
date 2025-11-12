@@ -123,6 +123,7 @@ export default async function Home({ searchParams }: HomePageProps) {
         firstName: users.firstName,
         name: users.name,
         pseudo: users.pseudo,
+        gender: users.gender,
       })
       .from(users)
       .where(eq(users.stackId, user.id))
@@ -147,7 +148,7 @@ export default async function Home({ searchParams }: HomePageProps) {
   let heroScore: number | null = null;
   let heroTrend: "up" | "down" | "stable" | null = null;
   if (user && localUser) {
-    const garminData = await fetchGarminData(localUser.id);
+    const garminData = await fetchGarminData(localUser.id, { gender: localUser.gender });
     const trainingGaugeData = garminData?.trainingGaugeData ?? mockGarminData();
     heroScore = Math.min(100, Math.max(0, computeTrainingScore(trainingGaugeData)));
     heroTrend = heroScore >= 80 ? "up" : heroScore >= 60 ? "stable" : "down";
@@ -159,11 +160,13 @@ export default async function Home({ searchParams }: HomePageProps) {
       title: "Générateur IA",
       description: "Crée ta séance personnalisée en quelques secondes.",
       href: "/generateur-entrainement",
+      buttonLabel: "Lancer",
     },
     {
       title: "Données Garmin",
       description: "Visualise tes métriques synchronisées.",
       href: "/secure/garmin-data",
+      buttonLabel: "Voir les données",
     },
   ];
 
@@ -181,26 +184,28 @@ export default async function Home({ searchParams }: HomePageProps) {
     }
 
     return (
-    <main className="min-h-screen bg-background px-4 py-4 text-foreground md:px-6">
-        <section className="space-y-3">
-          <p className="text-sm uppercase tracking-[0.3em] text-primary">Dashboard</p>
-          <h1 className="text-4xl font-heading">Bienvenue {firstName ?? "athlète"} 👋</h1>
-          <p className="text-base text-muted-foreground">Visualise tes données clés et lance ta prochaine séance.</p>
-        </section>
+      <main className="mx-auto flex min-h-screen max-w-5xl flex-col gap-8 px-6 py-12 text-foreground">
+        <Card>
+          <CardHeader>
+            <p className="text-xs uppercase tracking-wide text-primary/80">Dashboard</p>
+            <CardTitle>Bienvenue {firstName ?? "athlète"} 👋</CardTitle>
+            <CardDescription>Visualise tes données clés et lance ta prochaine séance.</CardDescription>
+          </CardHeader>
+        </Card>
 
-        <section className="mt-8 grid gap-6 md:grid-cols-2">
+        <section className="space-y-6">
           {heroScore !== null && heroTrend !== null && energyInsight ? (
             <Card className="border-white/10 bg-card/80">
               <CardHeader className="space-y-1">
                 <p className="text-xs uppercase tracking-[0.4em] text-primary/80">Énergie du jour</p>
-                <CardTitle>AI Energy Score</CardTitle>
+                <CardTitle>Energy Score</CardTitle>
                 <CardDescription>Analyse issue de ta dernière synchronisation Garmin.</CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col gap-6 md:flex-row md:items-center">
                 <div className="flex justify-center md:flex-none">
                   <AIScoreGraph
                     score={heroScore}
-                    label="AI Energy Score"
+                    label="Energy Score"
                     trend={heroTrend}
                     className="border-none bg-transparent p-0 shadow-none"
                     size={220}
@@ -219,7 +224,7 @@ export default async function Home({ searchParams }: HomePageProps) {
                       <p className="text-xs text-muted-foreground">{TREND_DETAILS[heroTrend].tip}</p>
                     </div>
                     <div className="sm:col-span-2 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-muted-foreground">
-                      Basé sur&nbsp;: {SCORE_SUMMARY.join(", ")}. 
+                      Basé sur&nbsp;: {SCORE_SUMMARY.join(", ")}.
                     </div>
                   </div>
                   <Link
@@ -247,8 +252,8 @@ export default async function Home({ searchParams }: HomePageProps) {
                       <CardDescription>{action.description}</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <Button asChild variant="ghost" className="w-full justify-start">
-                        <Link href={action.href}>Accéder</Link>
+                      <Button asChild className="w-full justify-center">
+                        <Link href={action.href}>{action.buttonLabel ?? "Ouvrir"}</Link>
                       </Button>
                     </CardContent>
                   </Card>
@@ -258,32 +263,30 @@ export default async function Home({ searchParams }: HomePageProps) {
           </Card>
         </section>
 
-        <section className="mt-8">
-          <Card className="border-white/10 bg-card/80">
-            <CardHeader>
-              <CardTitle>Dernier plan généré</CardTitle>
-              <CardDescription>Visualise ta dernière séance fournie par le générateur IA.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {latestPlanMarkdown ? (
-                <MarkdownPlan content={latestPlanMarkdown} className="prose prose-invert max-w-none" />
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  Aucune séance générée pour le moment. Lance le générateur IA pour créer ton premier plan.
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        </section>
+        <Card className="border-white/10 bg-card/80">
+          <CardHeader>
+            <CardTitle>Dernier plan généré</CardTitle>
+            <CardDescription>Visualise ta dernière séance fournie par le générateur IA.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {latestPlanMarkdown ? (
+              <MarkdownPlan content={latestPlanMarkdown} className="prose prose-invert max-w-none" />
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Aucune séance générée pour le moment. Lance le générateur IA pour créer ton premier plan.
+              </p>
+            )}
+          </CardContent>
+        </Card>
       </main>
     );
   }
 
   return (
-    <main className="bg-background px-4 py-10 text-foreground md:px-6">
-      <section className="mx-auto mt-2 flex w-full max-w-6xl flex-col gap-6 md:flex-row md:items-center md:justify-between">
+    <main className="mx-auto flex h-full w-full max-w-6xl flex-col gap-10 px-6 py-12 text-foreground">
+      <section className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
         <div className="space-y-6 md:w-1/2">
-          <p className="text-sm uppercase tracking-[0.4em] text-primary">Ton coach IA</p>
+          <p className="text-sm uppercase tracking-[0.4em] text-primary/80">Ton coach IA</p>
           <h1 className="text-4xl font-heading md:text-5xl">Qui s’adapte à ta vie.</h1>
           <p className="text-base text-muted-foreground">
             Des séances personnalisées, générées en temps réel selon ta forme, tes objectifs et tes contraintes quotidiennes.

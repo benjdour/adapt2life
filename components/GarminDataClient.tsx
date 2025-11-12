@@ -209,7 +209,6 @@ const GarminDataClient = ({ initialData }: GarminDataClientProps) => {
                       <div key={item.label} className="rounded-2xl border border-white/10 bg-muted/30 p-4">
                         <p className="text-xs uppercase tracking-wide text-muted-foreground">{item.label}</p>
                         <div className="mt-2">{renderMetricValue(item.value)}</div>
-                        {item.hint ? <p className="text-xs text-muted-foreground">{item.hint}</p> : null}
                       </div>
                     ))}
                   </div>

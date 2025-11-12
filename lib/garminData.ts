@@ -58,6 +58,10 @@ export type GarminDataBundle = {
   usedRealtimeMetrics: boolean;
 };
 
+type FetchGarminDataOptions = {
+  gender?: string | null;
+};
+
 const toNumber = (value: unknown): number | null => {
   if (typeof value === "number" && Number.isFinite(value)) {
     return value;
@@ -809,8 +813,14 @@ const resolveStageDuration = (
   return null;
 };
 
-export const fetchGarminData = async (localUserId: string | number): Promise<GarminDataBundle> => {
+export const fetchGarminData = async (
+  localUserId: string | number,
+  options: FetchGarminDataOptions = {},
+): Promise<GarminDataBundle> => {
   const numericUserId = typeof localUserId === "string" ? Number(localUserId) : localUserId;
+  const normalizedGender =
+    typeof options.gender === "string" ? options.gender.trim().toLowerCase() : null;
+  const includeWomenHealthSection = normalizedGender === "femme";
 
   if (!Number.isFinite(numericUserId)) {
     return {
@@ -1802,7 +1812,10 @@ export const fetchGarminData = async (localUserId: string | number): Promise<Gar
         },
       ],
     },
-    {
+  ];
+
+  if (includeWomenHealthSection) {
+    sections.push({
       title: "🌸 SANTÉ FÉMININE",
       description: undefined,
       items: [
@@ -1827,44 +1840,45 @@ export const fetchGarminData = async (localUserId: string | number): Promise<Gar
           hint: "Women's Health API — hasSpecifiedCycleLength / hasSpecifiedPeriodLength.",
         },
       ],
-    },
-    {
-      title: "🕒 MÉTADONNÉES D’ACTIVITÉ",
-      description:
-        activityHighlights.length > 1
-          ? "Balaye horizontalement (ou utilise les boutons sur desktop) pour parcourir les 5 dernières activités synchronisées."
-          : undefined,
-      items:
-        activityHighlights.length === 0
-          ? [
-              {
-                label: "Dernière activité — date & heure",
-                value: activityStartDisplay,
-                hint: "Activity summaries (§7.1 Activity API).",
-              },
-              {
-                label: "Type d’activité",
-                value: activityType ?? null,
-                hint: "Activity summaries — activityType.",
-              },
-              {
-                label: "Durée & intensité (HR, puissance, cadence)",
-                value:
-                  activityIntensityDisplay && activityIntensityDisplay.length > 0
-                    ? activityIntensityDisplay
-                    : activityDurationDisplay,
-                hint: "Activity Details (docs/Activity_API-1.2.3_0.md).",
-              },
-              {
-                label: "Calories de la dernière activité",
-                value: activityCaloriesDisplay,
-                hint: "Activity summaries — activeKilocalories.",
-              },
-            ]
-          : [],
-      activities: activityHighlights,
-    },
-  ];
+    });
+  }
+
+  sections.push({
+    title: "🕒 MÉTADONNÉES D’ACTIVITÉ",
+    description:
+      activityHighlights.length > 1
+        ? "Balaye horizontalement (ou utilise les boutons sur desktop) pour parcourir les 5 dernières activités synchronisées."
+        : undefined,
+    items:
+      activityHighlights.length === 0
+        ? [
+            {
+              label: "Dernière activité — date & heure",
+              value: activityStartDisplay,
+              hint: "Activity summaries (§7.1 Activity API).",
+            },
+            {
+              label: "Type d’activité",
+              value: activityType ?? null,
+              hint: "Activity summaries — activityType.",
+            },
+            {
+              label: "Durée & intensité (HR, puissance, cadence)",
+              value:
+                activityIntensityDisplay && activityIntensityDisplay.length > 0
+                  ? activityIntensityDisplay
+                  : activityDurationDisplay,
+              hint: "Activity Details (docs/Activity_API-1.2.3_0.md).",
+            },
+            {
+              label: "Calories de la dernière activité",
+              value: activityCaloriesDisplay,
+              hint: "Activity summaries — activeKilocalories.",
+            },
+          ]
+        : [],
+    activities: activityHighlights,
+  });
 
   return {
     connection,

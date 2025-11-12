@@ -20,10 +20,10 @@ export default async function TrainingGeneratorDebugPage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-5xl flex-col gap-8 px-6 py-12 text-foreground">
+    <div className="mx-auto flex h-full w-full max-w-5xl flex-col gap-8 px-6 py-12 text-foreground">
       <Card>
         <CardHeader>
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">Coaching IA</p>
+          <p className="text-xs uppercase tracking-wide text-primary/80">Coaching IA</p>
           <CardTitle>Générateur debug</CardTitle>
           <CardDescription>
             Version technique du générateur pour reproduire ou comparer les sorties. Les fonctionnalités sont identiques mais isolées

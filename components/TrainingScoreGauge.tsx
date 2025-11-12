@@ -56,14 +56,14 @@ const TrainingScoreGauge: FC<TrainingScoreGaugeProps> = ({ data }) => {
     <Card className="w-full border-white/10 bg-card/80">
       <CardHeader className="space-y-1">
         <p className="text-xs uppercase tracking-[0.4em] text-primary/80">Vue globale</p>
-        <CardTitle>Capacité à s’entraîner aujourd’hui</CardTitle>
+        <CardTitle>Energy Score</CardTitle>
         <CardDescription>Calculée à partir des métriques de récupération, sommeil, stress et activités.</CardDescription>
       </CardHeader>
       <CardContent className="flex w-full flex-col gap-6 md:flex-row md:items-center">
         <div className="flex justify-center md:flex-none">
           <AIScoreGraph
             score={score}
-            label="AI Training Score"
+            label="Energy Score"
             trend={interpretation.trend}
             gradient={{ from: "#0068B5", to: "#2FBF71" }}
             size={220}

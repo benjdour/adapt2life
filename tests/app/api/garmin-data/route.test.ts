@@ -72,7 +72,7 @@ describe("GET /api/garmin-data", () => {
 
   it("returns synced Garmin data for authenticated users with a local profile", async () => {
     mockGetUser.mockResolvedValueOnce({ id: "stack-user-42" });
-    selectBuilder.limit.mockResolvedValueOnce([{ id: 99 }]);
+    selectBuilder.limit.mockResolvedValueOnce([{ id: 99, gender: "femme" }]);
     const garminData = { connection: { garminUserId: "abc" }, sections: [], trainingGaugeData: {}, usedRealtimeMetrics: true };
     mockFetchGarminData.mockResolvedValueOnce(garminData);
 
@@ -80,7 +80,7 @@ describe("GET /api/garmin-data", () => {
     const payload = await response.json();
 
     expect(response.status).toBe(200);
-    expect(mockFetchGarminData).toHaveBeenCalledWith(99);
+    expect(mockFetchGarminData).toHaveBeenCalledWith(99, { gender: "femme" });
     expect(payload).toEqual(garminData);
   });
 });

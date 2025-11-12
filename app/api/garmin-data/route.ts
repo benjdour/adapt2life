@@ -15,7 +15,7 @@ export async function GET() {
   }
 
   const [localUser] = await db
-    .select({ id: users.id })
+    .select({ id: users.id, gender: users.gender })
     .from(users)
     .where(eq(users.stackId, stackUser.id))
     .limit(1);
@@ -29,6 +29,6 @@ export async function GET() {
     });
   }
 
-  const data = await fetchGarminData(localUser.id);
+  const data = await fetchGarminData(localUser.id, { gender: localUser.gender });
   return NextResponse.json(data);
 }

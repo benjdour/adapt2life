@@ -4,6 +4,7 @@ import { z } from "zod";
 const contactSchema = z.object({
   name: z.string().min(2, "Le nom est requis."),
   email: z.string().email("Adresse e-mail invalide."),
+  subject: z.string().min(3, "Merci d’ajouter un objet."),
   message: z.string().min(10, "Merci de détailler votre message."),
 });
 
@@ -28,8 +29,8 @@ export async function POST(request: Request) {
 
 const buildMailto = (payload: ContactRequest) => {
   const params = new URLSearchParams({
-    subject: `Message Adapt2Life — ${payload.name}`,
-    body: `Nom: ${payload.name}\nEmail: ${payload.email}\n\nMessage:\n${payload.message}`,
+    subject: `Adapt2Life — ${payload.subject}`,
+    body: `Nom: ${payload.name}\nEmail: ${payload.email}\nObjet: ${payload.subject}\n\nMessage:\n${payload.message}`,
   });
   return `mailto:contact@adapt2life.app?${params.toString()}`;
 };
