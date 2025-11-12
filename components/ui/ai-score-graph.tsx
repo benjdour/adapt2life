@@ -57,7 +57,13 @@ export const AIScoreGraph = ({
   }, [clampedScore]);
 
   const strokeDashoffset = circumference - progress * circumference;
-  const gradientId = React.useId();
+  const gradientId = React.useMemo(() => {
+    const base = label.replace(/[^a-z0-9]/gi, "-").toLowerCase() || "ai-score";
+    const normalizedSize = Math.round(size);
+    const normalizedThickness = Math.round(thickness);
+    const normalizedScore = Math.round(clampedScore * 10);
+    return `gradient-${base}-${normalizedSize}-${normalizedThickness}-${normalizedScore}`;
+  }, [label, size, thickness, clampedScore]);
 
   return (
     <div

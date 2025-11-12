@@ -43,7 +43,7 @@ export const Footer = () => (
         </ul>
       </Section>
 
-      <Section title="Legal Notice">
+      <Section title="Mentions légales">
         <ul className="space-y-2">
           {legalLinks.map((item) => (
             <li key={item.href}>
@@ -55,7 +55,7 @@ export const Footer = () => (
         </ul>
       </Section>
 
-      <Section title="Follow Us">
+      <Section title="Suivez-nous">
         <ul className="space-y-2">
           {socials.map((item) => (
             <li key={item.href}>

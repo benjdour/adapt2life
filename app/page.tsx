@@ -281,7 +281,7 @@ export default async function Home({ searchParams }: HomePageProps) {
 
   return (
     <main className="bg-background px-4 py-10 text-foreground md:px-6">
-      <section className="mx-auto mt-2 flex min-h-[calc(100vh-150px)] w-full max-w-6xl flex-col gap-6 md:flex-row md:items-center md:justify-between">
+      <section className="mx-auto mt-2 flex w-full max-w-6xl flex-col gap-6 md:flex-row md:items-center md:justify-between">
         <div className="space-y-6 md:w-1/2">
           <p className="text-sm uppercase tracking-[0.4em] text-primary">Ton coach IA</p>
           <h1 className="text-4xl font-heading md:text-5xl">Qui s’adapte à ta vie.</h1>
