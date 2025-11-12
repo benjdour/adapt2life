@@ -158,95 +158,33 @@ export default async function Home({ searchParams }: HomePageProps) {
   ];
 
   return (
-    <main className="min-h-screen bg-background px-6 py-12 text-foreground">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
-        {authState === "unauthorized" ? (
-          <Card className="border-error/40 bg-error/5 text-error">
-            <CardContent className="py-4 text-sm">
-              <p className="font-semibold">Accès refusé</p>
-              <p className="text-error/80">Tu dois être connecté avec un compte autorisé pour accéder à cette page.</p>
-            </CardContent>
-          </Card>
-        ) : null}
-
-        <Card className="overflow-hidden">
-          <CardContent className="grid gap-8 p-8 lg:grid-cols-[1fr_320px]">
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <p className="text-sm uppercase tracking-wide text-muted-foreground">Bienvenue sur Adapt2Life</p>
-                <h1 className="text-4xl font-heading">
-                  {user ? `Bonjour ${firstName ?? "athlète"} 👋` : "Pilote ton énergie au quotidien"}
-                </h1>
-                <p className="text-base text-muted-foreground">
-                  {user
-                    ? "Accède à tes données Garmin, génère des plans IA et synchronise-les en un geste."
-                    : "Connecte ton compte pour accéder à l’espace sécurisé Garmin et commencer tes plans adaptatifs."}
-                </p>
-              </div>
-
-              <div className="flex flex-col gap-3 sm:flex-row">
-                {user ? (
-                  <>
-                    <Link
-                      href="/generateur-entrainement"
-                      className="flex flex-1 items-center justify-between rounded-2xl border border-white/15 bg-gradient-primary px-5 py-4 text-left text-white shadow-lg shadow-primary/40 transition hover:brightness-110"
-                    >
-                      <div>
-                        <p className="text-sm uppercase tracking-wide text-white/70">Générateur IA</p>
-                        <p className="text-lg font-semibold">Lancer une séance</p>
-                      </div>
-                      <span aria-hidden className="text-xl">→</span>
-                    </Link>
-                    <Link
-                      href="/secure/garmin-data"
-                      className="flex flex-1 items-center justify-between rounded-2xl border border-white/15 bg-card px-5 py-4 text-left text-foreground shadow-lg transition hover:bg-card/80"
-                    >
-                      <div>
-                        <p className="text-sm uppercase tracking-wide text-muted-foreground">Garmin</p>
-                        <p className="text-lg font-semibold">Voir les données</p>
-                      </div>
-                      <span aria-hidden className="text-xl text-muted-foreground">→</span>
-                    </Link>
-                  </>
-                ) : (
-                  <Button asChild className="flex-1">
-                    <Link href="/handler/sign-in?redirect=/integrations/garmin">Se connecter / Créer un compte</Link>
-                  </Button>
-                )}
-              </div>
+    <main className="min-h-screen bg-background text-foreground">
+      <section className="relative isolate overflow-hidden">
+        <Image
+          src="/brand/main-visual.jpg"
+          alt="Adapt2Life hero"
+          width={1600}
+          height={900}
+          priority
+          className="h-[520px] w-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0C0F12]/90 via-[#0C0F12]/80 to-transparent" />
+        <div className="absolute inset-0 flex items-center">
+          <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-6">
+            <p className="text-sm uppercase tracking-[0.4em] text-primary">Your AI Trainer</p>
+            <h1 className="text-4xl font-heading text-white md:text-5xl">That Adapts To Your Life.</h1>
+            <p className="max-w-2xl text-base text-white/80">
+              Personalized workouts, designed in real-time based on your fitness, goals, and daily constraints.
+            </p>
+            <div>
+              <Button asChild className="px-8 py-6 text-base font-semibold">
+                <Link href="/handler/sign-in?redirect=/integrations/garmin">Discover Your Potential</Link>
+              </Button>
             </div>
+          </div>
+        </div>
+      </section>
 
-            {user && heroScore !== null && heroTrend ? (
-              <div className="flex flex-col items-center justify-center rounded-3xl border border-white/10 bg-black/30 p-6">
-                <AIScoreGraph score={heroScore} label="AI Energy Score" trend={heroTrend} />
-                <p className="mt-4 text-center text-sm text-muted-foreground">
-                  Score calculé à partir de ta dernière synchronisation Garmin.
-                </p>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-4 rounded-3xl border border-dashed border-white/15 bg-black/20 p-6 text-center text-sm text-muted-foreground">
-                <p>Connecte ta montre Garmin pour débloquer ton AI Energy Score personnalisé.</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <DashboardGrid columns={{ sm: 1, md: 2, lg: 2, xl: 4 }} gap="md">
-          {quickActions.map((action) => (
-            <Card key={action.href} className="h-full border-white/10 bg-card/90">
-              <CardHeader>
-                <CardTitle className="text-xl">{action.title}</CardTitle>
-                <CardDescription>{action.description}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button asChild variant="ghost" className="w-full justify-start">
-                  <Link href={action.href}>Accéder</Link>
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </DashboardGrid>
-      </div>
     </main>
   );
 }
