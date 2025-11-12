@@ -51,7 +51,7 @@ export default async function RootLayout({
         <StackProvider app={stackClientApp}>
           <StackTheme>
             <TopNav isAuthenticated={Boolean(user)} />
-            <div className="pt-4">{children}</div>
+            <div className="pt-2">{children}</div>
             <Footer />
             <UiToaster />
           </StackTheme>

@@ -159,32 +159,28 @@ export default async function Home({ searchParams }: HomePageProps) {
 
   return (
     <main className="min-h-screen bg-background text-foreground">
-      <section className="relative isolate overflow-hidden">
-        <Image
-          src="/brand/main-visual.jpg"
-          alt="Adapt2Life hero"
-          width={1600}
-          height={900}
-          priority
-          className="h-[520px] w-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#0C0F12]/90 via-[#0C0F12]/80 to-transparent" />
-        <div className="absolute inset-0 flex items-center">
-          <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-6">
-            <p className="text-sm uppercase tracking-[0.4em] text-primary">Your AI Trainer</p>
-            <h1 className="text-4xl font-heading text-white md:text-5xl">That Adapts To Your Life.</h1>
-            <p className="max-w-2xl text-base text-white/80">
-              Personalized workouts, designed in real-time based on your fitness, goals, and daily constraints.
-            </p>
-            <div>
-              <Button asChild className="px-8 py-6 text-base font-semibold">
-                <Link href="/handler/sign-in?redirect=/integrations/garmin">Discover Your Potential</Link>
-              </Button>
-            </div>
-          </div>
+      <section className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 py-10 md:flex-row md:items-center">
+        <div className="space-y-6 md:w-1/2">
+          <p className="text-sm uppercase tracking-[0.4em] text-primary">Ton coach IA</p>
+          <h1 className="text-4xl font-heading md:text-5xl">Qui s’adapte à ta vie.</h1>
+          <p className="text-base text-muted-foreground">
+            Des séances personnalisées, générées en temps réel selon ta forme, tes objectifs et tes contraintes quotidiennes.
+          </p>
+          <Button asChild className="px-8 py-6 text-base font-semibold">
+            <Link href="/handler/sign-in?redirect=/generateur-entrainement">Découvrir ton potentiel</Link>
+          </Button>
+        </div>
+        <div className="md:w-1/2">
+          <Image
+            src="/brand/main-visual.jpg"
+            alt="Adapt2Life hero"
+            width={800}
+            height={600}
+            priority
+            className="rounded-3xl border border-white/10 object-cover shadow-2xl"
+          />
         </div>
       </section>
-
     </main>
   );
 }
