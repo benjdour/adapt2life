@@ -79,6 +79,15 @@ npm run test
 
 Le répertoire `tests/` contient des tests unitaires pour les helpers (ex : `cn`) et servira de base pour les futurs tests de services (Stack, Drizzle, Garmin).
 
+## Sécurité & audit
+
+La CI exécute `npm audit` à chaque run. Deux vulnérabilités modérées sont encore signalées par `npm audit` :
+
+- `cookie < 0.7.0` embarqué par `@stackframe/stack`.
+- `esbuild <= 0.24.2` embarqué par `drizzle-kit` via `@esbuild-kit`.
+
+Aucune version compatible de ces packages n’est disponible pour l’instant (les correctifs proposés sont des changements majeurs). Le job CI loggue donc l’audit mais n’échoue pas sur ces vulnérabilités jusqu’à ce que les mainteneurs publient des versions corrigées.
+
 ## Flux Garmin OAuth2 PKCE
 
 1. `GET /api/garmin/oauth/start`  
