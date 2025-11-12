@@ -36,17 +36,19 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const user = await stackServerApp.getUser({ or: "return-null", tokenStore: "nextjs-cookie" });
+
   return (
     <html lang="en">
       <body className={`${inter.variable} ${poppins.variable} ${orbitron.variable} font-sans bg-background text-foreground`}>
         <StackProvider app={stackClientApp}>
           <StackTheme>
-            <TopNav />
+            <TopNav isAuthenticated={Boolean(user)} />
             <div className="pt-4">{children}</div>
             <UiToaster />
           </StackTheme>

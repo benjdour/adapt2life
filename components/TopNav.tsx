@@ -7,6 +7,10 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+type TopNavProps = {
+  isAuthenticated: boolean;
+};
+
 const navLinks = [
   { label: "Accueil", href: "/" },
   { label: "Générateur", href: "/generateur-entrainement" },
@@ -15,8 +19,23 @@ const navLinks = [
   { label: "Intégrations", href: "/integrations/garmin" },
 ];
 
-export const TopNav = () => {
+export const TopNav = ({ isAuthenticated }: TopNavProps) => {
   const [isOpen, setIsOpen] = useState(false);
+
+  const handleSignOut = () => {
+    const form = document.createElement("form");
+    form.method = "post";
+    form.action = "/handler/sign-out";
+
+    const redirectInput = document.createElement("input");
+    redirectInput.type = "hidden";
+    redirectInput.name = "redirect";
+    redirectInput.value = "/";
+    form.appendChild(redirectInput);
+
+    document.body.appendChild(form);
+    form.submit();
+  };
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-background/80 backdrop-blur">
@@ -39,12 +58,15 @@ export const TopNav = () => {
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
-          <Button asChild variant="ghost">
-            <Link href="/handler/sign-in?redirect=/integrations/garmin">Se connecter</Link>
-          </Button>
-          <Button asChild>
-            <Link href="/generateur-entrainement">Lancer le générateur</Link>
-          </Button>
+          {isAuthenticated ? (
+            <Button variant="ghost" onClick={handleSignOut}>
+              Se déconnecter
+            </Button>
+          ) : (
+            <Button asChild variant="ghost">
+              <Link href="/handler/sign-in?redirect=/integrations/garmin">Se connecter</Link>
+            </Button>
+          )}
         </div>
 
         <button
@@ -81,12 +103,29 @@ export const TopNav = () => {
             ))}
           </nav>
           <div className="flex flex-col gap-3">
-            <Button asChild variant="ghost" className="w-full">
-              <Link href="/handler/sign-in?redirect=/integrations/garmin">Se connecter</Link>
-            </Button>
-            <Button asChild className="w-full">
-              <Link href="/generateur-entrainement">Lancer le générateur</Link>
-            </Button>
+            {isAuthenticated ? (
+              <Button
+                variant="ghost"
+                className="w-full"
+                onClick={() => {
+                  setIsOpen(false);
+                  handleSignOut();
+                }}
+              >
+                Se déconnecter
+              </Button>
+            ) : (
+              <Button
+                asChild
+                variant="ghost"
+                className="w-full"
+                onClick={() => {
+                  setIsOpen(false);
+                }}
+              >
+                <Link href="/handler/sign-in?redirect=/integrations/garmin">Se connecter</Link>
+              </Button>
+            )}
           </div>
         </div>
       </div>
