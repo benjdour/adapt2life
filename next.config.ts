@@ -1,12 +1,14 @@
 import type { NextConfig } from "next";
 
+const sanitize = (value?: string | null) => (typeof value === "string" ? value.trim() : undefined);
+
 const buildCsp = () => {
   const connectSrc = [
     "'self'",
     "https://openrouter.ai",
     "https://apis.garmin.com",
-    process.env.APP_URL,
-    process.env.NEXT_PUBLIC_SITE_URL,
+    sanitize(process.env.APP_URL),
+    sanitize(process.env.NEXT_PUBLIC_SITE_URL),
   ]
     .filter(Boolean)
     .join(" ");
@@ -24,7 +26,7 @@ const buildCsp = () => {
   ].join("; ");
 };
 
-const allowedOrigin = process.env.CORS_ALLOWED_ORIGIN ?? process.env.APP_URL ?? "*";
+const allowedOrigin = sanitize(process.env.CORS_ALLOWED_ORIGIN) ?? sanitize(process.env.APP_URL) ?? "*";
 
 const securityHeaders = [
   {
