@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import type { TouchEvent } from "react";
 
 import TrainingScoreGauge from "@/components/TrainingScoreGauge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { GarminActivityHighlight, GarminDataBundle, GarminSection } from "@/lib/garminData";
 
 type GarminDataClientProps = {
@@ -13,10 +14,10 @@ type GarminDataClientProps = {
 
 const renderMetricValue = (value: string | null) => {
   if (value) {
-    return <span className="text-base font-semibold text-white">{value}</span>;
+    return <span className="text-base font-semibold text-foreground">{value}</span>;
   }
 
-  return <span className="text-sm text-yellow-200">En attente de synchro</span>;
+  return <span className="text-sm text-warning">En attente de synchro</span>;
 };
 
 const ActivityCarousel = ({ activities }: { activities: GarminActivityHighlight[] }) => {
@@ -75,25 +76,25 @@ const ActivityCarousel = ({ activities }: { activities: GarminActivityHighlight[
 
   return (
     <div
-      className="relative overflow-hidden rounded-xl border border-white/10 bg-black/20 p-4"
+      className="relative overflow-hidden rounded-2xl border border-white/10 bg-card/80 p-4 shadow-sm"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
       onTouchCancel={handleTouchCancel}
     >
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs uppercase tracking-wide text-white/50">
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">
             Activité {boundedIndex + 1} / {activities.length}
           </p>
-          <h3 className="mt-1 text-lg font-semibold text-white">{current.type ?? "Activité"}</h3>
-          <p className="text-sm text-white/70">{current.startDisplay ?? "Date inconnue"}</p>
+          <h3 className="mt-1 text-lg font-semibold text-foreground">{current.type ?? "Activité"}</h3>
+          <p className="text-sm text-muted-foreground">{current.startDisplay ?? "Date inconnue"}</p>
         </div>
         <div className="hidden gap-2 md:flex">
           <button
             type="button"
             onClick={goToPrevious}
             aria-label="Activité précédente"
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/10 text-lg text-white transition hover:bg-white/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/5 text-lg text-foreground transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70"
           >
             <span aria-hidden="true">&lt;</span>
           </button>
@@ -101,7 +102,7 @@ const ActivityCarousel = ({ activities }: { activities: GarminActivityHighlight[
             type="button"
             onClick={goToNext}
             aria-label="Activité suivante"
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/10 text-lg text-white transition hover:bg-white/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/5 text-lg text-foreground transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70"
           >
             <span aria-hidden="true">&gt;</span>
           </button>
@@ -111,8 +112,8 @@ const ActivityCarousel = ({ activities }: { activities: GarminActivityHighlight[
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
           {stats.map((stat) => (
             <div key={stat.label} className="rounded-lg border border-white/10 bg-white/5 p-3">
-              <p className="text-xs uppercase tracking-wide text-white/50">{stat.label}</p>
-              <p className="mt-1 text-sm font-semibold text-white">{stat.value}</p>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">{stat.label}</p>
+              <p className="mt-1 text-sm font-semibold text-foreground">{stat.value}</p>
             </div>
           ))}
         </div>
@@ -176,47 +177,52 @@ const GarminDataClient = ({ initialData }: GarminDataClientProps) => {
   const sections: GarminSection[] = useMemo(() => data.sections ?? [], [data.sections]);
 
   return (
-    <>
+    <div className="space-y-6">
       <TrainingScoreGauge data={data.trainingGaugeData} />
 
       {!data.connection ? (
-        <section className="space-y-2 rounded-2xl border border-white/10 bg-white/5 p-6 shadow-lg backdrop-blur">
-          <p className="text-sm font-medium text-white">Aucune connexion Garmin</p>
-          <p className="text-sm text-white/70">Relie ton compte via la page d’intégration pour voir les données apparaître ici.</p>
-        </section>
+        <Card className="border-dashed">
+          <CardContent className="space-y-2 py-6">
+            <p className="text-sm font-semibold text-foreground">Aucune connexion Garmin</p>
+            <p className="text-sm text-muted-foreground">
+              Relie ton compte via la page d’intégration pour voir tes données apparaître ici.
+            </p>
+          </CardContent>
+        </Card>
       ) : null}
 
       {data.connection ? (
-        <div className="space-y-8">
+        <div className="space-y-6">
           {sections.map((section) => (
-            <section key={section.title} className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-lg backdrop-blur">
-              <header className="mb-4 space-y-1">
-                <h2 className="text-xl font-semibold text-white">{section.title}</h2>
-                {section.description ? <p className="text-sm text-white/70">{section.description}</p> : null}
-              </header>
-              <div className="space-y-4">
+            <Card key={section.title}>
+              <CardHeader>
+                <CardTitle>{section.title}</CardTitle>
+                {section.description ? <CardDescription>{section.description}</CardDescription> : null}
+              </CardHeader>
+              <CardContent className="space-y-4">
                 {section.activities && section.activities.length > 0 ? (
                   <ActivityCarousel activities={section.activities} />
                 ) : null}
                 {section.items.length > 0 ? (
                   <div className="grid gap-4 md:grid-cols-2">
                     {section.items.map((item) => (
-                      <div key={item.label} className="rounded-xl border border-white/10 bg-white/5 p-4">
-                        <p className="text-xs uppercase tracking-wide text-white/50">{item.label}</p>
+                      <div key={item.label} className="rounded-2xl border border-white/10 bg-muted/30 p-4">
+                        <p className="text-xs uppercase tracking-wide text-muted-foreground">{item.label}</p>
                         <div className="mt-2">{renderMetricValue(item.value)}</div>
+                        {item.hint ? <p className="text-xs text-muted-foreground">{item.hint}</p> : null}
                       </div>
                     ))}
                   </div>
                 ) : null}
                 {section.items.length === 0 && (!section.activities || section.activities.length === 0) ? (
-                  <p className="text-sm text-white/60">Aucune donnée disponible pour cette section pour l’instant.</p>
+                  <p className="text-sm text-muted-foreground">Aucune donnée disponible pour cette section pour l’instant.</p>
                 ) : null}
-              </div>
-            </section>
+              </CardContent>
+            </Card>
           ))}
         </div>
       ) : null}
-    </>
+    </div>
   );
 };
 

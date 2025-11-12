@@ -5,6 +5,8 @@ import { eq } from "drizzle-orm";
 import { stackServerApp } from "@/stack/server";
 import { db } from "@/db";
 import { users } from "@/db/schema";
+import { fetchGarminData } from "@/lib/garminData";
+import { computeTrainingScore, mockGarminData } from "@/lib/trainingScore";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DashboardGrid } from "@/components/ui/dashboard-grid";
@@ -90,10 +92,14 @@ export default async function Home({ searchParams }: HomePageProps) {
 
   const user = await stackServerApp.getUser({ or: "return-null", tokenStore: "nextjs-cookie" });
   let firstName = extractFirstName(user);
+  let localUser:
+    | { id: number; firstName: string | null; name: string | null; pseudo: string | null }
+    | undefined;
 
-  if (!firstName && user) {
-    const [localUser] = await db
+  if (user) {
+    const [profile] = await db
       .select({
+        id: users.id,
         firstName: users.firstName,
         name: users.name,
         pseudo: users.pseudo,
@@ -101,22 +107,34 @@ export default async function Home({ searchParams }: HomePageProps) {
       .from(users)
       .where(eq(users.stackId, user.id))
       .limit(1);
+    localUser = profile;
 
-    if (localUser) {
+    if (!firstName && profile) {
       firstName =
         extractFirstName(
           {
-            firstName: localUser.firstName ?? undefined,
-            name: localUser.name ?? undefined,
-            displayName: localUser.pseudo ?? undefined,
+            firstName: profile.firstName ?? undefined,
+            name: profile.name ?? undefined,
+            displayName: profile.pseudo ?? undefined,
           },
-          localUser.firstName ?? localUser.name ?? localUser.pseudo ?? null,
-        ) ?? normalizeFirstName(localUser.firstName ?? localUser.name ?? localUser.pseudo);
+          profile.firstName ?? profile.name ?? profile.pseudo ?? null,
+        ) ?? normalizeFirstName(profile.firstName ?? profile.name ?? profile.pseudo);
     }
   }
 
   const authState = readParam(searchParams?.auth);
-  const heroScore = user ? 82 : 64;
+
+  let trainingGaugeData = mockGarminData();
+  if (user && localUser) {
+    const garminData = await fetchGarminData(localUser.id);
+    trainingGaugeData = garminData?.trainingGaugeData ?? trainingGaugeData;
+  }
+
+  let heroScore = Math.min(100, Math.max(0, computeTrainingScore(trainingGaugeData)));
+  if (!user) {
+    heroScore = 64;
+  }
+  const heroTrend = heroScore >= 80 ? "up" : heroScore >= 60 ? "stable" : "down";
 
   const quickActions = [
     {
@@ -196,7 +214,7 @@ export default async function Home({ searchParams }: HomePageProps) {
             </div>
 
             <div className="flex flex-col items-center justify-center rounded-3xl border border-white/10 bg-black/30 p-6">
-              <AIScoreGraph score={heroScore} label="AI Energy Score" trend={user ? "up" : "stable"} />
+              <AIScoreGraph score={heroScore} label="AI Energy Score" trend={heroTrend} />
               <p className="mt-4 text-center text-sm text-muted-foreground">
                 {user
                   ? "Score calculé à partir de ta dernière synchronisation Garmin."
