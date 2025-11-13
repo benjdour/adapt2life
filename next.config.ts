@@ -2,6 +2,36 @@ import type { NextConfig } from "next";
 
 const sanitize = (value?: string | null) => (typeof value === "string" ? value.trim() : undefined);
 
+const sanitizeList = (value?: string | null) =>
+  typeof value === "string"
+    ? value
+        .split(",")
+        .map((entry) => sanitize(entry))
+        .filter((entry): entry is string => Boolean(entry))
+    : [];
+
+const normalizeOrigin = (value?: string | null) => {
+  const sanitized = sanitize(value);
+  if (!sanitized) return undefined;
+  try {
+    const parsed = new URL(sanitized);
+    return `${parsed.protocol}//${parsed.host}`;
+  } catch {
+    return sanitized.replace(/\/+$/, "");
+  }
+};
+
+const allowedOrigins = Array.from(
+  new Set(
+    [
+      ...sanitizeList(process.env.CORS_ALLOWED_ORIGINS).map(normalizeOrigin),
+      normalizeOrigin(process.env.CORS_ALLOWED_ORIGIN),
+      normalizeOrigin(process.env.APP_URL),
+      normalizeOrigin(process.env.NEXT_PUBLIC_SITE_URL),
+    ].filter((origin): origin is string => Boolean(origin) && origin !== "*"),
+  ),
+);
+
 const buildCsp = () => {
   const connectSrc = [
     "'self'",
@@ -29,7 +59,29 @@ const buildCsp = () => {
   ].join("; ");
 };
 
-const allowedOrigin = sanitize(process.env.CORS_ALLOWED_ORIGIN) ?? sanitize(process.env.APP_URL) ?? "*";
+const corsAllowedMethods = "GET,POST,PUT,PATCH,DELETE,OPTIONS";
+const corsAllowedHeaders = "Authorization, Content-Type, X-Requested-With, X-Garmin-Signature";
+
+const escapeForHas = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const buildCorsHeaders = () =>
+  allowedOrigins.map((origin) => ({
+    source: "/api/:path*",
+    has: [
+      {
+        type: "header" as const,
+        key: "origin",
+        value: escapeForHas(origin),
+      },
+    ],
+    headers: [
+      { key: "Access-Control-Allow-Origin", value: origin },
+      { key: "Access-Control-Allow-Methods", value: corsAllowedMethods },
+      { key: "Access-Control-Allow-Headers", value: corsAllowedHeaders },
+      { key: "Access-Control-Allow-Credentials", value: "true" },
+      { key: "Vary", value: "Origin" },
+    ],
+  }));
 
 const securityHeaders = [
   {
@@ -60,18 +112,6 @@ const securityHeaders = [
     key: "Cross-Origin-Resource-Policy",
     value: "same-site",
   },
-  {
-    key: "Access-Control-Allow-Origin",
-    value: allowedOrigin,
-  },
-  {
-    key: "Access-Control-Allow-Methods",
-    value: "GET,POST,PUT,PATCH,DELETE,OPTIONS",
-  },
-  {
-    key: "Access-Control-Allow-Headers",
-    value: "Authorization, Content-Type, X-Requested-With, X-Garmin-Signature",
-  },
 ];
 
 const nextConfig: NextConfig = {
@@ -80,6 +120,7 @@ const nextConfig: NextConfig = {
       source: "/(.*)",
       headers: securityHeaders,
     },
+    ...buildCorsHeaders(),
   ],
 };
 

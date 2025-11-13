@@ -114,6 +114,7 @@ type HomePageProps = {
 
 export default async function Home(props: HomePageProps) {
   noStore();
+  void props;
 
   const user = await stackServerApp.getUser({ or: "return-null", tokenStore: "nextjs-cookie" });
   let firstName = extractFirstName(user);
