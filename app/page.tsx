@@ -112,7 +112,7 @@ type HomePageProps = {
   searchParams?: Record<string, string | string[] | undefined>;
 };
 
-export default async function Home(_props: HomePageProps) {
+export default async function Home(props: HomePageProps) {
   noStore();
 
   const user = await stackServerApp.getUser({ or: "return-null", tokenStore: "nextjs-cookie" });

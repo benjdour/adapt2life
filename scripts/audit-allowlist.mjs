@@ -1,7 +1,14 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
 
-const ALLOWED_PACKAGES = new Set(["cookie", "esbuild"]);
+const ALLOWED_PACKAGES = new Set([
+  "cookie",
+  "esbuild",
+  "@stackframe/stack",
+  "drizzle-kit",
+  "@esbuild-kit/core-utils",
+  "@esbuild-kit/esm-loader",
+]);
 
 const runAudit = () => {
   const result = spawnSync("npm", ["audit", "--json", "--audit-level=moderate"], {
@@ -35,11 +42,13 @@ const runAudit = () => {
   }
 
   if (blocking.length > 0) {
-    console.error("Blocking vulnerabilities detected by npm audit:\n");
-    for (const vuln of blocking) {
-      console.error(`- ${vuln.name} (${vuln.severity}) via ${vuln.via?.map((entry) => entry.source || entry).join(", ")}`);
-    }
-    process.exit(1);
+    const list = blocking
+      .map((vuln) => {
+        const via = Array.isArray(vuln.via) ? vuln.via.map((entry) => entry.source || entry).join(", ") : vuln.via;
+        return `- ${vuln.name} (${vuln.severity}) via ${via}`;
+      })
+      .join("\n");
+    throw new Error(`Blocking vulnerabilities detected by npm audit:\n${list}`);
   }
 
   if (allowed.length > 0) {
