@@ -1,6 +1,5 @@
 import { Metadata } from "next";
 import { revalidatePath, unstable_noStore as noStore } from "next/cache";
-import Link from "next/link";
 import { and, desc, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 

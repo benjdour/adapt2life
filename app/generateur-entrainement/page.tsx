@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 
 import { TrainingGeneratorsSection } from "@/components/TrainingGeneratorsSection";
 import { stackServerApp } from "@/stack/server";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const metadata: Metadata = {
   title: "Adapt2Life — Générateur d’entraînement",

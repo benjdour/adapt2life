@@ -78,17 +78,6 @@ const extractFirstName = (user: unknown, fallback?: string | null): string | nul
   return null;
 };
 
-type HomePageProps = {
-  searchParams?: Record<string, string | string[] | undefined>;
-};
-
-const readParam = (value: string | string[] | undefined): string | null => {
-  if (Array.isArray(value)) {
-    return value[0] ?? null;
-  }
-  return value ?? null;
-};
-
 const describeEnergyScore = (score: number) => {
   if (score >= 80) {
     return "Niveau optimal, prêt à performer ⚡";
@@ -119,7 +108,11 @@ const hasPositiveNumber = (value: number | string | null | undefined) => {
   return false;
 };
 
-export default async function Home({ searchParams }: HomePageProps) {
+type HomePageProps = {
+  searchParams?: Record<string, string | string[] | undefined>;
+};
+
+export default async function Home(_props: HomePageProps) {
   noStore();
 
   const user = await stackServerApp.getUser({ or: "return-null", tokenStore: "nextjs-cookie" });
@@ -172,8 +165,6 @@ export default async function Home({ searchParams }: HomePageProps) {
         ) ?? normalizeFirstName(profile.firstName ?? profile.name ?? profile.pseudo);
     }
   }
-
-  const authState = readParam(searchParams?.auth);
 
   const isProfileComplete = Boolean(
     localUser &&
@@ -281,46 +272,55 @@ export default async function Home({ searchParams }: HomePageProps) {
         ) : null}
 
         <section className="space-y-6">
-         {canDisplayEnergyData ? (
-           <Card className="border-white/10 bg-card/80">
-             <CardHeader className="space-y-1">
-               <p className="text-xs uppercase tracking-[0.4em] text-primary/80">Énergie du jour</p>
-               <CardTitle>Energy Score</CardTitle>
+          {canDisplayEnergyData ? (
+            <Card className="border-white/10 bg-card/80">
+              <CardHeader className="space-y-1">
+                <p className="text-xs uppercase tracking-[0.4em] text-primary/80">Énergie du jour</p>
+                <CardTitle>Energy Score</CardTitle>
                 <CardDescription>Analyse issue de ta dernière synchronisation Garmin.</CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col gap-6 md:flex-row md:items-center">
-                <div className="flex justify-center md:flex-none">
-                  <AIScoreGraph
-                    score={heroScore}
-                    label="Energy Score"
-                    trend={heroTrend}
-                    className="border-none bg-transparent p-0 shadow-none"
-                    size={220}
-                    thickness={18}
-                  />
-                </div>
-                <div className="flex-1 space-y-5">
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                      <p className="text-[11px] uppercase tracking-[0.25em] text-muted-foreground">Statut</p>
-                      <p className="mt-2 text-lg font-semibold text-foreground">{energyInsight ?? ""}</p>
-                    </div>
-                    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                      <p className="text-[11px] uppercase tracking-[0.25em] text-muted-foreground">Tendance</p>
-                      <p className="mt-2 text-lg font-semibold text-foreground">{heroTrend ? TREND_DETAILS[heroTrend].label : ""}</p>
-                      <p className="text-xs text-muted-foreground">{heroTrend ? TREND_DETAILS[heroTrend].tip : ""}</p>
-                    </div>
-                    <div className="sm:col-span-2 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-muted-foreground">
-                      Basé sur&nbsp;: {SCORE_SUMMARY.join(", ")}.
-                    </div>
-                  </div>
-                  <Link
-                    href="/secure/garmin-data"
-                    className="inline-flex items-center text-sm font-semibold text-primary underline-offset-4 hover:underline"
-                  >
-                    Voir les métriques détaillées →
-                  </Link>
-                </div>
+                {(() => {
+                  const score = heroScore as number;
+                  const trend = heroTrend as "up" | "down" | "stable";
+                  const insight = energyInsight as string;
+                  return (
+                    <>
+                      <div className="flex justify-center md:flex-none">
+                        <AIScoreGraph
+                          score={score}
+                          label="Energy Score"
+                          trend={trend}
+                          className="border-none bg-transparent p-0 shadow-none"
+                          size={220}
+                          thickness={18}
+                        />
+                      </div>
+                      <div className="flex-1 space-y-5">
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                            <p className="text-[11px] uppercase tracking-[0.25em] text-muted-foreground">Statut</p>
+                            <p className="mt-2 text-lg font-semibold text-foreground">{insight}</p>
+                          </div>
+                          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                            <p className="text-[11px] uppercase tracking-[0.25em] text-muted-foreground">Tendance</p>
+                            <p className="mt-2 text-lg font-semibold text-foreground">{TREND_DETAILS[trend].label}</p>
+                            <p className="text-xs text-muted-foreground">{TREND_DETAILS[trend].tip}</p>
+                          </div>
+                          <div className="sm:col-span-2 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-muted-foreground">
+                            Basé sur&nbsp;: {SCORE_SUMMARY.join(", ")}.
+                          </div>
+                        </div>
+                        <Link
+                          href="/secure/garmin-data"
+                          className="inline-flex items-center text-sm font-semibold text-primary underline-offset-4 hover:underline"
+                        >
+                          Voir les métriques détaillées →
+                        </Link>
+                      </div>
+                    </>
+                  );
+                })()}
               </CardContent>
             </Card>
           ) : null}

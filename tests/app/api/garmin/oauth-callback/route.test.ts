@@ -13,7 +13,6 @@ const selectConnectionsBuilder = {
   limit: vi.fn(),
 };
 const mockDbSelect = vi.fn();
-const mockDbInsert = vi.fn();
 const mockDbDelete = vi.fn().mockReturnThis();
 const insertBuilder = {
   values: vi.fn().mockReturnThis(),

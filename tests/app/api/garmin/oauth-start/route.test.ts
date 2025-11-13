@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockGetUser = vi.fn();
 const mockDbSelect = vi.fn();
-const mockDbInsert = vi.fn();
 const selectBuilder = {
   from: vi.fn().mockReturnThis(),
   where: vi.fn().mockReturnThis(),
