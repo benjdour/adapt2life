@@ -51,24 +51,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Lint
-        run: npm run lint
-
-      - name: Type check
-        run: npm run typecheck
-
-      - name: Unit tests
-        run: npm run test
-
-      - name: Route handler tests
-        run: npm run test:routes
+      - name: Verify (lint / typecheck / tests / audit)
+        run: npm run verify
 
       - name: Build
         run: npm run build
-
-      - name: Security audit (non-blocking)
-        run: npm run audit || echo "::warning::npm audit reported known issues (cookie via @stackframe/stack, esbuild via drizzle-kit)."
-        continue-on-error: true
 
       - name: Verify migrations (drizzle-kit push)
         run: npm run db:push

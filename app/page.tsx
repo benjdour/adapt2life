@@ -107,13 +107,37 @@ const TREND_DETAILS: Record<"up" | "stable" | "down", { label: string; tip: stri
 
 const SCORE_SUMMARY = ["Sommeil profond", "Variabilité cardiaque", "Charge d’entraînement", "Niveau de stress"] as const;
 
+const hasTextValue = (value: string | null | undefined) => typeof value === "string" && value.trim().length > 0;
+const hasPositiveNumber = (value: number | string | null | undefined) => {
+  if (typeof value === "number") {
+    return Number.isFinite(value) && value > 0;
+  }
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed > 0;
+  }
+  return false;
+};
+
 export default async function Home({ searchParams }: HomePageProps) {
   noStore();
 
   const user = await stackServerApp.getUser({ or: "return-null", tokenStore: "nextjs-cookie" });
   let firstName = extractFirstName(user);
   let localUser:
-    | { id: number; firstName: string | null; name: string | null; pseudo: string | null; gender: string | null }
+    | {
+        id: number;
+        firstName: string | null;
+        lastName: string | null;
+        name: string | null;
+        pseudo: string | null;
+        gender: string | null;
+        birthDate: string | null;
+        sportLevel: number | null;
+        heightCm: number | null;
+        weightKg: string | number | null;
+        trainingGoal: string | null;
+      }
     | undefined;
 
   if (user) {
@@ -124,6 +148,12 @@ export default async function Home({ searchParams }: HomePageProps) {
         name: users.name,
         pseudo: users.pseudo,
         gender: users.gender,
+        lastName: users.lastName,
+        birthDate: users.birthDate,
+        sportLevel: users.sportLevel,
+        heightCm: users.heightCm,
+        weightKg: users.weightKg,
+        trainingGoal: users.trainingGoal,
       })
       .from(users)
       .where(eq(users.stackId, user.id))
@@ -145,15 +175,31 @@ export default async function Home({ searchParams }: HomePageProps) {
 
   const authState = readParam(searchParams?.auth);
 
+  const isProfileComplete = Boolean(
+    localUser &&
+      hasTextValue(localUser.firstName) &&
+      hasTextValue(localUser.lastName) &&
+      hasTextValue(localUser.gender) &&
+      hasTextValue(localUser.birthDate) &&
+      typeof localUser.sportLevel === "number" &&
+      hasPositiveNumber(localUser.heightCm) &&
+      hasPositiveNumber(localUser.weightKg) &&
+      hasTextValue(localUser.trainingGoal),
+  );
+
+  let garminData: Awaited<ReturnType<typeof fetchGarminData>> | null = null;
   let heroScore: number | null = null;
   let heroTrend: "up" | "down" | "stable" | null = null;
   if (user && localUser) {
-    const garminData = await fetchGarminData(localUser.id, { gender: localUser.gender });
+    garminData = await fetchGarminData(localUser.id, { gender: localUser.gender });
     const trainingGaugeData = garminData?.trainingGaugeData ?? mockGarminData();
     heroScore = Math.min(100, Math.max(0, computeTrainingScore(trainingGaugeData)));
     heroTrend = heroScore >= 80 ? "up" : heroScore >= 60 ? "stable" : "down";
   }
-  const energyInsight = heroScore !== null ? describeEnergyScore(heroScore) : null;
+  const hasGarminConnection = Boolean(garminData?.connection);
+  const energyCardLocked = !isProfileComplete || !hasGarminConnection;
+  const energyInsight = !energyCardLocked && heroScore !== null ? describeEnergyScore(heroScore) : null;
+  const canDisplayEnergyData = !energyCardLocked && heroScore !== null && heroTrend !== null && energyInsight !== null;
 
   const quickActions = [
     {
@@ -184,7 +230,7 @@ export default async function Home({ searchParams }: HomePageProps) {
     }
 
     return (
-      <main className="mx-auto flex min-h-screen max-w-5xl flex-col gap-8 px-6 py-12 text-foreground">
+      <main className="mx-auto flex h-full w-full max-w-5xl flex-col gap-8 px-6 py-12 text-foreground">
         <Card>
           <CardHeader>
             <p className="text-xs uppercase tracking-wide text-primary/80">Dashboard</p>
@@ -193,12 +239,53 @@ export default async function Home({ searchParams }: HomePageProps) {
           </CardHeader>
         </Card>
 
+        {(!isProfileComplete || !hasGarminConnection) ? (
+          <Card className="border-white/10 bg-card/80">
+            <CardHeader>
+              <CardTitle>Prochaines étapes</CardTitle>
+              <CardDescription>
+                Ces deux actions sont nécessaires pour personnaliser ton coaching et activer les synchronisations.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <DashboardGrid columns={{ sm: 1, md: 2 }} gap="sm">
+                {!isProfileComplete ? (
+                  <Card className="h-full border border-white/15 bg-white/5">
+                    <CardHeader>
+                      <CardTitle className="text-base">Profil</CardTitle>
+                      <CardDescription>Renseigne ton profil pour que les recommandations soient adaptées.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Button asChild className="w-full justify-center">
+                        <Link href="/secure/user-information">Compléter mon profil</Link>
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ) : null}
+                {!hasGarminConnection ? (
+                  <Card className="h-full border border-white/15 bg-white/5">
+                    <CardHeader>
+                      <CardTitle className="text-base">Intégration Garmin</CardTitle>
+                      <CardDescription>Lie Adapt2Life à ton compte Garmin Connect pour synchroniser tes données.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Button asChild className="w-full justify-center">
+                        <Link href="/integrations/garmin">Connexion à Garmin Connect</Link>
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ) : null}
+              </DashboardGrid>
+            </CardContent>
+          </Card>
+        ) : null}
+
         <section className="space-y-6">
-          {heroScore !== null && heroTrend !== null && energyInsight ? (
-            <Card className="border-white/10 bg-card/80">
-              <CardHeader className="space-y-1">
-                <p className="text-xs uppercase tracking-[0.4em] text-primary/80">Énergie du jour</p>
-                <CardTitle>Energy Score</CardTitle>
+         {canDisplayEnergyData ? (
+           <Card className="border-white/10 bg-card/80">
+             <CardHeader className="space-y-1">
+               <p className="text-xs uppercase tracking-[0.4em] text-primary/80">Énergie du jour</p>
+               <CardTitle>Energy Score</CardTitle>
                 <CardDescription>Analyse issue de ta dernière synchronisation Garmin.</CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col gap-6 md:flex-row md:items-center">
@@ -216,12 +303,12 @@ export default async function Home({ searchParams }: HomePageProps) {
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
                       <p className="text-[11px] uppercase tracking-[0.25em] text-muted-foreground">Statut</p>
-                      <p className="mt-2 text-lg font-semibold text-foreground">{energyInsight}</p>
+                      <p className="mt-2 text-lg font-semibold text-foreground">{energyInsight ?? ""}</p>
                     </div>
                     <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
                       <p className="text-[11px] uppercase tracking-[0.25em] text-muted-foreground">Tendance</p>
-                      <p className="mt-2 text-lg font-semibold text-foreground">{TREND_DETAILS[heroTrend].label}</p>
-                      <p className="text-xs text-muted-foreground">{TREND_DETAILS[heroTrend].tip}</p>
+                      <p className="mt-2 text-lg font-semibold text-foreground">{heroTrend ? TREND_DETAILS[heroTrend].label : ""}</p>
+                      <p className="text-xs text-muted-foreground">{heroTrend ? TREND_DETAILS[heroTrend].tip : ""}</p>
                     </div>
                     <div className="sm:col-span-2 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-muted-foreground">
                       Basé sur&nbsp;: {SCORE_SUMMARY.join(", ")}.
@@ -238,46 +325,50 @@ export default async function Home({ searchParams }: HomePageProps) {
             </Card>
           ) : null}
 
-          <Card className="border-white/10 bg-card/80">
-            <CardHeader>
-              <CardTitle>Actions rapides</CardTitle>
-              <CardDescription>Accède aux sections clés de ton espace Adapt2Life.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <DashboardGrid columns={{ sm: 1, md: 2, lg: 2 }} gap="sm">
-                {quickActions.map((action) => (
-                  <Card key={action.href} className="h-full border border-white/15 bg-white/5">
-                    <CardHeader>
-                      <CardTitle className="text-base">{action.title}</CardTitle>
-                      <CardDescription>{action.description}</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <Button asChild className="w-full justify-center">
-                        <Link href={action.href}>{action.buttonLabel ?? "Ouvrir"}</Link>
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))}
-              </DashboardGrid>
-            </CardContent>
-          </Card>
+          {isProfileComplete && hasGarminConnection ? (
+            <Card className="border-white/10 bg-card/80">
+              <CardHeader>
+                <CardTitle>Actions rapides</CardTitle>
+                <CardDescription>Accède aux sections clés de ton espace Adapt2Life.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <DashboardGrid columns={{ sm: 1, md: 2, lg: 2 }} gap="sm">
+                  {quickActions.map((action) => (
+                    <Card key={action.href} className="h-full border border-white/15 bg-white/5">
+                      <CardHeader>
+                        <CardTitle className="text-base">{action.title}</CardTitle>
+                        <CardDescription>{action.description}</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <Button asChild className="w-full justify-center">
+                          <Link href={action.href}>{action.buttonLabel ?? "Ouvrir"}</Link>
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </DashboardGrid>
+              </CardContent>
+            </Card>
+          ) : null}
         </section>
 
-        <Card className="border-white/10 bg-card/80">
-          <CardHeader>
-            <CardTitle>Dernier plan généré</CardTitle>
-            <CardDescription>Visualise ta dernière séance fournie par le générateur IA.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {latestPlanMarkdown ? (
-              <MarkdownPlan content={latestPlanMarkdown} className="prose prose-invert max-w-none" />
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                Aucune séance générée pour le moment. Lance le générateur IA pour créer ton premier plan.
-              </p>
-            )}
-          </CardContent>
-        </Card>
+        {isProfileComplete && hasGarminConnection ? (
+          <Card className="border-white/10 bg-card/80">
+            <CardHeader>
+              <CardTitle>Dernier plan généré</CardTitle>
+              <CardDescription>Visualise ta dernière séance fournie par le générateur IA.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {latestPlanMarkdown ? (
+                <MarkdownPlan content={latestPlanMarkdown} className="prose prose-invert max-w-none" />
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Aucune séance générée pour le moment. Lance le générateur IA pour créer ton premier plan.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        ) : null}
       </main>
     );
   }

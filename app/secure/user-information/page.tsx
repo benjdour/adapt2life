@@ -410,7 +410,13 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
 
                 <div>
                   <Label htmlFor="birthDate">Date de naissance</Label>
-                  <Input id="birthDate" name="birthDate" type="date" defaultValue={localUser?.birthDate ?? ""} />
+                  <Input
+                    id="birthDate"
+                    name="birthDate"
+                    type="date"
+                    defaultValue={localUser?.birthDate ?? ""}
+                    className="appearance-none text-left"
+                  />
                 </div>
 
                 <div>
