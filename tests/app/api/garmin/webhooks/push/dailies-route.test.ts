@@ -104,4 +104,59 @@ describe("POST /api/garmin/webhooks/push/dailies", () => {
     expect(dailyValuesMock).toHaveBeenCalled();
     expect(onConflictMock).toHaveBeenCalled();
   });
+
+  it("skips entries without a matching Garmin connection", async () => {
+    mockFetchConnection.mockResolvedValue(null);
+
+    const response = await POST(
+      buildRequest({
+        dailies: [
+          {
+            userId: "unknown-user",
+            summaryId: "sum-404",
+            steps: 50,
+          },
+        ],
+      }),
+    );
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload).toEqual({ received: 1, processed: 0 });
+    expect(webhookValuesMock).not.toHaveBeenCalled();
+    expect(dailyValuesMock).not.toHaveBeenCalled();
+  });
+
+  it("reuses cached Garmin connections when multiple summaries target the same user", async () => {
+    mockFetchConnection.mockResolvedValue({ userId: 11 });
+
+    const response = await POST(
+      buildRequest({
+        dailies: [
+          { userId: "garmin-u1", summaryId: "s1", steps: 100 },
+          { userId: "garmin-u1", summaryId: "s2", steps: 200 },
+        ],
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(mockFetchConnection).toHaveBeenCalledTimes(1);
+    expect(webhookValuesMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("returns 400 when the payload cannot be parsed as JSON", async () => {
+    const request = new NextRequest("http://localhost/api/garmin/webhooks/push/dailies", {
+      method: "POST",
+      body: "{ invalid-json",
+      headers: {
+        "content-type": "application/json",
+      },
+    });
+
+    const response = await POST(request);
+    const payload = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(payload).toEqual({ error: "Invalid payload" });
+  });
 });

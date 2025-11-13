@@ -94,4 +94,34 @@ describe("GET /api/garmin/oauth/start", () => {
     expect(response.headers.get("location")).toBe("http://example.com/integrations/garmin?status=success&reason=already_connected");
     expect(response.headers.get("set-cookie")).toBeNull();
   });
+
+  it("creates a local profile when missing before redirecting to Garmin", async () => {
+    mockGetUser.mockResolvedValueOnce({ id: "stack-user-77", displayName: "Ada", primaryEmail: "ada@example.com" });
+    selectBuilder.limit
+      .mockResolvedValueOnce([]) // first lookup
+      .mockResolvedValueOnce([{ id: 55 }]) // lookup after insert
+      .mockResolvedValueOnce([]); // garmin connections
+
+    const response = await GET(new Request("http://localhost/api/garmin/oauth/start"));
+
+    expect(response.status).toBe(307);
+    expect(insertBuilder.values).toHaveBeenCalledWith({
+      stackId: "stack-user-77",
+      name: "Ada",
+      email: "ada@example.com",
+    });
+    expect(insertBuilder.onConflictDoNothing).toHaveBeenCalled();
+    expect(response.headers.get("set-cookie")).toContain("garmin_oauth_state=");
+  });
+
+  it("returns 500 when the user profile cannot be created", async () => {
+    mockGetUser.mockResolvedValueOnce({ id: "stack-user-77" });
+    selectBuilder.limit.mockResolvedValueOnce([]).mockResolvedValueOnce([]);
+
+    const response = await GET(new Request("http://localhost/api/garmin/oauth/start"));
+    const payload = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(payload).toEqual({ error: "Unable to create user profile" });
+  });
 });

@@ -93,4 +93,20 @@ describe("POST /api/garmin/webhooks/push/[summaryType]", () => {
       payload: { userId: "garmin-user", summaryId: "activity-1", calories: 320 },
     });
   });
+
+  it("returns zero processed entries when the Garmin connection is missing", async () => {
+    mockFetchConnection.mockResolvedValueOnce(null);
+
+    const response = await POST(
+      buildRequest("activities", {
+        activities: [{ userId: "ghost", summaryId: "missing" }],
+      }),
+      { params: Promise.resolve({ summaryType: "activities" }) },
+    );
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload).toEqual({ received: 1, processed: 0 });
+    expect(mockInsertValues).not.toHaveBeenCalled();
+  });
 });

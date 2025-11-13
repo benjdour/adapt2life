@@ -21,6 +21,7 @@ const insertBuilder = {
 const mockExchangeCode = vi.fn();
 const mockFetchGarminUserId = vi.fn();
 const mockEncryptSecret = vi.fn((value: string) => `enc-${value}`);
+class MockGarminOAuthError extends Error {}
 
 vi.mock("next/headers", () => ({
   cookies: mockCookies,
@@ -52,7 +53,7 @@ vi.mock("@/db/schema", () => ({
 }));
 
 vi.mock("@/lib/adapters/garmin", () => ({
-  GarminOAuthError: class extends Error {},
+  GarminOAuthError: MockGarminOAuthError,
   exchangeAuthorizationCode: mockExchangeCode,
   fetchGarminUserId: mockFetchGarminUserId,
 }));
@@ -129,5 +130,96 @@ describe("GET /api/garmin/callback", () => {
     const cookieHeader = response.headers.get("set-cookie") ?? "";
     expect(cookieHeader).toContain("garmin_oauth_state=");
     expect(cookieHeader).toContain("Max-Age=0");
+  });
+
+  it("rejects callbacks when the state does not match the stored cookie", async () => {
+    const cookiePayload = {
+      state: "expected",
+      codeVerifier: "code",
+      userId: 1,
+      stackUserId: "stack-user",
+    };
+    mockCookies.mockResolvedValue({
+      get: vi.fn().mockReturnValue({ value: buildCookieValue(cookiePayload) }),
+    });
+
+    const response = await GET(new Request("https://app.example.com/api/garmin/callback?code=abc&state=other"));
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toContain("invalid_state");
+  });
+
+  it("rejects callbacks when the Stack session does not match the stored user", async () => {
+    const cookiePayload = {
+      state: "state-123",
+      codeVerifier: "code",
+      userId: 1,
+      stackUserId: "expected-stack",
+    };
+    mockCookies.mockResolvedValue({
+      get: vi.fn().mockReturnValue({ value: buildCookieValue(cookiePayload) }),
+    });
+    mockGetUser.mockResolvedValue({ id: "other-stack" });
+
+    const response = await GET(new Request("https://app.example.com/api/garmin/callback?code=abc&state=state-123"));
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toContain("unauthorized");
+    expect(selectBuilder.limit).not.toHaveBeenCalled();
+  });
+
+  it("reassigns Garmin accounts already linked to another user", async () => {
+    const cookiePayload = {
+      state: "state-123",
+      codeVerifier: "verifier",
+      userId: 42,
+      stackUserId: "stack-user",
+    };
+
+    mockCookies.mockResolvedValue({
+      get: vi.fn().mockReturnValue({ value: buildCookieValue(cookiePayload) }),
+    });
+    mockGetUser.mockResolvedValue({ id: "stack-user" });
+    selectBuilder.limit.mockResolvedValueOnce([{ id: 42, stackId: "stack-user" }]);
+    selectConnectionsBuilder.limit.mockResolvedValueOnce([{ userId: 99 }]);
+    mockExchangeCode.mockResolvedValue({
+      accessToken: "token",
+      refreshToken: "refresh",
+      tokenType: "Bearer",
+      scope: "scope",
+      accessTokenExpiresAt: new Date("2024-01-01T00:00:00Z"),
+    });
+    mockFetchGarminUserId.mockResolvedValue("garmin-user-1");
+
+    const response = await GET(
+      new Request("https://app.example.com/api/garmin/callback?code=abc&state=state-123"),
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toContain("reason=reassigned");
+    expect(mockDbDelete).toHaveBeenCalled();
+  });
+
+  it("surfaces Garmin OAuth failures with an error redirect", async () => {
+    const cookiePayload = {
+      state: "state-123",
+      codeVerifier: "verifier",
+      userId: 42,
+      stackUserId: "stack-user",
+    };
+
+    mockCookies.mockResolvedValue({
+      get: vi.fn().mockReturnValue({ value: buildCookieValue(cookiePayload) }),
+    });
+    mockGetUser.mockResolvedValue({ id: "stack-user" });
+    selectBuilder.limit.mockResolvedValueOnce([{ id: 42, stackId: "stack-user" }]);
+    mockExchangeCode.mockRejectedValueOnce(new MockGarminOAuthError("bad oauth"));
+
+    const response = await GET(
+      new Request("https://app.example.com/api/garmin/callback?code=abc&state=state-123"),
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toContain("oauth_failed");
   });
 });

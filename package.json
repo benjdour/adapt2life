@@ -9,6 +9,7 @@
     "lint": "eslint",
     "test": "vitest",
     "test:routes": "vitest run tests/app",
+    "test:garmin": "vitest run tests/app/api/garmin tests/lib/garmin",
     "typecheck": "tsc --noEmit",
     "audit": "node ./scripts/audit-allowlist.mjs",
     "verify": "npm run lint && npm run typecheck && npm run test && npm run test:routes && npm run audit",
