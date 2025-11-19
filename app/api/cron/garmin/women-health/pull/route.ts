@@ -8,16 +8,23 @@ const CRON_HEADER = "x-cron-secret";
 
 const unauthorizedResponse = () => NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-export async function POST(request: NextRequest) {
+const validateSecret = (request: NextRequest): { logger: ReturnType<typeof createLogger>; valid: boolean } => {
   const logger = createLogger("cron-garmin-women-health", { headers: request.headers });
   const authHeader = request.headers.get("authorization");
-  const bearerSecret = authHeader?.toLowerCase().startsWith("bearer ")
-    ? authHeader.slice(7)
-    : null;
+  const bearerSecret = authHeader?.toLowerCase().startsWith("bearer ") ? authHeader.slice(7) : null;
   const secret = bearerSecret ?? request.headers.get(CRON_HEADER);
 
   if (secret !== env.CRON_SECRET) {
     logger.warn("cron invalid secret", { provided: secret ? "present" : "missing" });
+    return { logger, valid: false };
+  }
+
+  return { logger, valid: true };
+};
+
+const executeCron = async (request: NextRequest) => {
+  const { logger, valid } = validateSecret(request);
+  if (!valid) {
     return unauthorizedResponse();
   }
 
@@ -28,10 +35,14 @@ export async function POST(request: NextRequest) {
     logger.error("cron women health pull failed", { error });
     return NextResponse.json({ error: "Pull failed" }, { status: 500 });
   }
+};
+
+export async function POST(request: NextRequest) {
+  return executeCron(request);
 }
 
-export function GET() {
-  return NextResponse.json({ status: "ok" }, { status: 200 });
+export async function GET(request: NextRequest) {
+  return executeCron(request);
 }
 
 export function HEAD() {
