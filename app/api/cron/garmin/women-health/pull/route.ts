@@ -23,7 +23,7 @@ const validateSecret = (request: NextRequest, logger: ReturnType<typeof createLo
       provided: secret ? "present" : "missing",
       snippet,
     });
-    return { logger, valid: false };
+    return { valid: false };
   }
 
   logger.info("cron secret accepted", { snippet });
