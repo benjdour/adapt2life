@@ -31,6 +31,7 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = 
   const [plan, setPlan] = useState<string | null>(null);
   const [conversionSource, setConversionSource] = useState<string | null>(null);
   const [activeJobId, setActiveJobId] = useState<number | null>(null);
+  const [pendingToastId, setPendingToastId] = useState<string | number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState<string>(TRAINING_LOADING_MESSAGES[0]);
   const [isSending, setIsSending] = useState(false);
@@ -172,7 +173,10 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = 
       }
 
       setActiveJobId(payload.jobId);
-      toast.success(payload.message ?? "Ton entraînement sera disponible dans Garmin Connect d’ici 5 minutes.");
+      const toastId = toast.info(payload.message ?? "Ton entraînement sera disponible dans Garmin Connect d’ici 5 minutes.", {
+        duration: 8000,
+      });
+      setPendingToastId(toastId);
     } catch (error) {
       const descriptor = describeAppError(error, "garmin-trainer/push-failed");
       toast.error(descriptor.title, { description: descriptor.description });
@@ -199,9 +203,17 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = 
 
         if (job.status === "success") {
           setActiveJobId(null);
+          if (pendingToastId) {
+            toast.dismiss(pendingToastId);
+            setPendingToastId(null);
+          }
           toast.success("Entraînement envoyé à Garmin");
         } else if (job.status === "failed") {
           setActiveJobId(null);
+          if (pendingToastId) {
+            toast.dismiss(pendingToastId);
+            setPendingToastId(null);
+          }
           toast.error("L’envoi Garmin a échoué", { description: job.error ?? undefined });
         }
       } catch (error) {
@@ -218,7 +230,7 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = 
       cancelled = true;
       window.clearInterval(intervalId);
     };
-  }, [activeJobId]);
+  }, [activeJobId, pendingToastId]);
 
   return (
     <div className="space-y-6">
