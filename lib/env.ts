@@ -4,7 +4,7 @@ const envSchema = z.object({
   GARMIN_CLIENT_ID: z.string().min(1, "GARMIN_CLIENT_ID is required"),
   GARMIN_CLIENT_SECRET: z.string().min(1, "GARMIN_CLIENT_SECRET is required"),
   GARMIN_REDIRECT_URI: z.string().url("GARMIN_REDIRECT_URI must be a valid URL"),
-  CRON_SECRET: z.string().min(1, "CRON_SECRET is required"),
+  CRON_SECRET: z.string().min(1, "CRON_SECRET is required").default("dev-cron-secret"),
   GARMIN_TOKEN_ENCRYPTION_KEY: z
     .string()
     .min(1, "GARMIN_TOKEN_ENCRYPTION_KEY is required")
