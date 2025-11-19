@@ -24,6 +24,7 @@ const PUBLIC_API_PATTERNS = [
   /^\/api\/contact(?:\/|$)/,
   /^\/api\/garmin\/webhooks(?:\/|$)/,
   /^\/api\/garmin\/callback(?:\/|$)/,
+  /^\/api\/cron\/garmin\/women-health\/pull(?:\/|$)/,
 ];
 
 const FORBIDDEN_REDIRECT = "/?auth=unauthorized";

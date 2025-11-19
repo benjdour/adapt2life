@@ -6,10 +6,12 @@ import { env } from "@/lib/env";
 
 const CRON_HEADER = "x-cron-secret";
 
-const unauthorizedResponse = () => NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+const unauthorizedResponse = (logger?: ReturnType<typeof createLogger>) => {
+  logger?.warn("cron unauthorized response");
+  return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+};
 
-const validateSecret = (request: NextRequest): { logger: ReturnType<typeof createLogger>; valid: boolean } => {
-  const logger = createLogger("cron-garmin-women-health", { headers: request.headers });
+const validateSecret = (request: NextRequest, logger: ReturnType<typeof createLogger>): { valid: boolean } => {
   const authHeader = request.headers.get("authorization");
   const bearerSecret = authHeader?.toLowerCase().startsWith("bearer ") ? authHeader.slice(7) : null;
   const urlSecret = request.nextUrl?.searchParams?.get("secret") ?? null;
@@ -25,13 +27,14 @@ const validateSecret = (request: NextRequest): { logger: ReturnType<typeof creat
   }
 
   logger.info("cron secret accepted", { snippet });
-  return { logger, valid: true };
+  return { valid: true };
 };
 
 const executeCron = async (request: NextRequest) => {
-  const { logger, valid } = validateSecret(request);
+  const logger = createLogger("cron-garmin-women-health", { headers: request.headers });
+  const { valid } = validateSecret(request, logger);
   if (!valid) {
-    return unauthorizedResponse();
+    return unauthorizedResponse(logger);
   }
 
   try {
@@ -48,6 +51,12 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
+  const logger = createLogger("cron-garmin-women-health", { headers: request.headers });
+  logger.info("cron received GET request", {
+    authorization: request.headers.get("authorization") ? "present" : "missing",
+    cronHeader: request.headers.get(CRON_HEADER) ? "present" : "missing",
+    querySecret: request.nextUrl?.searchParams?.has("secret") ? "present" : "missing",
+  });
   return executeCron(request);
 }
 
