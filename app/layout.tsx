@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { StackProvider, StackTheme } from "@stackframe/stack";
 import { Inter, Orbitron, Poppins } from "next/font/google";
+import { Analytics } from "@vercel/analytics/react";
 
 import { stackClientApp } from "@/stack/client";
 import { stackServerApp } from "@/stack/server";
@@ -65,6 +66,7 @@ export default async function RootLayout({
               <Footer />
             </div>
             <UiToaster />
+            <Analytics />
           </StackTheme>
         </StackProvider>
       </body>
