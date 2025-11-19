@@ -3,7 +3,8 @@
   "crons": [
     {
       "path": "/api/cron/garmin/women-health/pull",
-      "schedule": "0 */12 * * *"
+      "schedule": "0 */12 * * *",
+      "method": "POST"
     }
   ]
 }
