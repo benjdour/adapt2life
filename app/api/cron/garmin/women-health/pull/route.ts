@@ -12,7 +12,8 @@ const validateSecret = (request: NextRequest): { logger: ReturnType<typeof creat
   const logger = createLogger("cron-garmin-women-health", { headers: request.headers });
   const authHeader = request.headers.get("authorization");
   const bearerSecret = authHeader?.toLowerCase().startsWith("bearer ") ? authHeader.slice(7) : null;
-  const secret = bearerSecret ?? request.headers.get(CRON_HEADER);
+  const urlSecret = request.nextUrl?.searchParams?.get("secret") ?? null;
+  const secret = bearerSecret ?? request.headers.get(CRON_HEADER) ?? urlSecret;
 
   if (secret !== env.CRON_SECRET) {
     logger.warn("cron invalid secret", { provided: secret ? "present" : "missing" });
