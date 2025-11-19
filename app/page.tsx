@@ -210,15 +210,23 @@ export default async function Home(props: HomePageProps) {
 
   if (user) {
     let latestPlanMarkdown: string | null = null;
+    let latestPlanGeneratedAtLabel: string | null = null;
     if (localUser) {
       const [latestPlan] = await db
         .select({
           trainingPlanMarkdown: userGeneratedArtifacts.trainingPlanMarkdown,
+          updatedAt: userGeneratedArtifacts.updatedAt,
         })
         .from(userGeneratedArtifacts)
         .where(eq(userGeneratedArtifacts.userId, localUser.id))
         .limit(1);
       latestPlanMarkdown = latestPlan?.trainingPlanMarkdown ?? null;
+      if (latestPlan?.updatedAt) {
+        latestPlanGeneratedAtLabel = new Intl.DateTimeFormat("fr-FR", {
+          dateStyle: "medium",
+          timeStyle: "short",
+        }).format(latestPlan.updatedAt);
+      }
     }
 
     return (
@@ -357,7 +365,11 @@ export default async function Home(props: HomePageProps) {
           <Card className="border-white/10 bg-card/80">
             <CardHeader>
               <CardTitle>Dernier plan généré</CardTitle>
-              <CardDescription>Visualise ta dernière séance fournie par le générateur IA.</CardDescription>
+              <CardDescription>
+                {latestPlanGeneratedAtLabel
+                  ? `Dernière génération le ${latestPlanGeneratedAtLabel}.`
+                  : "Visualise ta dernière séance fournie par le générateur IA."}
+              </CardDescription>
             </CardHeader>
             <CardContent>
               {latestPlanMarkdown ? (
