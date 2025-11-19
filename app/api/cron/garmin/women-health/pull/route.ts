@@ -10,7 +10,11 @@ const unauthorizedResponse = () => NextResponse.json({ error: "Unauthorized" }, 
 
 export async function POST(request: NextRequest) {
   const logger = createLogger("cron-garmin-women-health", { headers: request.headers });
-  const secret = request.headers.get(CRON_HEADER);
+  const authHeader = request.headers.get("authorization");
+  const bearerSecret = authHeader?.toLowerCase().startsWith("bearer ")
+    ? authHeader.slice(7)
+    : null;
+  const secret = bearerSecret ?? request.headers.get(CRON_HEADER);
 
   if (secret !== env.CRON_SECRET) {
     logger.warn("cron invalid secret", { provided: secret ? "present" : "missing" });
