@@ -4,6 +4,7 @@ const envSchema = z.object({
   GARMIN_CLIENT_ID: z.string().min(1, "GARMIN_CLIENT_ID is required"),
   GARMIN_CLIENT_SECRET: z.string().min(1, "GARMIN_CLIENT_SECRET is required"),
   GARMIN_REDIRECT_URI: z.string().url("GARMIN_REDIRECT_URI must be a valid URL"),
+  CRON_SECRET: z.string().min(1, "CRON_SECRET is required"),
   GARMIN_TOKEN_ENCRYPTION_KEY: z
     .string()
     .min(1, "GARMIN_TOKEN_ENCRYPTION_KEY is required")
@@ -24,6 +25,7 @@ const rawEnv = {
   GARMIN_CLIENT_ID: process.env.GARMIN_CLIENT_ID,
   GARMIN_CLIENT_SECRET: process.env.GARMIN_CLIENT_SECRET,
   GARMIN_REDIRECT_URI: process.env.GARMIN_REDIRECT_URI,
+  CRON_SECRET: process.env.CRON_SECRET,
   GARMIN_TOKEN_ENCRYPTION_KEY: process.env.GARMIN_TOKEN_ENCRYPTION_KEY,
   APP_URL: process.env.APP_URL,
 };

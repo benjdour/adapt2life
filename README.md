@@ -65,6 +65,9 @@ GARMIN_TOKEN_ENCRYPTION_KEY=base64-encoded-32-byte-key
 # Webhooks Garmin
 GARMIN_WEBHOOK_SECRET=super-secret
 
+# Cron interne
+CRON_SECRET=cron-secret-value
+
 # Garmin Trainer / OpenRouter
 OPENROUTER_API_KEY=sk-or-...
 OPENROUTER_BASE_URL=https://openrouter.ai/api/v1   # optionnel
@@ -76,6 +79,8 @@ GARMIN_TRAINER_PROMPT="..."                      # peut aussi provenir de docs/g
 # Debug front & outils
 DEBUG_GENERATOR_USER_IDS=user-id-1,user-id-2
 ```
+
+`CRON_SECRET` alimente l’en-tête `x-cron-secret` attendu par `/api/cron/garmin/women-health/pull` (par exemple depuis un job Vercel Cron toutes les 12 h).
 
 > Pour générer une clé de chiffrement : `openssl rand -base64 32`
 >

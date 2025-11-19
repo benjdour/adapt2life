@@ -89,6 +89,24 @@ export const garminWebhookEvents = pgTable(
   }),
 );
 
+export const garminPullCursors = pgTable(
+  "garmin_pull_cursors",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    garminUserId: text("garmin_user_id").notNull(),
+    type: text("type").notNull(),
+    lastUploadEndTime: timestamp("last_upload_end_time", { withTimezone: true }),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow().$onUpdate(() => new Date()),
+  },
+  (table) => ({
+    userTypeUnique: uniqueIndex("garmin_pull_cursors_user_type_unique").on(table.userId, table.type),
+  }),
+);
+
 export const userGeneratedArtifacts = pgTable(
   "user_generated_artifacts",
   {

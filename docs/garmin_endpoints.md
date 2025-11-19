@@ -28,3 +28,6 @@
 
 ## Women Health
 - **Menstrual Cycle Tracking:** `https://adapt2life-dev.vercel.app/api/garmin/webhooks/push/womenHealth`
+
+## Scheduled Pulls
+- **Women Health Pull (Cron, header `x-cron-secret`):** `https://adapt2life-dev.vercel.app/api/cron/garmin/women-health/pull`
