@@ -10,7 +10,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { AppError, describeAppError, getErrorDescriptor } from "@/lib/errors";
-import type { GarminTrainerWorkout } from "@/schemas/garminTrainer.schema";
 
 export type GeneratedPlanPayload = {
   plan: string;
@@ -31,6 +30,7 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = 
   const [prompt, setPrompt] = useState("");
   const [plan, setPlan] = useState<string | null>(null);
   const [conversionSource, setConversionSource] = useState<string | null>(null);
+  const [activeJobId, setActiveJobId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState<string>(TRAINING_LOADING_MESSAGES[0]);
   const [isSending, setIsSending] = useState(false);
@@ -157,51 +157,22 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = 
     setIsSending(true);
 
     try {
-      const conversionResponse = await fetch("/api/garmin-trainer", {
+      const response = await fetch("/api/garmin-trainer/jobs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ exampleMarkdown: conversionSource }),
+        body: JSON.stringify({ planMarkdown: conversionSource }),
       });
 
-      const conversionPayload = (await conversionResponse.json().catch(() => null)) as
-        | { trainingJson?: GarminTrainerWorkout; raw?: string; error?: string; parseError?: string }
+      const payload = (await response.json().catch(() => null)) as
+        | { jobId?: number; error?: string; message?: string; etaMinutes?: number }
         | null;
 
-      if (!conversionResponse.ok || !conversionPayload?.trainingJson) {
-        const details =
-          conversionPayload?.error ??
-          conversionPayload?.parseError ??
-          "Impossible de convertir automatiquement ce plan.";
-        throw new AppError("garmin-trainer/request-failed", { details });
+      if (!response.ok || !payload?.jobId) {
+        throw new AppError("garmin-trainer/request-failed", { details: payload?.error });
       }
 
-      const pushResponse = await fetch("/api/garmin-trainer/push", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ workout: conversionPayload.trainingJson }),
-      });
-
-      const pushPayload = (await pushResponse.json().catch(() => null)) as
-        | { error?: string; workoutId?: string | number | null; scheduledFor?: string | null }
-        | null;
-
-      if (!pushResponse.ok) {
-        const code = pushResponse.status === 409 ? "garmin-trainer/push-unavailable" : "garmin-trainer/push-failed";
-        throw new AppError(code, { details: pushPayload?.error });
-      }
-
-      const details: string[] = [];
-      if (pushPayload?.workoutId) {
-        details.push(`ID Garmin ${pushPayload.workoutId}`);
-      }
-      if (pushPayload?.scheduledFor) {
-        details.push(`Planifié pour le ${pushPayload.scheduledFor}`);
-      }
-
-      toast.success("Entraînement envoyé à Garmin", {
-        description: details.join(" • ") || undefined,
-      });
+      setActiveJobId(payload.jobId);
+      toast.success(payload.message ?? "Ton entraînement sera disponible dans Garmin Connect d’ici 5 minutes.");
     } catch (error) {
       const descriptor = describeAppError(error, "garmin-trainer/push-failed");
       toast.error(descriptor.title, { description: descriptor.description });
@@ -209,6 +180,45 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = 
       setIsSending(false);
     }
   };
+
+  useEffect(() => {
+    if (!activeJobId) {
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    const poll = async () => {
+      try {
+        const response = await fetch(`/api/garmin-trainer/jobs/${activeJobId}`);
+        if (!response.ok) {
+          throw new Error("Statut de job indisponible");
+        }
+        const job = (await response.json()) as { status: string; error?: string };
+        if (cancelled) return;
+
+        if (job.status === "success") {
+          setActiveJobId(null);
+          toast.success("Entraînement envoyé à Garmin");
+        } else if (job.status === "failed") {
+          setActiveJobId(null);
+          toast.error("L’envoi Garmin a échoué", { description: job.error ?? undefined });
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error("unable to poll garmin trainer job", error);
+        }
+      }
+    };
+
+    poll();
+    const intervalId = window.setInterval(poll, 5000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [activeJobId]);
 
   return (
     <div className="space-y-6">

@@ -121,3 +121,24 @@ export const userGeneratedArtifacts = pgTable(
     pk: primaryKey({ columns: [table.userId], name: "user_generated_artifacts_pk" }),
   }),
 );
+
+export const garminTrainerJobs = pgTable(
+  "garmin_trainer_jobs",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    planMarkdown: text("plan_markdown").notNull(),
+    status: text("status").notNull().default("pending"),
+    resultJson: jsonb("result_json"),
+    error: text("error"),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow().$onUpdate(() => new Date()),
+    processedAt: timestamp("processed_at"),
+  },
+  (table) => ({
+    statusIndex: index("garmin_trainer_jobs_status_idx").on(table.status),
+    userIndex: index("garmin_trainer_jobs_user_idx").on(table.userId),
+  }),
+);

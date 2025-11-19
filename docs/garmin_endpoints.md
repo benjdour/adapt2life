@@ -31,3 +31,4 @@
 
 ## Scheduled Pulls
 - **Women Health Pull (Cron, header `x-cron-secret`):** `https://adapt2life.app/api/cron/garmin/women-health/pull`
+- **Garmin Trainer Jobs (Cron, header `x-cron-secret`):** `https://adapt2life.app/api/cron/garmin-trainer/jobs`
