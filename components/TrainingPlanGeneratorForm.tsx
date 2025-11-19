@@ -247,7 +247,6 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = 
         <Card className="text-sm leading-relaxed text-white">
           <CardHeader>
             <CardTitle>Plan d’entraînement personnalisé</CardTitle>
-            <CardDescription className="text-white/70">Garde ce rendu en référence ou convertis-le en JSON Garmin.</CardDescription>
           </CardHeader>
           <CardContent className={enableInlineSend ? "space-y-6" : undefined}>
             <MarkdownPlan content={plan} className="text-sm leading-relaxed" />
