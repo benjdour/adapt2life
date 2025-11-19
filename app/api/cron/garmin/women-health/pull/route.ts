@@ -14,12 +14,17 @@ const validateSecret = (request: NextRequest): { logger: ReturnType<typeof creat
   const bearerSecret = authHeader?.toLowerCase().startsWith("bearer ") ? authHeader.slice(7) : null;
   const urlSecret = request.nextUrl?.searchParams?.get("secret") ?? null;
   const secret = bearerSecret ?? request.headers.get(CRON_HEADER) ?? urlSecret;
+  const snippet = secret ? `${secret.slice(0, 6)}...` : null;
 
   if (secret !== env.CRON_SECRET) {
-    logger.warn("cron invalid secret", { provided: secret ? "present" : "missing" });
+    logger.warn("cron invalid secret", {
+      provided: secret ? "present" : "missing",
+      snippet,
+    });
     return { logger, valid: false };
   }
 
+  logger.info("cron secret accepted", { snippet });
   return { logger, valid: true };
 };
 
