@@ -11,7 +11,7 @@ const WOMEN_HEALTH_TYPE = "womenHealth" as const;
 const GARMIN_WOMEN_HEALTH_URL = "https://apis.garmin.com/wellness-api/rest/mct";
 const DEFAULT_LOOKBACK_SECONDS = 60 * 60 * 24 * 30; // 30 jours
 const DEFAULT_BUFFER_SECONDS = 60 * 60 * 2; // relecture de 2 h pour éviter les trous
-const DEFAULT_CHUNK_SECONDS = 60 * 60 * 24 * 7; // requêtes par tranches de 7 jours max
+const DEFAULT_CHUNK_SECONDS = 60 * 60 * 24; // Garmin limite la fenêtre à 24h
 const MIN_RANGE_SECONDS = 60 * 5; // éviter des appels inutiles (<5 min)
 
 type WomenHealthConnectionRow = GarminConnectionRecord & {
