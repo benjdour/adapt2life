@@ -12,7 +12,7 @@ const createSelectBuilder = () => {
   return builder;
 };
 
-const mockDbSelect = vi.fn((..._args: unknown[]) => createSelectBuilder());
+const mockDbSelect = vi.fn(() => createSelectBuilder());
 const queueSelectResults = (...batches: unknown[][]) => {
   selectResultsQueue.length = 0;
   selectResultsQueue.push(...batches);

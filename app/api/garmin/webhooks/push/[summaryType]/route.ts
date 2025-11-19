@@ -9,8 +9,6 @@ import {
 import { createLogger } from "@/lib/logger";
 import { verifyGarminSignature } from "@/lib/security/garminSignature";
 import {
-  GarminGenericPayload,
-  SUMMARY_KEY_ALIASES,
   extractEntriesForSummary,
   resolveEntityId,
   resolveGarminUserId,

@@ -8,6 +8,7 @@ const ALLOWED_PACKAGES = new Set([
   "drizzle-kit",
   "@esbuild-kit/core-utils",
   "@esbuild-kit/esm-loader",
+  "glob",
 ]);
 
 const runAudit = () => {

@@ -1,5 +1,3 @@
-# Garmin Activity API v1.2.3
-
  
 GARMIN INTERNATIONAL  
 Garmin Developer Program  
@@ -1184,3 +1182,4 @@ backfill processed at 2021 -07-01T07:05:57Z [2021 -04-02T07:05:57Z to
 } 
  
  
+
