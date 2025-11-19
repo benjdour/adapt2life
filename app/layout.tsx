@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { StackProvider, StackTheme } from "@stackframe/stack";
 import { Inter, Orbitron, Poppins } from "next/font/google";
 import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 import { stackClientApp } from "@/stack/client";
 import { stackServerApp } from "@/stack/server";
@@ -67,6 +68,7 @@ export default async function RootLayout({
             </div>
             <UiToaster />
             <Analytics />
+            <SpeedInsights />
           </StackTheme>
         </StackProvider>
       </body>
