@@ -1,17 +1,16 @@
 import { and, eq } from "drizzle-orm";
 
 import { db } from "@/db";
-import { garminConnections, garminPullCursors, garminWebhookEvents, users } from "@/db/schema";
+import { garminConnections, garminPullCursors, users } from "@/db/schema";
 import { Logger } from "@/lib/logger";
-import { extractEntriesForSummary, resolveEntityId, resolveGarminUserId } from "@/lib/garminWebhookIngestion";
 import { ensureGarminAccessToken, GarminConnectionRecord } from "@/lib/services/garmin-connections";
 
 const WOMEN_HEALTH_TYPE = "womenHealth" as const;
-// Garmin expose Menstrual Cycle Tracking (Women Health) via the MCT endpoint on the wellness API host.
-const GARMIN_WOMEN_HEALTH_URL = "https://apis.garmin.com/wellness-api/rest/mct";
+// Garmin expose Menstrual Cycle Tracking backfill via the wellness API host (async delivery via push/ping).
+const GARMIN_WOMEN_HEALTH_BACKFILL_URL = "https://apis.garmin.com/wellness-api/rest/backfill/mct";
 const DEFAULT_LOOKBACK_SECONDS = 60 * 60 * 24 * 30; // 30 jours
 const DEFAULT_BUFFER_SECONDS = 60 * 60 * 2; // relecture de 2 h pour éviter les trous
-const DEFAULT_CHUNK_SECONDS = 60 * 60 * 24; // Garmin limite la fenêtre à 24h
+const DEFAULT_CHUNK_SECONDS = 60 * 60 * 24; // 24h max par doc Women Health
 const MIN_RANGE_SECONDS = 60 * 5; // éviter des appels inutiles (<5 min)
 
 type WomenHealthConnectionRow = GarminConnectionRecord & {
@@ -25,8 +24,8 @@ export type WomenHealthPullStats = {
   eligibleConnections: number;
   triggeredConnections: number;
   successfulConnections: number;
-  requests: number;
-  inserted: number;
+  requestsAccepted: number;
+  requestsRejected: number;
 };
 
 type WomenHealthPullOptions = {
@@ -113,8 +112,8 @@ export const pullWomenHealthData = async (options: WomenHealthPullOptions): Prom
     eligibleConnections: eligibleRows.length,
     triggeredConnections: 0,
     successfulConnections: 0,
-    requests: 0,
-    inserted: 0,
+    requestsAccepted: 0,
+    requestsRejected: 0,
   };
 
   for (const row of eligibleRows) {
@@ -146,19 +145,12 @@ export const pullWomenHealthData = async (options: WomenHealthPullOptions): Prom
       let lastCompletedEnd: number | null = null;
 
       for (const range of plan.ranges) {
-        try {
-          const entries = await fetchWomenHealthRange(accessToken, range.start, range.end, logger);
-          stats.requests += 1;
-          const insertedForRange = await persistWomenHealthEntries(connection, entries, logger);
-          stats.inserted += insertedForRange;
+        const accepted = await requestWomenHealthBackfill(accessToken, range.start, range.end, logger);
+        if (accepted) {
+          stats.requestsAccepted += 1;
           lastCompletedEnd = range.end;
-        } catch (rangeError) {
-          logger.error("garmin women health pull chunk failed", {
-            garminUserId: connection.garminUserId,
-            start: range.start,
-            end: range.end,
-            error: rangeError,
-          });
+        } else {
+          stats.requestsRejected += 1;
           lastCompletedEnd = null;
           break;
         }
@@ -209,15 +201,15 @@ const normalizeGender = (gender: string | null): string | null => {
   return typeof gender === "string" ? gender.trim().toLowerCase() : null;
 };
 
-const fetchWomenHealthRange = async (
+const requestWomenHealthBackfill = async (
   accessToken: string,
   start: number,
   end: number,
   logger: Logger,
-): Promise<ReturnType<typeof extractEntriesForSummary>> => {
-  const url = new URL(GARMIN_WOMEN_HEALTH_URL);
-  url.searchParams.set("uploadStartTimeInSeconds", Math.max(0, Math.floor(start)).toString());
-  url.searchParams.set("uploadEndTimeInSeconds", Math.max(0, Math.floor(end)).toString());
+): Promise<boolean> => {
+  const url = new URL(GARMIN_WOMEN_HEALTH_BACKFILL_URL);
+  url.searchParams.set("summaryStartTimeInSeconds", Math.max(0, Math.floor(start)).toString());
+  url.searchParams.set("summaryEndTimeInSeconds", Math.max(0, Math.floor(end)).toString());
 
   const response = await fetch(url, {
     method: "GET",
@@ -227,88 +219,30 @@ const fetchWomenHealthRange = async (
     },
   });
 
-  if (response.status === 204) {
-    return [];
+  if (response.status === 202) {
+    logger.info("garmin women health backfill accepted", {
+      start,
+      end,
+    });
+    return true;
+  }
+
+  if (response.status === 409) {
+    logger.info("garmin women health backfill duplicate", {
+      start,
+      end,
+    });
+    return true;
   }
 
   const responseText = await response.text();
-
-  if (!response.ok) {
-    throw new Error(`Women Health pull failed (${response.status}): ${responseText || "empty response"}`);
-  }
-
-  if (!responseText) {
-    return [];
-  }
-
-  try {
-    const payload = JSON.parse(responseText) as unknown;
-    return extractEntriesForSummary(payload, WOMEN_HEALTH_TYPE);
-  } catch (error) {
-    logger.warn("garmin women health invalid json", {
-      start,
-      end,
-      error,
-    });
-    return [];
-  }
-};
-
-const persistWomenHealthEntries = async (
-  connection: GarminConnectionRecord,
-  entries: ReturnType<typeof extractEntriesForSummary>,
-  logger: Logger,
-): Promise<number> => {
-  if (entries.length === 0) {
-    return 0;
-  }
-
-  let inserted = 0;
-
-  for (const entry of entries) {
-    const garminUserId = resolveGarminUserId(entry);
-    if (!garminUserId || garminUserId !== connection.garminUserId) {
-      continue;
-    }
-
-    const entityId = resolveEntityId(entry);
-    if (entityId) {
-      const existing = await db
-        .select({ id: garminWebhookEvents.id })
-        .from(garminWebhookEvents)
-        .where(
-          and(
-            eq(garminWebhookEvents.garminUserId, garminUserId),
-            eq(garminWebhookEvents.type, WOMEN_HEALTH_TYPE),
-            eq(garminWebhookEvents.entityId, entityId),
-          ),
-        )
-        .limit(1);
-
-      if (existing.length > 0) {
-        continue;
-      }
-    }
-
-    await db.insert(garminWebhookEvents).values({
-      userId: connection.userId,
-      garminUserId,
-      type: WOMEN_HEALTH_TYPE,
-      entityId: entityId ?? null,
-      payload: entry,
-    });
-
-    inserted += 1;
-  }
-
-  if (inserted > 0) {
-    logger.info("garmin women health entries stored", {
-      garminUserId: connection.garminUserId,
-      inserted,
-    });
-  }
-
-  return inserted;
+  logger.error("garmin women health backfill failed", {
+    start,
+    end,
+    status: response.status,
+    response: responseText,
+  });
+  return false;
 };
 
 const upsertPullCursor = async (userId: number, garminUserId: string, lastUploadEndSeconds: number) => {
