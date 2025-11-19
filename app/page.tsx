@@ -223,8 +223,7 @@ export default async function Home(props: HomePageProps) {
       latestPlanMarkdown = latestPlan?.trainingPlanMarkdown ?? null;
       if (latestPlan?.updatedAt) {
         latestPlanGeneratedAtLabel = new Intl.DateTimeFormat("fr-FR", {
-          dateStyle: "medium",
-          timeStyle: "short",
+          dateStyle: "long",
         }).format(latestPlan.updatedAt);
       }
     }
