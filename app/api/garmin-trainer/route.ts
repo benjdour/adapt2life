@@ -11,6 +11,7 @@ import { requestChatCompletion, AiConfigurationError, AiRequestError } from "@/l
 import { createLogger } from "@/lib/logger";
 import { workoutSchema } from "@/schemas/garminTrainer.schema";
 import { saveGarminWorkoutForUser } from "@/lib/services/userGeneratedArtifacts";
+import { getAiModelCandidates } from "@/lib/services/aiModelConfig";
 import type { GarminExerciseSport } from "@/constants/garminExerciseData";
 import { buildGarminExerciseCatalogSnippet } from "@/lib/garminExercises";
 
@@ -694,7 +695,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const modelId = process.env.GARMIN_TRAINER_MODEL ?? "openai/gpt-5";
+  const modelCandidates = await getAiModelCandidates("garmin-trainer");
   const systemPrompt = process.env.GARMIN_TRAINER_SYSTEM_PROMPT ?? FALLBACK_SYSTEM_PROMPT;
 
   const inferredOrigin =
@@ -716,43 +717,59 @@ export async function POST(request: NextRequest) {
     exerciseCatalogSnippet,
   ].join("\n\n");
 
-  let aiResponse;
-  try {
-    aiResponse = await requestChatCompletion({
-      model: modelId,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      temperature: 0.7,
-      maxOutputTokens: 32_768,
-      metadata: {
-        referer,
-        title: "Adapt2Life Garmin Trainer",
-      },
-    });
-  } catch (error) {
-    if (error instanceof AiConfigurationError) {
-      logger.error("garmin-trainer AI configuration error", { error });
-      return NextResponse.json({ error: error.message }, { status: 500 });
+  let aiResponse: Awaited<ReturnType<typeof requestChatCompletion>> | null = null;
+  let lastAiError: AiRequestError | null = null;
+
+  for (let index = 0; index < modelCandidates.length; index += 1) {
+    const modelId = modelCandidates[index];
+    try {
+      aiResponse = await requestChatCompletion({
+        model: modelId,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        temperature: 0.7,
+        maxOutputTokens: 32_768,
+        metadata: {
+          referer,
+          title: "Adapt2Life Garmin Trainer",
+        },
+      });
+      break;
+    } catch (error) {
+      if (error instanceof AiConfigurationError) {
+        logger.error("garmin-trainer AI configuration error", { error });
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
+      const aiError = error instanceof AiRequestError ? error : new AiRequestError("AI request failed", { cause: error });
+      lastAiError = aiError;
+      if (aiError.status === 429 && index < modelCandidates.length - 1) {
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        continue;
+      }
+      break;
     }
-    const aiError = error instanceof AiRequestError ? error : new AiRequestError("AI request failed", { cause: error });
-    if (aiError.status === 429) {
+  }
+
+  if (!aiResponse) {
+    if (lastAiError?.status === 429) {
       return NextResponse.json(
         {
           error:
             "Le service d’IA est momentanément saturé. Réessaie dans quelques instants ou ajuste la fréquence des requêtes.",
-          details: aiError.body ?? null,
+          details: lastAiError.body ?? null,
         },
         { status: 429 },
       );
     }
+    const statusCode = lastAiError?.status && lastAiError.status !== 0 ? lastAiError.status : 500;
     return NextResponse.json(
       {
         error: "La génération de l’entraînement a échoué via OpenRouter.",
-        details: aiError.body ?? aiError.message ?? null,
+        details: lastAiError?.body ?? lastAiError?.message ?? null,
       },
-      { status: aiError.status && aiError.status !== 0 ? aiError.status : 500 },
+      { status: statusCode },
     );
   }
 

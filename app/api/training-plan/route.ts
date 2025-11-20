@@ -9,6 +9,7 @@ import { requestChatCompletion, AiConfigurationError, AiRequestError } from "@/l
 import { createLogger } from "@/lib/logger";
 import { ADAPT2LIFE_SYSTEM_PROMPT } from "@/lib/prompts/adapt2lifeSystemPrompt";
 import { saveTrainingPlanForUser } from "@/lib/services/userGeneratedArtifacts";
+import { getAiModelCandidates } from "@/lib/services/aiModelConfig";
 
 const MAX_TEXT_LENGTH = 2000;
 
@@ -379,13 +380,7 @@ export async function POST(request: NextRequest) {
       request.headers.get("origin") ??
       request.headers.get("referer") ??
       `${request.headers.get("x-forwarded-proto") ?? "https"}://${request.headers.get("host") ?? "localhost"}`;
-    const appUrl = process.env.APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? inferredOrigin ?? "http://localhost:3000";
-
-const candidateModels = [
-  "openai/gpt-5",
-  "openai/gpt-5-mini",
-  "anthropic/claude-3.5-haiku-20241022",
-];
+const appUrl = process.env.APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? inferredOrigin ?? "http://localhost:3000";
 
 const collectTextSegments = (value: unknown): string[] => {
   if (!value) {
@@ -537,6 +532,8 @@ const cleanTextPlan = (raw: string): string => {
   const result = relevantLines.join("\n\n").trim();
   return result.length > 0 ? result : raw.trim();
 };
+
+    const candidateModels = await getAiModelCandidates("training-plan");
 
     let completionPayload: Awaited<ReturnType<typeof requestChatCompletion>> | null = null;
     let lastAiError: AiRequestError | null = null;

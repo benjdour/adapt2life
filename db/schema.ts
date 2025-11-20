@@ -142,3 +142,10 @@ export const garminTrainerJobs = pgTable(
     userIndex: index("garmin_trainer_jobs_user_idx").on(table.userId),
   }),
 );
+
+export const aiModelConfigs = pgTable("ai_model_configs", {
+  featureId: text("feature_id").primaryKey(),
+  modelId: text("model_id").notNull(),
+  updatedBy: text("updated_by"),
+  updatedAt: timestamp("updated_at").defaultNow().$onUpdate(() => new Date()),
+});

@@ -9,6 +9,7 @@ import { requestChatCompletion } from "@/lib/ai";
 import { GarminTrainerWorkout, workoutSchema } from "@/schemas/garminTrainer.schema";
 import { fetchGarminConnectionByUserId, ensureGarminAccessToken } from "@/lib/services/garmin-connections";
 import { saveGarminWorkoutForUser } from "@/lib/services/userGeneratedArtifacts";
+import { getAiModelCandidates } from "@/lib/services/aiModelConfig";
 import { createLogger } from "@/lib/logger";
 
 type OpenRouterToolCall = {
@@ -377,25 +378,39 @@ const convertPlanMarkdownForUser = async (userId: number, planMarkdown: string) 
   const ownerInstruction = `Utilise strictement "ownerId": "${connection.garminUserId}" (premier champ du JSON) et ne modifie jamais cette valeur.`;
   const userPrompt = [ownerInstruction, buildFinalPrompt(promptTemplate, planMarkdown.trim())].join("\n\n");
 
-  const modelId = process.env.GARMIN_TRAINER_MODEL ?? "openai/gpt-5";
+  const candidateModels = await getAiModelCandidates("garmin-trainer");
   const systemPrompt = process.env.GARMIN_TRAINER_SYSTEM_PROMPT ??
     "Tu es un assistant spécialisé dans la préparation d’entraînements Garmin pour Adapt2Life. Analyse l’exemple fourni et applique fidèlement les instructions du prompt utilisateur.";
 
   const referer = process.env.APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? "https://adapt2life.app";
 
-  const aiResponse = await requestChatCompletion({
-    model: modelId,
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt },
-    ],
-    temperature: 0.7,
-    maxOutputTokens: 32_768,
-    metadata: {
-      referer,
-      title: "Adapt2Life Garmin Trainer",
-    },
-  });
+  let aiResponse: Awaited<ReturnType<typeof requestChatCompletion>> | null = null;
+  let lastError: Error | null = null;
+
+  for (const modelId of candidateModels) {
+    try {
+      aiResponse = await requestChatCompletion({
+        model: modelId,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        temperature: 0.7,
+        maxOutputTokens: 32_768,
+        metadata: {
+          referer,
+          title: "Adapt2Life Garmin Trainer",
+        },
+      });
+      break;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+    }
+  }
+
+  if (!aiResponse) {
+    throw lastError ?? new Error("Impossible d'obtenir une réponse AI pour la conversion Garmin.");
+  }
 
   const completionJson = (aiResponse.data ?? null) as OpenRouterResponse | null;
   if (!completionJson) {
