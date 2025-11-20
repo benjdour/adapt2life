@@ -26,3 +26,19 @@ export const unwrapJsonCodeBlock = (input: string): string => {
 
   return trimmed.slice(firstLineBreak + 1, closingBackticksIndex).trim();
 };
+
+export const parseJsonWithCodeFence = (raw: string): { parsed: unknown; source: string } | null => {
+  const attempts = [raw, unwrapJsonCodeBlock(raw)];
+  for (const candidate of attempts) {
+    if (!candidate || !candidate.trim()) {
+      continue;
+    }
+    try {
+      const parsed = JSON.parse(candidate);
+      return { parsed, source: candidate };
+    } catch {
+      // try next
+    }
+  }
+  return null;
+};

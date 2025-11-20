@@ -12,7 +12,7 @@ import { createLogger } from "@/lib/logger";
 import { workoutSchema } from "@/schemas/garminTrainer.schema";
 import { saveGarminWorkoutForUser } from "@/lib/services/userGeneratedArtifacts";
 import { getAiModelCandidates } from "@/lib/services/aiModelConfig";
-import { unwrapJsonCodeBlock } from "@/lib/utils/jsonCleanup";
+import { parseJsonWithCodeFence } from "@/lib/utils/jsonCleanup";
 import type { GarminExerciseSport } from "@/constants/garminExerciseData";
 import { buildGarminExerciseCatalogSnippet } from "@/lib/garminExercises";
 
@@ -798,13 +798,11 @@ export async function POST(request: NextRequest) {
     rawContent = JSON.stringify(completionJson, null, 2);
   }
 
-  const cleanedContent = unwrapJsonCodeBlock(rawContent);
-
   let parsedJson: unknown | undefined;
-  try {
-    parsedJson = JSON.parse(cleanedContent);
-  } catch {
-    parsedJson = undefined;
+  const parsedResult = parseJsonWithCodeFence(rawContent);
+  if (parsedResult) {
+    parsedJson = parsedResult.parsed;
+    rawContent = parsedResult.source;
   }
 
   if (parsedJson && typeof parsedJson === "object" && !Array.isArray(parsedJson)) {
