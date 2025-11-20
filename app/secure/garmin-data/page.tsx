@@ -45,9 +45,7 @@ export default async function GarminDataPage() {
         <CardHeader>
           <p className="text-xs uppercase tracking-wide text-primary/80">Garmin</p>
           <CardTitle>Données synchronisées</CardTitle>
-          <CardDescription>
-            Visualise les métriques clés envoyées par Garmin Connect : body battery, sommeil, stress, activités et webhooks récents.
-          </CardDescription>
+          <CardDescription>Visualise les métriques clés envoyées par Garmin Connect.</CardDescription>
         </CardHeader>
       </Card>
 
