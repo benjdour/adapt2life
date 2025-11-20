@@ -1,11 +1,11 @@
-import { Tool } from "ai";
+import { tool } from "ai";
 
 import { searchGarminExercises } from "@/lib/services/exerciseLookup";
 import { createLogger } from "@/lib/logger";
 
 const logger = createLogger("exercise-lookup");
 
-export const exerciseLookupTool = new Tool({
+export const exerciseLookupTool = tool({
   name: "exercise_lookup",
   description:
     "Recherche un exercice Garmin exact à partir d'un libellé humain. Entrée attendue: { \"query\": string, \"sport\"?: string }.",
@@ -23,7 +23,7 @@ export const exerciseLookupTool = new Tool({
     },
     required: ["query"],
   },
-  async execute({ query, sport }: { query: string; sport?: string }) {
+  execute: async ({ query, sport }: { query: string; sport?: string }) => {
     const results = searchGarminExercises(query, { sport: sport ?? null, limit: 10 });
     try {
       logger.info("exercise_lookup", {

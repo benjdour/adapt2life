@@ -45,16 +45,10 @@ vi.mock("@/lib/garminExercises", () => ({
   buildGarminExerciseCatalogSnippet: mockBuildExerciseCatalogSnippet,
 }));
 
-class MockTool {
-  config: unknown;
-
-  constructor(config: unknown) {
-    this.config = config;
-  }
-}
+const mockToolFactory = vi.fn((config) => config);
 
 vi.mock("ai", () => ({
-  Tool: MockTool,
+  tool: mockToolFactory,
   generateText: vi.fn(),
 }));
 
