@@ -1,0 +1,5 @@
+User-agent: *
+Disallow: /admin
+Disallow: /generateur-debug
+Allow: /
+Sitemap: https://adapt2life.app/sitemap.xml
