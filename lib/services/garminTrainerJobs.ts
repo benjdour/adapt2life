@@ -628,6 +628,12 @@ export const processGarminTrainerJobById = async (jobId: number) => {
   return true;
 };
 
+export const triggerGarminTrainerJobProcessing = (jobId: number) => {
+  processGarminTrainerJobById(jobId).catch((error) => {
+    logger.error("garmin trainer job processing failed", { jobId, error });
+  });
+};
+
 export const ensureLocalUser = async (
   stackUserId: string,
   stackUserEmail?: string | null,

@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { fetchGarminConnectionByUserId } from "@/lib/services/garmin-connections";
 import { stackServerApp } from "@/stack/server";
-import { createGarminTrainerJob, ensureLocalUser } from "@/lib/services/garminTrainerJobs";
+import { createGarminTrainerJob, ensureLocalUser, triggerGarminTrainerJobProcessing } from "@/lib/services/garminTrainerJobs";
 
 const REQUEST_SCHEMA = z.object({
   planMarkdown: z.string().trim().min(1, "Merci de fournir un plan valide."),
@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
   }
 
   const job = await createGarminTrainerJob(localUser.id, parsed.data.planMarkdown);
+  triggerGarminTrainerJobProcessing(job.id);
 
   return NextResponse.json({
     jobId: job.id,

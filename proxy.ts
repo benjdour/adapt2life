@@ -24,7 +24,6 @@ const PUBLIC_API_PATTERNS = [
   /^\/api\/contact(?:\/|$)/,
   /^\/api\/garmin\/webhooks(?:\/|$)/,
   /^\/api\/garmin\/callback(?:\/|$)/,
-  /^\/api\/cron\/garmin-trainer(?:\/|$)/,
   /^\/api\/cron\/garmin\/women-health\/pull(?:\/|$)/,
 ];
 

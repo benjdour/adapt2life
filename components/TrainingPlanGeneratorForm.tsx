@@ -173,9 +173,12 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = 
       }
 
       setActiveJobId(payload.jobId);
-      const toastId = toast.info(payload.message ?? "Ton entraînement sera disponible dans Garmin Connect d’ici 5 minutes.", {
-        duration: 8000,
-      });
+      const toastId = toast.success(
+        payload.message ?? "Ton entraînement sera disponible dans Garmin Connect d’ici 5 minutes.",
+        {
+          duration: 8000,
+        },
+      );
       setPendingToastId(toastId);
     } catch (error) {
       const descriptor = describeAppError(error, "garmin-trainer/push-failed");
