@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 import type { GarminTrainerWorkout } from "@/schemas/garminTrainer.schema";
 import { describeExerciseForUser, getGarminExerciseLabel, type GarminExerciseLocale } from "@/lib/garminExercises";
+import { GARMIN_EXERCISE_SPORTS, type GarminExerciseSport } from "@/constants/garminExerciseData";
 
 type GarminWorkoutPreviewProps = {
   workout: GarminTrainerWorkout;
@@ -70,6 +71,9 @@ const StepPreview = ({
   locale: GarminExerciseLocale;
 }): ReactNode => {
   const details: string[] = [];
+  const exerciseSport = GARMIN_EXERCISE_SPORTS.has(segmentSport as GarminExerciseSport)
+    ? (segmentSport as GarminExerciseSport)
+    : null;
   const durationLabel = formatDuration(step);
   if (durationLabel) {
     details.push(durationLabel);
@@ -83,7 +87,7 @@ const StepPreview = ({
   if (!isRepeatStep(step)) {
     const exerciseLabel = describeExerciseForUser(
       {
-        sport: segmentSport,
+        sport: exerciseSport,
         category: step.exerciseCategory,
         name: step.exerciseName,
       },
