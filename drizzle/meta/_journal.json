@@ -85,6 +85,13 @@
       "when": 1761851227213,
       "tag": "0010_garmin_trainer_jobs",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1761851227214,
+      "tag": "0011_ai_model_configs",
+      "breakpoints": true
     }
   ]
 }

@@ -2,15 +2,19 @@ import { eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import { aiModelConfigs } from "@/db/schema";
-import { AVAILABLE_AI_MODELS, ensureSupportedModel, type AiModelId } from "@/lib/constants/aiModels";
+import { FALLBACK_AI_MODELS, sanitizeModelId, type AiModelId } from "@/lib/constants/aiModels";
 import { AI_FEATURES, type AiFeatureId } from "@/lib/constants/aiFeatures";
+import { getAvailableAiModels } from "@/lib/services/openRouterModels";
 
 const featureIds = Object.keys(AI_FEATURES) as AiFeatureId[];
 
-const DEFAULT_MODEL_MAP: Record<AiFeatureId, AiModelId> = featureIds.reduce((acc, id) => {
-  acc[id] = AI_FEATURES[id].defaultModel;
-  return acc;
-}, {} as Record<AiFeatureId, AiModelId>);
+const DEFAULT_MODEL_MAP: Record<AiFeatureId, AiModelId> = featureIds.reduce(
+  (acc, id) => {
+    acc[id] = AI_FEATURES[id].defaultModel;
+    return acc;
+  },
+  {} as Record<AiFeatureId, AiModelId>,
+);
 
 export const listAiModelConfigs = async (): Promise<Record<AiFeatureId, AiModelId>> => {
   let rows: { featureId: string; modelId: string }[] = [];
@@ -26,7 +30,8 @@ export const listAiModelConfigs = async (): Promise<Record<AiFeatureId, AiModelI
 
   rows.forEach((row) => {
     if (featureIds.includes(row.featureId as AiFeatureId)) {
-      result[row.featureId as AiFeatureId] = ensureSupportedModel(row.modelId);
+      const feature = row.featureId as AiFeatureId;
+      result[feature] = sanitizeModelId(row.modelId, DEFAULT_MODEL_MAP[feature]);
     }
   });
 
@@ -47,7 +52,14 @@ export const getAiModelCandidates = async (featureId: AiFeatureId): Promise<AiMo
 };
 
 export const saveAiModelForFeature = async (featureId: AiFeatureId, modelId: AiModelId, updatedBy?: string | null) => {
-  ensureSupportedModel(modelId);
+  const normalizedModelId = sanitizeModelId(modelId, DEFAULT_MODEL_MAP[featureId]);
+  const availableModels = await getAvailableAiModels();
+  const allowedIds = new Set(availableModels.map((model) => model.id));
+
+  if (!allowedIds.has(normalizedModelId)) {
+    throw new Error("Modèle IA indisponible ou non supporté sur OpenRouter.");
+  }
+
   try {
     const existing = await db
       .select({ featureId: aiModelConfigs.featureId })
@@ -58,12 +70,12 @@ export const saveAiModelForFeature = async (featureId: AiFeatureId, modelId: AiM
     if (existing.length > 0) {
       await db
         .update(aiModelConfigs)
-        .set({ modelId, updatedBy: updatedBy ?? null, updatedAt: new Date() })
+        .set({ modelId: normalizedModelId, updatedBy: updatedBy ?? null, updatedAt: new Date() })
         .where(eq(aiModelConfigs.featureId, featureId));
     } else {
       await db.insert(aiModelConfigs).values({
         featureId,
-        modelId,
+        modelId: normalizedModelId,
         updatedBy: updatedBy ?? null,
       });
     }
@@ -75,6 +87,7 @@ export const saveAiModelForFeature = async (featureId: AiFeatureId, modelId: AiM
 
 export const buildAiModelAdminSnapshot = async () => {
   const configs = await listAiModelConfigs();
+  const availableModels = await getAvailableAiModels();
   const features = featureIds.map((featureId) => ({
     id: featureId,
     label: AI_FEATURES[featureId].label,
@@ -82,6 +95,6 @@ export const buildAiModelAdminSnapshot = async () => {
   }));
   return {
     features,
-    availableModels: AVAILABLE_AI_MODELS,
+    availableModels: availableModels.length > 0 ? availableModels : [...FALLBACK_AI_MODELS],
   };
 };

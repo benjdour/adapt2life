@@ -5,7 +5,7 @@ import { stackServerApp } from "@/stack/server";
 import { canAccessAdminArea } from "@/lib/accessControl";
 import { buildAiModelAdminSnapshot, saveAiModelForFeature } from "@/lib/services/aiModelConfig";
 import { AI_FEATURE_LIST, type AiFeatureId } from "@/lib/constants/aiFeatures";
-import { AVAILABLE_AI_MODELS, type AiModelId } from "@/lib/constants/aiModels";
+import { getAvailableAiModels } from "@/lib/services/openRouterModels";
 
 const ensureAdmin = async (request: NextRequest) => {
   const user = await stackServerApp.getUser({ or: "return-null", tokenStore: request });
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
 
 const UpdateSchema = z.object({
   featureId: z.enum(AI_FEATURE_LIST.map((feature) => feature.id) as [AiFeatureId, ...AiFeatureId[]]),
-  modelId: z.enum(AVAILABLE_AI_MODELS.map((model) => model.id) as [AiModelId, ...AiModelId[]]),
+  modelId: z.string().min(1),
 });
 
 export async function POST(request: NextRequest) {
@@ -47,6 +47,12 @@ export async function POST(request: NextRequest) {
   if (!parsed.success) {
     const message = parsed.error.issues[0]?.message ?? "Paramètres invalides";
     return NextResponse.json({ error: message }, { status: 400 });
+  }
+
+  const availableModels = await getAvailableAiModels();
+  const allowedIds = new Set(availableModels.map((model) => model.id));
+  if (!allowedIds.has(parsed.data.modelId)) {
+    return NextResponse.json({ error: "Modèle IA indisponible sur OpenRouter." }, { status: 400 });
   }
 
   await saveAiModelForFeature(parsed.data.featureId, parsed.data.modelId, user.id);

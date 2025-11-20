@@ -5,11 +5,7 @@ import { toast } from "sonner";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-
-type AiModel = {
-  id: string;
-  label: string;
-};
+import type { AiModelEntry } from "@/lib/constants/aiModels";
 
 type FeatureState = {
   id: string;
@@ -18,7 +14,7 @@ type FeatureState = {
 };
 
 type AdminAiModelManagerProps = {
-  availableModels: ReadonlyArray<AiModel>;
+  availableModels: ReadonlyArray<AiModelEntry>;
   features: ReadonlyArray<FeatureState>;
 };
 

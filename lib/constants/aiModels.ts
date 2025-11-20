@@ -1,4 +1,11 @@
-export const AVAILABLE_AI_MODELS = [
+export type AiModelEntry = {
+  id: string;
+  label: string;
+};
+
+export type AiModelId = string;
+
+export const FALLBACK_AI_MODELS: ReadonlyArray<AiModelEntry> = [
   { id: "openai/gpt-5", label: "OpenAI GPT-5" },
   { id: "openai/gpt-5-mini", label: "OpenAI GPT-5 Mini" },
   { id: "openai/gpt-4.1", label: "OpenAI GPT-4.1" },
@@ -10,14 +17,9 @@ export const AVAILABLE_AI_MODELS = [
   { id: "google/gemini-1.5-pro", label: "Google Gemini 1.5 Pro" },
   { id: "google/gemini-1.5-flash", label: "Google Gemini 1.5 Flash" },
   { id: "mistralai/mistral-large-2411", label: "Mistral Large 24.11" },
-] as const;
+];
 
-export type AiModelId = (typeof AVAILABLE_AI_MODELS)[number]["id"];
-
-export const ensureSupportedModel = (modelId: string): AiModelId => {
-  const normalized = modelId.trim();
-  if (AVAILABLE_AI_MODELS.some((model) => model.id === normalized)) {
-    return normalized as AiModelId;
-  }
-  throw new Error(`Modèle IA non supporté : ${modelId}`);
+export const sanitizeModelId = (modelId: string | undefined | null, fallback: AiModelId): AiModelId => {
+  const normalized = typeof modelId === "string" ? modelId.trim() : "";
+  return normalized.length > 0 ? normalized : fallback;
 };

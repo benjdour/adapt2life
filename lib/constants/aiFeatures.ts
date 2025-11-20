@@ -1,4 +1,4 @@
-import { ensureSupportedModel, type AiModelId } from "@/lib/constants/aiModels";
+import { sanitizeModelId, type AiModelId } from "@/lib/constants/aiModels";
 
 export type AiFeatureId = "training-plan" | "garmin-trainer";
 
@@ -9,16 +9,8 @@ type AiFeatureConfig = {
   fallbackModels: AiModelId[];
 };
 
-const safeModel = (value: string | undefined, fallback: AiModelId): AiModelId => {
-  try {
-    return ensureSupportedModel(value ?? fallback);
-  } catch {
-    return fallback;
-  }
-};
-
-const TRAINING_PLAN_DEFAULT_MODEL = safeModel(process.env.TRAINING_PLAN_MODEL, "openai/gpt-5");
-const GARMIN_TRAINER_DEFAULT_MODEL = safeModel(process.env.GARMIN_TRAINER_MODEL, "openai/gpt-5");
+const TRAINING_PLAN_DEFAULT_MODEL = sanitizeModelId(process.env.TRAINING_PLAN_MODEL, "openai/gpt-5");
+const GARMIN_TRAINER_DEFAULT_MODEL = sanitizeModelId(process.env.GARMIN_TRAINER_MODEL, "openai/gpt-5");
 
 export const AI_FEATURES: Record<AiFeatureId, AiFeatureConfig> = {
   "training-plan": {
