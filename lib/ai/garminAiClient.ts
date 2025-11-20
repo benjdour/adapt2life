@@ -89,7 +89,7 @@ export const createStrictGarminAiClient = (): GarminAiClient => ({
     const openai = createOpenAI({
       apiKey,
       baseURL: process.env.OPENROUTER_BASE_URL ?? "https://openrouter.ai/api/v1",
-      defaultHeaders: {
+      headers: {
         "HTTP-Referer": referer,
         "X-Title": "Adapt2Life Garmin Trainer",
       },
