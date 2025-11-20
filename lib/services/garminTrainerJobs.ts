@@ -5,35 +5,16 @@ import { and, eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import { garminTrainerJobs, users } from "@/db/schema";
-import { requestChatCompletion } from "@/lib/ai";
 import { GarminTrainerWorkout, workoutSchema } from "@/schemas/garminTrainer.schema";
 import { fetchGarminConnectionByUserId, ensureGarminAccessToken } from "@/lib/services/garmin-connections";
 import { saveGarminWorkoutForUser } from "@/lib/services/userGeneratedArtifacts";
 import { getAiModelCandidates } from "@/lib/services/aiModelConfig";
 import { parseJsonWithCodeFence } from "@/lib/utils/jsonCleanup";
 import { createLogger } from "@/lib/logger";
-
-type OpenRouterToolCall = {
-  type?: string;
-  function?: {
-    name?: string;
-    arguments?: string;
-  };
-};
-
-type OpenRouterChoice = {
-  message?: {
-    content?: unknown;
-    function_call?: {
-      arguments?: string;
-    };
-    tool_calls?: OpenRouterToolCall[];
-  };
-};
-
-type OpenRouterResponse = {
-  choices?: OpenRouterChoice[];
-};
+import { buildGarminExerciseCatalogSnippet } from "@/lib/garminExercises";
+import { shouldUseExerciseTool, EXERCISE_TOOL_FEATURE_ENABLED } from "@/lib/ai/exercisePolicy";
+import { inferExerciseSportsFromMarkdown } from "@/lib/garmin/exerciseInference";
+import { getGarminAiClients, type GarminAiResult } from "@/lib/ai/garminAiClient";
 
 const GARMIN_PROMPT_FILENAME = "docs/garmin_trainer_prompt.txt";
 
@@ -58,82 +39,6 @@ const loadPromptTemplate = async (): Promise<string | null> => {
     cachedPromptTemplate = null;
     return null;
   }
-};
-
-const flattenContent = (value: unknown): string[] => {
-  if (typeof value === "string") {
-    return [value];
-  }
-  if (typeof value === "number" || typeof value === "boolean") {
-    return [String(value)];
-  }
-  if (Array.isArray(value)) {
-    return value.flatMap((item) => flattenContent(item));
-  }
-  if (value && typeof value === "object") {
-    const record = value as Record<string, unknown>;
-    const segments: string[] = [];
-    if (typeof record.text === "string") {
-      segments.push(record.text);
-    }
-    if (typeof record.content === "string") {
-      segments.push(record.content);
-    }
-    if (Array.isArray(record.content)) {
-      segments.push(...flattenContent(record.content));
-    }
-    if (Array.isArray(record.parts)) {
-      segments.push(...flattenContent(record.parts));
-    }
-    if (Array.isArray(record.messages)) {
-      segments.push(...flattenContent(record.messages));
-    }
-    if (typeof record.json === "object" && record.json !== null) {
-      try {
-        const serialized = JSON.stringify(record.json);
-        if (serialized) {
-          segments.push(serialized);
-        }
-      } catch {
-        // ignore serialization issues
-      }
-    }
-    return segments;
-  }
-  return [];
-};
-
-const extractMessageText = (choice: OpenRouterChoice | undefined): string | null => {
-  if (!choice?.message) {
-    return null;
-  }
-
-  const segments: string[] = [];
-
-  const pushContent = (value: unknown) => {
-    const flattened = flattenContent(value)
-      .map((segment) => segment.trim())
-      .filter(Boolean);
-    segments.push(...flattened);
-  };
-
-  pushContent(choice.message.content);
-
-  const functionArgs = choice.message.function_call?.arguments;
-  if (typeof functionArgs === "string" && functionArgs.trim()) {
-    segments.push(functionArgs.trim());
-  }
-
-  if (Array.isArray(choice.message.tool_calls)) {
-    for (const call of choice.message.tool_calls) {
-      const args = call.function?.arguments;
-      if (typeof args === "string" && args.trim()) {
-        segments.push(args.trim());
-      }
-    }
-  }
-
-  return segments.length > 0 ? segments.join("\n\n") : null;
 };
 
 const buildFinalPrompt = (template: string, example: string): string => {
@@ -377,7 +282,10 @@ const convertPlanMarkdownForUser = async (userId: number, planMarkdown: string) 
   }
 
   const ownerInstruction = `Utilise strictement "ownerId": "${connection.garminUserId}" (premier champ du JSON) et ne modifie jamais cette valeur.`;
-  const userPrompt = [ownerInstruction, buildFinalPrompt(promptTemplate, planMarkdown.trim())].join("\n\n");
+  const basePrompt = [ownerInstruction, buildFinalPrompt(promptTemplate, planMarkdown.trim())].join("\n\n");
+  const sportsForPrompt = inferExerciseSportsFromMarkdown(planMarkdown);
+  const useExerciseTool =
+    EXERCISE_TOOL_FEATURE_ENABLED && sportsForPrompt.some((sport) => shouldUseExerciseTool(sport?.toUpperCase?.() ?? ""));
 
   const candidateModels = await getAiModelCandidates("garmin-trainer");
   const systemPrompt = process.env.GARMIN_TRAINER_SYSTEM_PROMPT ??
@@ -385,52 +293,56 @@ const convertPlanMarkdownForUser = async (userId: number, planMarkdown: string) 
 
   const referer = process.env.APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? "https://adapt2life.app";
 
-  let aiResponse: Awaited<ReturnType<typeof requestChatCompletion>> | null = null;
-  let lastError: Error | null = null;
+  const { strict: strictClient, classic: classicClient } = getGarminAiClients();
+  let aiResult: GarminAiResult | null = null;
 
-  for (const modelId of candidateModels) {
-    try {
-      aiResponse = await requestChatCompletion({
-        model: modelId,
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        temperature: 0.7,
-        maxOutputTokens: 32_768,
-        metadata: {
-          referer,
-          title: "Adapt2Life Garmin Trainer",
-        },
+  try {
+    if (useExerciseTool) {
+      aiResult = await strictClient.generate({
+        basePrompt,
+        systemPrompt,
+        modelIds: candidateModels,
+        referer,
       });
-      break;
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error));
+    } else {
+      const catalogMaxChars = Number(process.env.GARMIN_EXERCISE_PROMPT_MAX_CHARS ?? "60000") || 60_000;
+      const exerciseCatalogSnippet = buildGarminExerciseCatalogSnippet({
+        sports: sportsForPrompt,
+        maxChars: catalogMaxChars,
+      });
+      const userPrompt = [basePrompt, exerciseCatalogSnippet].join("\n\n");
+
+      aiResult = await classicClient.generate({
+        basePrompt: userPrompt,
+        systemPrompt,
+        modelIds: candidateModels,
+        referer,
+      });
     }
+  } catch (error) {
+    throw error instanceof Error ? error : new Error(String(error));
   }
 
-  if (!aiResponse) {
-    throw lastError ?? new Error("Impossible d'obtenir une réponse AI pour la conversion Garmin.");
+  if (!aiResult) {
+    throw new Error("Réponse IA vide.");
   }
 
-  const completionJson = (aiResponse.data ?? null) as OpenRouterResponse | null;
-  if (!completionJson) {
-    throw new Error("La conversion AI n’a pas renvoyé de JSON exploitable.");
-  }
-
-  const messageText = extractMessageText(completionJson.choices?.[0]);
-  let rawContent = messageText && messageText.trim() ? messageText.trim() : JSON.stringify(completionJson, null, 2);
-
-  const parsedResult = parseJsonWithCodeFence(rawContent);
+  const parsedResult = parseJsonWithCodeFence(aiResult.rawText);
   if (!parsedResult) {
     throw new Error("JSON invalide renvoyé par l’IA : impossible de parser la réponse.");
   }
 
-  rawContent = parsedResult.source;
   const parsedJson = parsedResult.parsed;
 
   if (!parsedJson || typeof parsedJson !== "object" || Array.isArray(parsedJson)) {
     throw new Error("Le JSON renvoyé par l’IA ne correspond pas à un objet valide.");
+  }
+
+  if (useExerciseTool && (!("segments" in parsedJson) || !Array.isArray((parsedJson as Record<string, unknown>).segments))) {
+    const toolError = typeof (parsedJson as Record<string, unknown>).error === "string"
+      ? (parsedJson as Record<string, unknown>).error
+      : "Aucun exercice valide trouvé dans le catalogue Garmin.";
+    throw new Error(toolError);
   }
 
   const sanitized = sanitizeWorkoutValue(parsedJson) as Record<string, unknown>;
@@ -682,4 +594,8 @@ export const ensureLocalUser = async (
   }
 
   return inserted;
+};
+
+export const __garminTrainerJobsTesting = {
+  convertPlanMarkdownForUser,
 };

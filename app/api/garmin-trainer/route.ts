@@ -7,14 +7,18 @@ import { z } from "zod";
 import { db } from "@/db";
 import { garminConnections, users } from "@/db/schema";
 import { stackServerApp } from "@/stack/server";
-import { requestChatCompletion, AiConfigurationError, AiRequestError } from "@/lib/ai";
+import { AiRequestError } from "@/lib/ai";
 import { createLogger } from "@/lib/logger";
 import { workoutSchema } from "@/schemas/garminTrainer.schema";
 import { saveGarminWorkoutForUser } from "@/lib/services/userGeneratedArtifacts";
 import { getAiModelCandidates } from "@/lib/services/aiModelConfig";
+import { shouldUseExerciseTool, EXERCISE_TOOL_FEATURE_ENABLED } from "@/lib/ai/exercisePolicy";
 import { parseJsonWithCodeFence } from "@/lib/utils/jsonCleanup";
 import type { GarminExerciseSport } from "@/constants/garminExerciseData";
 import { buildGarminExerciseCatalogSnippet } from "@/lib/garminExercises";
+import { inferExerciseSportsFromMarkdown } from "@/lib/garmin/exerciseInference";
+import { getGarminAiClients, type GarminAiResult } from "@/lib/ai/garminAiClient";
+import { extractMessageText, type OpenRouterChoice, type OpenRouterResponse } from "@/lib/ai/openRouterResponse";
 
 const REQUEST_SCHEMA = z.object({
   exampleMarkdown: z
@@ -27,104 +31,6 @@ const REQUEST_SCHEMA = z.object({
 const FALLBACK_SYSTEM_PROMPT =
   "Tu es un assistant spécialisé dans la préparation d’entraînements Garmin pour Adapt2Life. " +
   "Analyse l’exemple fourni et applique fidèlement les instructions du prompt utilisateur.";
-
-type OpenRouterToolCall = {
-  type?: string;
-  function?: {
-    name?: string;
-    arguments?: string;
-  };
-};
-
-type OpenRouterChoice = {
-  message?: {
-    content?: unknown;
-    function_call?: {
-      arguments?: string;
-    };
-    tool_calls?: OpenRouterToolCall[];
-  };
-};
-
-type OpenRouterResponse = {
-  choices?: OpenRouterChoice[];
-};
-
-const flattenContent = (value: unknown): string[] => {
-  if (typeof value === "string") {
-    return [value];
-  }
-  if (typeof value === "number" || typeof value === "boolean") {
-    return [String(value)];
-  }
-  if (Array.isArray(value)) {
-    return value.flatMap((item) => flattenContent(item));
-  }
-  if (value && typeof value === "object") {
-    const record = value as Record<string, unknown>;
-    const segments: string[] = [];
-    if (typeof record.text === "string") {
-      segments.push(record.text);
-    }
-    if (typeof record.content === "string") {
-      segments.push(record.content);
-    }
-    if (Array.isArray(record.content)) {
-      segments.push(...flattenContent(record.content));
-    }
-    if (Array.isArray(record.parts)) {
-      segments.push(...flattenContent(record.parts));
-    }
-    if (Array.isArray(record.messages)) {
-      segments.push(...flattenContent(record.messages));
-    }
-    if (typeof record.json === "object" && record.json !== null) {
-      try {
-        const serialized = JSON.stringify(record.json);
-        if (serialized) {
-          segments.push(serialized);
-        }
-      } catch {
-        // ignore serialization issues
-      }
-    }
-    return segments;
-  }
-  return [];
-};
-
-const extractMessageText = (choice: OpenRouterChoice | undefined): string | null => {
-  if (!choice?.message) {
-    return null;
-  }
-
-  const segments: string[] = [];
-
-  const pushContent = (value: unknown) => {
-    const flattened = flattenContent(value)
-      .map((segment) => segment.trim())
-      .filter(Boolean);
-    segments.push(...flattened);
-  };
-
-  pushContent(choice.message.content);
-
-  const functionArgs = choice.message.function_call?.arguments;
-  if (typeof functionArgs === "string" && functionArgs.trim()) {
-    segments.push(functionArgs.trim());
-  }
-
-  if (Array.isArray(choice.message.tool_calls)) {
-    for (const call of choice.message.tool_calls) {
-      const args = call.function?.arguments;
-      if (typeof args === "string" && args.trim()) {
-        segments.push(args.trim());
-      }
-    }
-  }
-
-  return segments.length > 0 ? segments.join("\n\n") : null;
-};
 
 const buildFinalPrompt = (template: string, example: string): string => {
   let prompt = template;
@@ -156,47 +62,6 @@ const toPositiveInt = (value: string | undefined, fallback: number): number => {
   return fallback;
 };
 
-const FALLBACK_EXERCISE_SPORTS: GarminExerciseSport[] = ["STRENGTH_TRAINING", "CARDIO_TRAINING", "YOGA", "PILATES"];
-
-const EXERCISE_SPORT_HINTS: Record<GarminExerciseSport, RegExp[]> = {
-  STRENGTH_TRAINING: [
-    /muscu/i,
-    /musculation/i,
-    /force/i,
-    /full\s*body/i,
-    /halt[eè]re/i,
-    /renfo/i,
-    /crossfit/i,
-    /wod/i,
-    /hiit/i,
-    /💪/u,
-    /🏋/u,
-  ],
-  CARDIO_TRAINING: [
-    /hiit/i,
-    /cardio/i,
-    /metcon/i,
-    /circuit/i,
-    /interval/i,
-    /tabata/i,
-    /🔥/u,
-  ],
-  YOGA: [/yoga/i, /🧘/u, /flow/i],
-  PILATES: [/pilates/i],
-};
-
-const inferExerciseSportsFromMarkdown = (markdown: string): GarminExerciseSport[] => {
-  const normalized = markdown?.toString()?.toLowerCase() ?? "";
-  const matches = new Set<GarminExerciseSport>();
-
-  (Object.entries(EXERCISE_SPORT_HINTS) as [GarminExerciseSport, RegExp[]][]).forEach(([sport, patterns]) => {
-    if (patterns.some((pattern) => pattern.test(normalized))) {
-      matches.add(sport);
-    }
-  });
-
-  return matches.size > 0 ? Array.from(matches) : FALLBACK_EXERCISE_SPORTS;
-};
 
 let cachedPromptTemplate: string | null | undefined;
 
@@ -706,96 +571,72 @@ export async function POST(request: NextRequest) {
   const referer = process.env.APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? inferredOrigin ?? "http://localhost:3000";
 
   const sportsForPrompt = inferExerciseSportsFromMarkdown(normalizedExample);
-  const catalogMaxChars = toPositiveInt(process.env.GARMIN_EXERCISE_PROMPT_MAX_CHARS, 60_000);
-  const exerciseCatalogSnippet = buildGarminExerciseCatalogSnippet({
-    sports: sportsForPrompt,
-    maxChars: catalogMaxChars,
-  });
+  const defaultPrompt = [ownerContext.ownerInstruction, buildFinalPrompt(promptTemplate, normalizedExample)].join("\n\n");
+  const useExerciseTool =
+    EXERCISE_TOOL_FEATURE_ENABLED && sportsForPrompt.some((sport) => shouldUseExerciseTool(sport?.toUpperCase?.() ?? ""));
 
-  const userPrompt = [
-    ownerContext.ownerInstruction,
-    buildFinalPrompt(promptTemplate, normalizedExample),
-    exerciseCatalogSnippet,
-  ].join("\n\n");
-
-  let aiResponse: Awaited<ReturnType<typeof requestChatCompletion>> | null = null;
-  let lastAiError: AiRequestError | null = null;
-
-  for (let index = 0; index < modelCandidates.length; index += 1) {
-    const modelId = modelCandidates[index];
-    try {
-      aiResponse = await requestChatCompletion({
-        model: modelId,
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        temperature: 0.7,
-        maxOutputTokens: 32_768,
-        metadata: {
-          referer,
-          title: "Adapt2Life Garmin Trainer",
-        },
+  const { strict: strictClient, classic: classicClient } = getGarminAiClients();
+  let rawContent: string | null = null;
+  let aiResult: GarminAiResult | null = null;
+  try {
+    if (useExerciseTool) {
+      aiResult = await strictClient.generate({
+        basePrompt: defaultPrompt,
+        systemPrompt,
+        modelIds: modelCandidates,
+        referer,
       });
-      break;
-    } catch (error) {
-      if (error instanceof AiConfigurationError) {
-        logger.error("garmin-trainer AI configuration error", { error });
-        return NextResponse.json({ error: error.message }, { status: 500 });
-      }
-      const aiError = error instanceof AiRequestError ? error : new AiRequestError("AI request failed", { cause: error });
-      lastAiError = aiError;
-      if (aiError.status === 429 && index < modelCandidates.length - 1) {
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-        continue;
-      }
-      break;
+    } else {
+      const catalogMaxChars = toPositiveInt(process.env.GARMIN_EXERCISE_PROMPT_MAX_CHARS, 60_000);
+      const exerciseCatalogSnippet = buildGarminExerciseCatalogSnippet({
+        sports: sportsForPrompt,
+        maxChars: catalogMaxChars,
+      });
+      const userPrompt = [defaultPrompt, exerciseCatalogSnippet].join("\n\n");
+      aiResult = await classicClient.generate({
+        basePrompt: userPrompt,
+        systemPrompt,
+        modelIds: modelCandidates,
+        referer,
+      });
     }
-  }
-
-  if (!aiResponse) {
-    if (lastAiError?.status === 429) {
+  } catch (error) {
+    const aiError = error instanceof AiRequestError ? error : new AiRequestError("AI request failed", { cause: error });
+    if (!useExerciseTool && aiError.status === 429) {
       return NextResponse.json(
         {
-          error:
-            "Le service d’IA est momentanément saturé. Réessaie dans quelques instants ou ajuste la fréquence des requêtes.",
-          details: lastAiError.body ?? null,
+          error: "Le service d’IA est momentanément saturé. Réessaie dans quelques instants ou ajuste la fréquence des requêtes.",
+          details: aiError.body ?? null,
         },
         { status: 429 },
       );
     }
-    const statusCode = lastAiError?.status && lastAiError.status !== 0 ? lastAiError.status : 500;
+    const statusCode = aiError.status && aiError.status !== 0 ? aiError.status : 500;
     return NextResponse.json(
       {
-        error: "La génération de l’entraînement a échoué via OpenRouter.",
-        details: lastAiError?.body ?? lastAiError?.message ?? null,
+        error: useExerciseTool
+          ? "La génération de l’entraînement a échoué via le moteur strict."
+          : "La génération de l’entraînement a échoué via OpenRouter.",
+        details: aiError.body ?? aiError.message ?? null,
       },
       { status: statusCode },
     );
   }
 
-  const completionPayload = aiResponse.rawText;
-  const completionJson = (aiResponse.data ?? null) as OpenRouterResponse | null;
+  if (!aiResult) {
+    return NextResponse.json({ error: "Réponse IA vide.", raw: null }, { status: 502 });
+  }
 
-  if (!completionJson) {
+  rawContent = aiResult.rawText;
+
+  if (!useExerciseTool && !aiResult.data && aiResult.parseError) {
     return NextResponse.json(
       {
-        raw: completionPayload,
-        parseError:
-          aiResponse.parseError ??
-          "Impossible d’interpréter la réponse d’OpenRouter comme JSON. Consulte le champ 'raw' pour inspecter le contenu brut.",
+        raw: rawContent,
+        parseError: aiResult.parseError,
       },
       { status: 200 },
     );
-  }
-
-  const messageText = extractMessageText(completionJson.choices?.[0]);
-
-  let rawContent: string;
-  if (messageText && messageText.trim()) {
-    rawContent = messageText.trim();
-  } else {
-    rawContent = JSON.stringify(completionJson, null, 2);
   }
 
   let parsedJson: unknown | undefined;
@@ -806,6 +647,18 @@ export async function POST(request: NextRequest) {
   }
 
   if (parsedJson && typeof parsedJson === "object" && !Array.isArray(parsedJson)) {
+    if (useExerciseTool && (!("segments" in parsedJson) || !Array.isArray((parsedJson as Record<string, unknown>).segments))) {
+      const toolError = typeof (parsedJson as Record<string, unknown>).error === "string"
+        ? (parsedJson as Record<string, unknown>).error
+        : "Aucun exercice valide trouvé dans le catalogue Garmin.";
+      return NextResponse.json(
+        {
+          error: toolError,
+          raw: rawContent,
+        },
+        { status: 422 },
+      );
+    }
     const workoutDraft = parsedJson as Record<string, unknown>;
     const workout: Record<string, unknown> = {
       ownerId: ownerContext.ownerId,
