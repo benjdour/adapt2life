@@ -10,6 +10,7 @@ import { GarminTrainerWorkout, workoutSchema } from "@/schemas/garminTrainer.sch
 import { fetchGarminConnectionByUserId, ensureGarminAccessToken } from "@/lib/services/garmin-connections";
 import { saveGarminWorkoutForUser } from "@/lib/services/userGeneratedArtifacts";
 import { getAiModelCandidates } from "@/lib/services/aiModelConfig";
+import { unwrapJsonCodeBlock } from "@/lib/utils/jsonCleanup";
 import { createLogger } from "@/lib/logger";
 
 type OpenRouterToolCall = {
@@ -419,10 +420,11 @@ const convertPlanMarkdownForUser = async (userId: number, planMarkdown: string) 
 
   const messageText = extractMessageText(completionJson.choices?.[0]);
   const rawContent = messageText && messageText.trim() ? messageText.trim() : JSON.stringify(completionJson, null, 2);
+  const cleanedContent = unwrapJsonCodeBlock(rawContent);
 
   let parsedJson: unknown;
   try {
-    parsedJson = JSON.parse(rawContent);
+    parsedJson = JSON.parse(cleanedContent);
   } catch (error) {
     throw new Error(`JSON invalide renvoyé par l’IA : ${error instanceof Error ? error.message : String(error)}`);
   }
