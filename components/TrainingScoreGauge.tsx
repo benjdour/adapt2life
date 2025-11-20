@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { FC, useMemo } from "react";
 
 import { AIScoreGraph } from "@/components/ui/ai-score-graph";
@@ -86,12 +85,7 @@ const TrainingScoreGauge: FC<TrainingScoreGaugeProps> = ({ data }) => {
               Basé sur&nbsp;: {SCORE_SUMMARY.join(", ")}.
             </div>
           </div>
-          <Link
-            href="/generateur-entrainement"
-            className="inline-flex items-center text-sm font-semibold text-primary underline-offset-4 hover:underline"
-          >
-            Générer ma prochaine séance →
-          </Link>
+          <div />
         </div>
       </CardContent>
     </Card>
