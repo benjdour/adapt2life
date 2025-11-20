@@ -319,12 +319,7 @@ export default async function Home(props: HomePageProps) {
                             Basé sur&nbsp;: {SCORE_SUMMARY.join(", ")}.
                           </div>
                         </div>
-                        <Link
-                          href="/secure/garmin-data"
-                          className="inline-flex items-center text-sm font-semibold text-primary underline-offset-4 hover:underline"
-                        >
-                          Voir les métriques détaillées →
-                        </Link>
+                        <div />
                       </div>
                     </>
                   );
