@@ -342,7 +342,7 @@ const convertPlanMarkdownForUser = async (userId: number, planMarkdown: string) 
     const toolError = typeof (parsedJson as Record<string, unknown>).error === "string"
       ? (parsedJson as Record<string, unknown>).error
       : "Aucun exercice valide trouvé dans le catalogue Garmin.";
-    throw new Error(toolError);
+    throw new Error(String(toolError));
   }
 
   const sanitized = sanitizeWorkoutValue(parsedJson) as Record<string, unknown>;
