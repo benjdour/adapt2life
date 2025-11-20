@@ -18,13 +18,13 @@ type FeatureState = {
 };
 
 type AdminAiModelManagerProps = {
-  availableModels: AiModel[];
-  features: FeatureState[];
+  availableModels: ReadonlyArray<AiModel>;
+  features: ReadonlyArray<FeatureState>;
 };
 
 export function AdminAiModelManager({ availableModels, features }: AdminAiModelManagerProps) {
   const [pending, setPending] = useState(false);
-  const [state, setState] = useState(features);
+  const [state, setState] = useState<FeatureState[]>(() => features.map((feature) => ({ ...feature })));
 
   const handleChange = async (featureId: string, modelId: string) => {
     setPending(true);
