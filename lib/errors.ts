@@ -135,3 +135,23 @@ export const resolveErrorMessage = (
 };
 
 export const getErrorCatalog = () => APP_ERROR_REGISTRY;
+
+export type GarminConversionErrorMeta = {
+  rawResponse?: string | null;
+  debugPayload?: unknown;
+  issues?: unknown;
+};
+
+export class GarminConversionError extends Error {
+  public readonly rawResponse: string | null;
+  public readonly debugPayload: unknown;
+  public readonly issues: unknown;
+
+  constructor(message: string, meta?: GarminConversionErrorMeta, options?: { cause?: unknown }) {
+    super(message, { cause: options?.cause });
+    this.name = "GarminConversionError";
+    this.rawResponse = meta?.rawResponse ?? null;
+    this.debugPayload = meta?.debugPayload;
+    this.issues = meta?.issues;
+  }
+}

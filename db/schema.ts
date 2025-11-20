@@ -133,6 +133,8 @@ export const garminTrainerJobs = pgTable(
     status: text("status").notNull().default("pending"),
     resultJson: jsonb("result_json"),
     error: text("error"),
+    aiRawResponse: text("ai_raw_response"),
+    aiDebugPayload: jsonb("ai_debug_payload"),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow().$onUpdate(() => new Date()),
     processedAt: timestamp("processed_at"),

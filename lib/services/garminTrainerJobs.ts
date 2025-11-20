@@ -15,6 +15,7 @@ import { buildGarminExerciseCatalogSnippet } from "@/lib/garminExercises";
 import { shouldUseExerciseTool, EXERCISE_TOOL_FEATURE_ENABLED } from "@/lib/ai/exercisePolicy";
 import { inferExerciseSportsFromMarkdown } from "@/lib/garmin/exerciseInference";
 import { getGarminAiClients, type GarminAiResult } from "@/lib/ai/garminAiClient";
+import { GarminConversionError } from "@/lib/errors";
 
 const GARMIN_PROMPT_FILENAME = "docs/garmin_trainer_prompt.txt";
 
@@ -329,20 +330,28 @@ const convertPlanMarkdownForUser = async (userId: number, planMarkdown: string) 
 
   const parsedResult = parseJsonWithCodeFence(aiResult.rawText);
   if (!parsedResult) {
-    throw new Error("JSON invalide renvoyé par l’IA : impossible de parser la réponse.");
+    throw new GarminConversionError("JSON invalide renvoyé par l’IA : impossible de parser la réponse.", {
+      rawResponse: aiResult.rawText,
+    });
   }
 
   const parsedJson = parsedResult.parsed;
+  const sourceJson = parsedResult.source;
 
   if (!parsedJson || typeof parsedJson !== "object" || Array.isArray(parsedJson)) {
-    throw new Error("Le JSON renvoyé par l’IA ne correspond pas à un objet valide.");
+    throw new GarminConversionError("Le JSON renvoyé par l’IA ne correspond pas à un objet valide.", {
+      rawResponse: sourceJson,
+    });
   }
 
   if (useExerciseTool && (!("segments" in parsedJson) || !Array.isArray((parsedJson as Record<string, unknown>).segments))) {
     const toolError = typeof (parsedJson as Record<string, unknown>).error === "string"
       ? (parsedJson as Record<string, unknown>).error
       : "Aucun exercice valide trouvé dans le catalogue Garmin.";
-    throw new Error(String(toolError));
+    throw new GarminConversionError(String(toolError), {
+      rawResponse: sourceJson,
+      debugPayload: parsedJson,
+    });
   }
 
   const sanitized = sanitizeWorkoutValue(parsedJson) as Record<string, unknown>;
@@ -350,7 +359,11 @@ const convertPlanMarkdownForUser = async (userId: number, planMarkdown: string) 
 
   const validation = workoutSchema.safeParse(normalized);
   if (!validation.success) {
-    throw new Error("L’entraînement généré ne respecte pas le schéma attendu.");
+    throw new GarminConversionError("L’entraînement généré ne respecte pas le schéma attendu.", {
+      rawResponse: sourceJson,
+      debugPayload: normalized,
+      issues: validation.error.issues,
+    });
   }
 
   await saveGarminWorkoutForUser(userId, validation.data as Record<string, unknown>);
@@ -516,6 +529,8 @@ const processJob = async (job: { id: number; userId: number; planMarkdown: strin
       },
       processedAt: new Date(),
       error: null,
+      aiRawResponse: conversion.raw,
+      aiDebugPayload: null,
     });
   } catch (error) {
     logger.error("garmin trainer job failed", { jobId: job.id, error });
@@ -523,6 +538,8 @@ const processJob = async (job: { id: number; userId: number; planMarkdown: strin
       status: "failed",
       error: error instanceof Error ? error.message : String(error),
       processedAt: new Date(),
+      aiRawResponse: error instanceof GarminConversionError ? error.rawResponse : null,
+      aiDebugPayload: error instanceof GarminConversionError ? (error.debugPayload ?? null) : null,
     });
   }
 };
