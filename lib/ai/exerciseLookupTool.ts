@@ -1,4 +1,5 @@
 import { tool } from "ai";
+import { jsonSchema } from "@ai-sdk/provider-utils";
 
 import { searchGarminExercises, type ExerciseLookupResult } from "@/lib/services/exerciseLookup";
 import { createLogger } from "@/lib/logger";
@@ -14,7 +15,7 @@ export const exerciseLookupTool = tool<ExerciseLookupInput, ExerciseLookupResult
   name: "exercise_lookup",
   description:
     "Recherche un exercice Garmin exact à partir d'un libellé humain. Entrée attendue: { \"query\": string, \"sport\"?: string }.",
-  inputSchema: {
+  inputSchema: jsonSchema({
     type: "object",
     properties: {
       query: {
@@ -27,7 +28,7 @@ export const exerciseLookupTool = tool<ExerciseLookupInput, ExerciseLookupResult
       },
     },
     required: ["query"],
-  },
+  }),
   execute: async ({ query, sport }) => {
     const results = searchGarminExercises(query, { sport: sport ?? null, limit: 10 });
     try {
