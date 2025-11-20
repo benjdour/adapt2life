@@ -10,11 +10,7 @@ import "./globals.css";
 import { UiToaster } from "@/components/ui/ui-toaster";
 import { TopNav } from "@/components/TopNav";
 import { Footer } from "@/components/Footer";
-
-const debugGeneratorUserIds = (process.env.DEBUG_GENERATOR_USER_IDS ?? "")
-  .split(",")
-  .map((entry) => entry.trim())
-  .filter(Boolean);
+import { canAccessAdminArea, canAccessDebugGenerator } from "@/lib/accessControl";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -62,7 +58,11 @@ export default async function RootLayout({
         <StackProvider app={stackClientApp}>
           <StackTheme>
             <div className="flex min-h-screen flex-col">
-              <TopNav isAuthenticated={Boolean(user)} showDebugLink={Boolean(user?.id && debugGeneratorUserIds.includes(user.id))} />
+              <TopNav
+                isAuthenticated={Boolean(user)}
+                showDebugLink={canAccessDebugGenerator(user?.id)}
+                showAdminLink={canAccessAdminArea(user?.id)}
+              />
               <main className="flex-1">{children}</main>
               <Footer />
             </div>

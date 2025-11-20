@@ -10,9 +10,10 @@ import { cn } from "@/lib/utils";
 type TopNavProps = {
   isAuthenticated: boolean;
   showDebugLink?: boolean;
+  showAdminLink?: boolean;
 };
 
-const buildAuthenticatedLinks = (showDebugLink: boolean) => {
+const buildAuthenticatedLinks = (showDebugLink: boolean, showAdminLink: boolean) => {
   const links = [
     { label: "Dashboard", href: "/" },
     { label: "Générateur", href: "/generateur-entrainement" },
@@ -22,7 +23,11 @@ const buildAuthenticatedLinks = (showDebugLink: boolean) => {
   ];
 
   if (showDebugLink) {
-    links.splice(2, 0, { label: "Générateur debug", href: "/generateur-debug" });
+    links.push({ label: "Générateur debug", href: "/generateur-debug" });
+  }
+
+  if (showAdminLink) {
+    links.push({ label: "Admin", href: "/admin" });
   }
 
   return links;
@@ -35,9 +40,9 @@ const guestLinks = [
   { label: "Contact", href: "/contact" },
 ];
 
-export const TopNav = ({ isAuthenticated, showDebugLink = false }: TopNavProps) => {
+export const TopNav = ({ isAuthenticated, showDebugLink = false, showAdminLink = false }: TopNavProps) => {
   const [isOpen, setIsOpen] = useState(false);
-  const links = isAuthenticated ? buildAuthenticatedLinks(showDebugLink) : guestLinks;
+  const links = isAuthenticated ? buildAuthenticatedLinks(showDebugLink, showAdminLink) : guestLinks;
 
   const handleSignOut = () => {
     const form = document.createElement("form");
