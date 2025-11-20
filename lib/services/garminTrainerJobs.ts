@@ -13,7 +13,11 @@ import { parseJsonWithCodeFence } from "@/lib/utils/jsonCleanup";
 import { createLogger } from "@/lib/logger";
 import { buildGarminExerciseCatalogSnippet } from "@/lib/garminExercises";
 import { shouldUseExerciseTool, EXERCISE_TOOL_FEATURE_ENABLED } from "@/lib/ai/exercisePolicy";
-import { inferExerciseSportsFromMarkdown } from "@/lib/garmin/exerciseInference";
+import {
+  inferExerciseSportsFromMarkdown,
+  inferPrimarySportFromMarkdown,
+  isFallbackExerciseSportsList,
+} from "@/lib/garmin/exerciseInference";
 import { getGarminAiClients, type GarminAiResult } from "@/lib/ai/garminAiClient";
 import { GarminConversionError } from "@/lib/errors";
 
@@ -285,8 +289,14 @@ const convertPlanMarkdownForUser = async (userId: number, planMarkdown: string) 
   const ownerInstruction = `Utilise strictement "ownerId": "${connection.garminUserId}" (premier champ du JSON) et ne modifie jamais cette valeur.`;
   const basePrompt = [ownerInstruction, buildFinalPrompt(promptTemplate, planMarkdown.trim())].join("\n\n");
   const sportsForPrompt = inferExerciseSportsFromMarkdown(planMarkdown);
+  const primaryMarkdownSport = inferPrimarySportFromMarkdown(planMarkdown);
+  const primarySportSupportsTool = primaryMarkdownSport ? shouldUseExerciseTool(primaryMarkdownSport) : true;
   const useExerciseTool =
-    EXERCISE_TOOL_FEATURE_ENABLED && sportsForPrompt.some((sport) => shouldUseExerciseTool(sport?.toUpperCase?.() ?? ""));
+    EXERCISE_TOOL_FEATURE_ENABLED &&
+    sportsForPrompt.length > 0 &&
+    !isFallbackExerciseSportsList(sportsForPrompt) &&
+    sportsForPrompt.every((sport) => shouldUseExerciseTool(sport)) &&
+    primarySportSupportsTool;
 
   const candidateModels = await getAiModelCandidates("garmin-trainer");
   const systemPrompt = process.env.GARMIN_TRAINER_SYSTEM_PROMPT ??

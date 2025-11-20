@@ -1,14 +1,18 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 
 import type { GarminTrainerWorkout } from "@/schemas/garminTrainer.schema";
+import type { GarminExerciseSport } from "@/constants/garminExerciseData";
 import type { GarminAiClient } from "@/lib/ai/garminAiClient";
 
 const mockFetchGarminConnectionByUserId = vi.fn();
 const mockSaveGarminWorkoutForUser = vi.fn();
 const mockGetAiModelCandidates = vi.fn();
 const mockInferExerciseSportsFromMarkdown = vi.fn();
+const mockInferPrimarySportFromMarkdown = vi.fn();
+const mockIsFallbackExerciseSportsList = vi.fn();
 const mockShouldUseExerciseTool = vi.fn();
 const mockBuildExerciseCatalogSnippet = vi.fn();
+const FALLBACK_SPORTS: GarminExerciseSport[] = ["STRENGTH_TRAINING", "CARDIO_TRAINING", "YOGA", "PILATES"];
 
 vi.mock("@/db", () => ({
   db: {},
@@ -34,6 +38,8 @@ vi.mock("@/lib/services/aiModelConfig", () => ({
 
 vi.mock("@/lib/garmin/exerciseInference", () => ({
   inferExerciseSportsFromMarkdown: mockInferExerciseSportsFromMarkdown,
+  isFallbackExerciseSportsList: mockIsFallbackExerciseSportsList,
+  inferPrimarySportFromMarkdown: mockInferPrimarySportFromMarkdown,
 }));
 
 vi.mock("@/lib/ai/exercisePolicy", () => ({
@@ -136,6 +142,17 @@ describe("convertPlanMarkdownForUser", () => {
     mockFetchGarminConnectionByUserId.mockResolvedValue({ garminUserId: "garmin-user-1" });
     mockGetAiModelCandidates.mockResolvedValue(["test-model"]);
     mockBuildExerciseCatalogSnippet.mockReturnValue("[CATALOG]");
+    mockInferPrimarySportFromMarkdown.mockReturnValue(null);
+    mockIsFallbackExerciseSportsList.mockImplementation((sports) => {
+      if (!sports || sports.length === 0) {
+        return true;
+      }
+      if (sports.length !== FALLBACK_SPORTS.length) {
+        return false;
+      }
+      const fallbackSet = new Set(FALLBACK_SPORTS);
+      return sports.every((sport) => fallbackSet.has(sport as GarminExerciseSport));
+    });
   });
 
   afterEach(() => {
@@ -197,5 +214,58 @@ describe("convertPlanMarkdownForUser", () => {
     expect(calledPrompt).toContain("[CATALOG]");
     expect(result.workout.sport).toBe("CARDIO_TRAINING");
     expect(mockSaveGarminWorkoutForUser).toHaveBeenCalledWith(2, expect.any(Object));
+  });
+
+  it("désactive le client strict lorsque seule la liste par défaut est détectée", async () => {
+    mockInferExerciseSportsFromMarkdown.mockReturnValue([
+      "STRENGTH_TRAINING",
+      "CARDIO_TRAINING",
+      "YOGA",
+      "PILATES",
+    ]);
+    mockShouldUseExerciseTool.mockReturnValue(true);
+
+    const strictClient = createMockClient();
+    const classicClient = createMockClient();
+    classicClient.generate.mockResolvedValue({
+      rawText: JSON.stringify(buildWorkout("CARDIO_TRAINING")),
+      data: buildWorkout("CARDIO_TRAINING"),
+      parseError: null,
+    });
+
+    setGarminAiClientFactory(() => ({
+      strict: strictClient,
+      classic: classicClient,
+    }));
+
+    const result = await convertPlanMarkdownForUser(3, "Séance inconnue");
+
+    expect(strictClient.generate).not.toHaveBeenCalled();
+    expect(classicClient.generate).toHaveBeenCalledTimes(1);
+    expect(result.workout.sport).toBe("CARDIO_TRAINING");
+  });
+
+  it("désactive l’outil d’exercices quand le markdown cible explicitement la natation", async () => {
+    mockInferExerciseSportsFromMarkdown.mockReturnValue(["STRENGTH_TRAINING"]);
+    mockInferPrimarySportFromMarkdown.mockReturnValue("LAP_SWIMMING");
+    mockShouldUseExerciseTool.mockImplementation((sport?: string | null) => sport !== "LAP_SWIMMING");
+
+    const strictClient = createMockClient();
+    const classicClient = createMockClient();
+    classicClient.generate.mockResolvedValue({
+      rawText: JSON.stringify(buildWorkout("CARDIO_TRAINING")),
+      data: buildWorkout("CARDIO_TRAINING"),
+      parseError: null,
+    });
+
+    setGarminAiClientFactory(() => ({
+      strict: strictClient,
+      classic: classicClient,
+    }));
+
+    await convertPlanMarkdownForUser(4, "Plan natation");
+
+    expect(strictClient.generate).not.toHaveBeenCalled();
+    expect(classicClient.generate).toHaveBeenCalledTimes(1);
   });
 });

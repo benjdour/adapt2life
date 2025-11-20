@@ -16,7 +16,11 @@ import { shouldUseExerciseTool, EXERCISE_TOOL_FEATURE_ENABLED } from "@/lib/ai/e
 import { parseJsonWithCodeFence } from "@/lib/utils/jsonCleanup";
 import type { GarminExerciseSport } from "@/constants/garminExerciseData";
 import { buildGarminExerciseCatalogSnippet } from "@/lib/garminExercises";
-import { inferExerciseSportsFromMarkdown } from "@/lib/garmin/exerciseInference";
+import {
+  inferExerciseSportsFromMarkdown,
+  inferPrimarySportFromMarkdown,
+  isFallbackExerciseSportsList,
+} from "@/lib/garmin/exerciseInference";
 import { getGarminAiClients, type GarminAiResult } from "@/lib/ai/garminAiClient";
 import { extractMessageText, type OpenRouterChoice, type OpenRouterResponse } from "@/lib/ai/openRouterResponse";
 
@@ -571,9 +575,15 @@ export async function POST(request: NextRequest) {
   const referer = process.env.APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? inferredOrigin ?? "http://localhost:3000";
 
   const sportsForPrompt = inferExerciseSportsFromMarkdown(normalizedExample);
+  const primaryMarkdownSport = inferPrimarySportFromMarkdown(normalizedExample);
+  const primarySportSupportsTool = primaryMarkdownSport ? shouldUseExerciseTool(primaryMarkdownSport) : true;
   const defaultPrompt = [ownerContext.ownerInstruction, buildFinalPrompt(promptTemplate, normalizedExample)].join("\n\n");
   const useExerciseTool =
-    EXERCISE_TOOL_FEATURE_ENABLED && sportsForPrompt.some((sport) => shouldUseExerciseTool(sport?.toUpperCase?.() ?? ""));
+    EXERCISE_TOOL_FEATURE_ENABLED &&
+    sportsForPrompt.length > 0 &&
+    !isFallbackExerciseSportsList(sportsForPrompt) &&
+    sportsForPrompt.every((sport) => shouldUseExerciseTool(sport)) &&
+    primarySportSupportsTool;
 
   const { strict: strictClient, classic: classicClient } = getGarminAiClients();
   let rawContent: string | null = null;

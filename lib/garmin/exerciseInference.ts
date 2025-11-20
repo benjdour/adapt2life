@@ -26,6 +26,37 @@ const EXERCISE_SPORT_HINTS: Record<GarminExerciseSport, RegExp[]> = {
   PILATES: [/pilates/i],
 };
 
+const PRIMARY_SPORT_HINTS: Array<{ sport: string; patterns: RegExp[] }> = [
+  {
+    sport: "LAP_SWIMMING",
+    patterns: [/🏊/u, /natation/i, /swim/i, /piscine/i, /palme/i],
+  },
+  {
+    sport: "CYCLING",
+    patterns: [/🚴/u, /vélo/i, /velo/i, /bike/i, /cycling/i, /p[eé]dal/i, /gravel/i],
+  },
+  {
+    sport: "RUNNING",
+    patterns: [/🏃/u, /course/i, /running/i, /footing/i, /trail/i, /fractionn[eé]/i],
+  },
+  {
+    sport: "STRENGTH_TRAINING",
+    patterns: EXERCISE_SPORT_HINTS.STRENGTH_TRAINING,
+  },
+  {
+    sport: "CARDIO_TRAINING",
+    patterns: EXERCISE_SPORT_HINTS.CARDIO_TRAINING,
+  },
+  {
+    sport: "YOGA",
+    patterns: EXERCISE_SPORT_HINTS.YOGA,
+  },
+  {
+    sport: "PILATES",
+    patterns: EXERCISE_SPORT_HINTS.PILATES,
+  },
+];
+
 export const inferExerciseSportsFromMarkdown = (markdown: string): GarminExerciseSport[] => {
   const normalized = markdown?.toString()?.toLowerCase() ?? "";
   const matches = new Set<GarminExerciseSport>();
@@ -40,3 +71,29 @@ export const inferExerciseSportsFromMarkdown = (markdown: string): GarminExercis
 };
 
 export const getFallbackExerciseSports = (): GarminExerciseSport[] => [...FALLBACK_EXERCISE_SPORTS];
+
+export const isFallbackExerciseSportsList = (sports: GarminExerciseSport[] | null | undefined): boolean => {
+  if (!sports || sports.length === 0) {
+    return true;
+  }
+  const fallback = getFallbackExerciseSports();
+  if (sports.length !== fallback.length) {
+    return false;
+  }
+  const fallbackSet = new Set(fallback);
+  return sports.every((sport) => fallbackSet.has(sport));
+};
+
+export const inferPrimarySportFromMarkdown = (markdown: string | null | undefined): string | null => {
+  if (!markdown) {
+    return null;
+  }
+
+  for (const { sport, patterns } of PRIMARY_SPORT_HINTS) {
+    if (patterns.some((pattern) => pattern.test(markdown))) {
+      return sport;
+    }
+  }
+
+  return null;
+};
