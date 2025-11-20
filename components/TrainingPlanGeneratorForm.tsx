@@ -32,6 +32,7 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = 
   const [conversionSource, setConversionSource] = useState<string | null>(null);
   const [activeJobId, setActiveJobId] = useState<number | null>(null);
   const [pendingToastId, setPendingToastId] = useState<string | number | null>(null);
+  const [hasSentSuccessfully, setHasSentSuccessfully] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState<string>(TRAINING_LOADING_MESSAGES[0]);
   const [isSending, setIsSending] = useState(false);
@@ -89,6 +90,8 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = 
     event.preventDefault();
     setPlan(null);
     setConversionSource(null);
+    setHasSentSuccessfully(false);
+    setActiveJobId(null);
     onPlanGenerated?.(null);
 
     const trimmedPrompt = prompt.trim();
@@ -131,6 +134,8 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = 
 
       setPlan(humanPlan);
       setConversionSource(fallbackRaw.trim());
+      setHasSentSuccessfully(false);
+      setActiveJobId(null);
       onPlanGenerated?.({
         plan: humanPlan,
         rawPlan: fallbackRaw,
@@ -183,8 +188,9 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = 
     } catch (error) {
       const descriptor = describeAppError(error, "garmin-trainer/push-failed");
       toast.error(descriptor.title, { description: descriptor.description });
-    } finally {
       setIsSending(false);
+    } finally {
+      // reste à true jusqu’à résolution du job
     }
   };
 
@@ -210,6 +216,8 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = 
             toast.dismiss(pendingToastId);
             setPendingToastId(null);
           }
+          setIsSending(false);
+          setHasSentSuccessfully(true);
           toast.success("Entraînement envoyé à Garmin");
         } else if (job.status === "failed") {
           setActiveJobId(null);
@@ -217,6 +225,8 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = 
             toast.dismiss(pendingToastId);
             setPendingToastId(null);
           }
+          setIsSending(false);
+          setHasSentSuccessfully(false);
           toast.error("L’envoi Garmin a échoué", { description: job.error ?? undefined });
         }
       } catch (error) {
@@ -277,9 +287,15 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = 
             <MarkdownPlan content={plan} className="text-sm leading-relaxed" />
             {enableInlineSend ? (
               <div className="border-t border-white/10 pt-4">
-                <Button type="button" className="w-full" onClick={handleSendToGarmin} disabled={isSending} isLoading={isSending}>
-                  {isSending ? sendLoadingMessage : "Envoyer à Garmin Connect"}
-                </Button>
+            <Button
+              type="button"
+              className="w-full"
+              onClick={handleSendToGarmin}
+              disabled={isSending || hasSentSuccessfully}
+              isLoading={isSending}
+            >
+              {hasSentSuccessfully ? "Entraînement envoyé" : isSending ? sendLoadingMessage : "Envoyer à Garmin Connect"}
+            </Button>
               </div>
             ) : null}
           </CardContent>
