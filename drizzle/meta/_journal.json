@@ -5,8 +5,85 @@
     {
       "idx": 0,
       "version": "7",
+      "when": 1761851227200,
+      "tag": "0000_hesitant_thaddeus_ross",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
       "when": 1761851227203,
       "tag": "0000_minor_sentry",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1761851227204,
+      "tag": "0001_overconfident_zarek",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1761851227205,
+      "tag": "0002_round_lionheart",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1761851227206,
+      "tag": "0003_connected_garmin",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1761851227207,
+      "tag": "0004_garmin_daily_summaries",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1761851227208,
+      "tag": "0005_profile_details",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1761851227209,
+      "tag": "0006_profile_pseudo",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1761851227210,
+      "tag": "0007_profile_body_metrics",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1761851227211,
+      "tag": "0008_user_training_goal",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1761851227212,
+      "tag": "0009_garmin_pull_cursors",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1761851227213,
+      "tag": "0010_garmin_trainer_jobs",
       "breakpoints": true
     }
   ]
