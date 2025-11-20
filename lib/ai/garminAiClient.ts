@@ -112,8 +112,9 @@ export const createStrictGarminAiClient = (): GarminAiClient => ({
         let rawText = text;
 
         if (!rawText) {
-          if (result.responseMessages?.length) {
-            rawText = JSON.stringify(result.responseMessages, null, 2);
+          const responseMessages = result.response?.messages ?? [];
+          if (responseMessages.length > 0) {
+            rawText = JSON.stringify(responseMessages, null, 2);
           } else if (result.toolResults?.length) {
             rawText = JSON.stringify(result.toolResults, null, 2);
           } else {
