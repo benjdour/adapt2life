@@ -31,7 +31,12 @@ const mapModels = (models: OpenRouterModel[]): AiModelEntry[] => {
     });
   });
 
-  return entries.length > 0 ? entries : [...FALLBACK_AI_MODELS];
+  if (entries.length === 0) {
+    return [...FALLBACK_AI_MODELS];
+  }
+
+  entries.sort((a, b) => a.label.localeCompare(b.label));
+  return entries;
 };
 
 export const getAvailableAiModels = async (): Promise<AiModelEntry[]> => {
