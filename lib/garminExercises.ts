@@ -1,3 +1,4 @@
+import { GARMIN_EXERCISE_DATA } from "@/constants/garminExerciseData";
 import type { GarminExerciseSport } from "@/constants/garminExerciseData";
 
 export type GarminExerciseLocale = "fr" | "en";
@@ -252,4 +253,84 @@ export const describeExerciseForUser = (
     return `${nameLabel} — ${categoryLabel.toLowerCase()}`;
   }
   return nameLabel ?? categoryLabel ?? null;
+};
+
+type CatalogSnippetOptions = {
+  sports?: GarminExerciseSport[] | null;
+  maxChars?: number;
+};
+
+const groupExercisesByCategory = (
+  sport: GarminExerciseSport,
+): Record<string, string[]> => {
+  const entries = GARMIN_EXERCISE_DATA[sport] ?? [];
+  const groups: Record<string, string[]> = {};
+
+  entries.forEach(({ category, name }) => {
+    if (!category || !name) return;
+    if (!groups[category]) {
+      groups[category] = [];
+    }
+    groups[category].push(name);
+  });
+
+  (Object.keys(groups) as string[]).forEach((key) => {
+    groups[key] = Array.from(new Set(groups[key])).sort();
+  });
+
+  return groups;
+};
+
+const sanitizeSportsList = (sports?: GarminExerciseSport[] | null): GarminExerciseSport[] => {
+  const available = Object.keys(GARMIN_EXERCISE_DATA) as GarminExerciseSport[];
+  if (!sports || sports.length === 0) {
+    return available;
+  }
+  const known = new Set(available);
+  const filtered = sports.filter((sport) => known.has(sport));
+  return filtered.length > 0 ? filtered : available;
+};
+
+export const buildGarminExerciseCatalogSnippet = (options: CatalogSnippetOptions = {}): string => {
+  const { sports, maxChars = 60_000 } = options;
+  const selectedSports = sanitizeSportsList(sports);
+  const maxLength = Math.max(0, maxChars || 0);
+
+  const lines: string[] = [
+    "Catalogue Garmin autorisé (format: SPORT > CATEGORIE > noms séparés par des virgules). Utilise uniquement ces valeurs exactes.",
+  ];
+
+  let currentLength = lines[0].length;
+  let truncated = false;
+
+  const tryPush = (line: string): boolean => {
+    if (maxLength > 0 && currentLength + line.length + 1 > maxLength) {
+      truncated = true;
+      return false;
+    }
+    lines.push(line);
+    currentLength += line.length + 1;
+    return true;
+  };
+
+  outer: for (const sport of selectedSports) {
+    if (!tryPush(`SPORT ${sport}:`)) {
+      break;
+    }
+    const catalog = groupExercisesByCategory(sport);
+    const categories = Object.keys(catalog).sort();
+    for (const category of categories) {
+      const names = catalog[category];
+      const entry = ` - ${category}: ${names.join(", ")}`;
+      if (!tryPush(entry)) {
+        break outer;
+      }
+    }
+  }
+
+  if (truncated) {
+    lines.push("…catalogue tronqué pour respecter la limite de caractères.");
+  }
+
+  return lines.join("\n");
 };

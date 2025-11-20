@@ -11,6 +11,8 @@ import { requestChatCompletion, AiConfigurationError, AiRequestError } from "@/l
 import { createLogger } from "@/lib/logger";
 import { workoutSchema } from "@/schemas/garminTrainer.schema";
 import { saveGarminWorkoutForUser } from "@/lib/services/userGeneratedArtifacts";
+import type { GarminExerciseSport } from "@/constants/garminExerciseData";
+import { buildGarminExerciseCatalogSnippet } from "@/lib/garminExercises";
 
 const REQUEST_SCHEMA = z.object({
   exampleMarkdown: z
@@ -143,6 +145,56 @@ const buildFinalPrompt = (template: string, example: string): string => {
 };
 
 const GARMIN_PROMPT_FILENAME = "docs/garmin_trainer_prompt.txt";
+
+const toPositiveInt = (value: string | undefined, fallback: number): number => {
+  const parsed = Number(value);
+  if (Number.isFinite(parsed) && parsed > 0) {
+    return Math.floor(parsed);
+  }
+  return fallback;
+};
+
+const FALLBACK_EXERCISE_SPORTS: GarminExerciseSport[] = ["STRENGTH_TRAINING", "CARDIO_TRAINING", "YOGA", "PILATES"];
+
+const EXERCISE_SPORT_HINTS: Record<GarminExerciseSport, RegExp[]> = {
+  STRENGTH_TRAINING: [
+    /muscu/i,
+    /musculation/i,
+    /force/i,
+    /full\s*body/i,
+    /halt[eè]re/i,
+    /renfo/i,
+    /crossfit/i,
+    /wod/i,
+    /hiit/i,
+    /💪/u,
+    /🏋/u,
+  ],
+  CARDIO_TRAINING: [
+    /hiit/i,
+    /cardio/i,
+    /metcon/i,
+    /circuit/i,
+    /interval/i,
+    /tabata/i,
+    /🔥/u,
+  ],
+  YOGA: [/yoga/i, /🧘/u, /flow/i],
+  PILATES: [/pilates/i],
+};
+
+const inferExerciseSportsFromMarkdown = (markdown: string): GarminExerciseSport[] => {
+  const normalized = markdown?.toString()?.toLowerCase() ?? "";
+  const matches = new Set<GarminExerciseSport>();
+
+  (Object.entries(EXERCISE_SPORT_HINTS) as [GarminExerciseSport, RegExp[]][]).forEach(([sport, patterns]) => {
+    if (patterns.some((pattern) => pattern.test(normalized))) {
+      matches.add(sport);
+    }
+  });
+
+  return matches.size > 0 ? Array.from(matches) : FALLBACK_EXERCISE_SPORTS;
+};
 
 let cachedPromptTemplate: string | null | undefined;
 
@@ -651,7 +703,18 @@ export async function POST(request: NextRequest) {
     `${request.headers.get("x-forwarded-proto") ?? "https"}://${request.headers.get("host") ?? "localhost"}`;
   const referer = process.env.APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? inferredOrigin ?? "http://localhost:3000";
 
-  const userPrompt = [ownerContext.ownerInstruction, buildFinalPrompt(promptTemplate, normalizedExample)].join("\n\n");
+  const sportsForPrompt = inferExerciseSportsFromMarkdown(normalizedExample);
+  const catalogMaxChars = toPositiveInt(process.env.GARMIN_EXERCISE_PROMPT_MAX_CHARS, 60_000);
+  const exerciseCatalogSnippet = buildGarminExerciseCatalogSnippet({
+    sports: sportsForPrompt,
+    maxChars: catalogMaxChars,
+  });
+
+  const userPrompt = [
+    ownerContext.ownerInstruction,
+    buildFinalPrompt(promptTemplate, normalizedExample),
+    exerciseCatalogSnippet,
+  ].join("\n\n");
 
   let aiResponse;
   try {

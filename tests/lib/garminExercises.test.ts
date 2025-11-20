@@ -4,6 +4,7 @@ import {
   describeExerciseForUser,
   getGarminExerciseCategoryLabel,
   getGarminExerciseLabel,
+  buildGarminExerciseCatalogSnippet,
 } from "@/lib/garminExercises";
 
 describe("garminExercises localization helpers", () => {
@@ -30,5 +31,17 @@ describe("garminExercises localization helpers", () => {
         "fr",
       ),
     ).toBe("Développé couché barre — développé couché");
+  });
+
+  it("builds a catalog snippet limited to the requested sports", () => {
+    const snippet = buildGarminExerciseCatalogSnippet({ sports: ["YOGA"], maxChars: 1_000 });
+    expect(snippet).toContain("SPORT YOGA");
+    expect(snippet).not.toContain("SPORT STRENGTH_TRAINING");
+  });
+
+  it("truncates the catalog when exceeding the max char limit", () => {
+    const snippet = buildGarminExerciseCatalogSnippet({ sports: ["STRENGTH_TRAINING"], maxChars: 200 });
+    expect(snippet).toContain("SPORT STRENGTH_TRAINING");
+    expect(snippet).toContain("…catalogue tronqué");
   });
 });
