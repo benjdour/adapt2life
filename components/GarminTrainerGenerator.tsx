@@ -7,6 +7,7 @@ import { TRAINING_LOADING_MESSAGES } from "@/constants/loadingMessages";
 import { AppError, describeAppError, getErrorDescriptor } from "@/lib/errors";
 import type { GarminTrainerWorkout } from "@/schemas/garminTrainer.schema";
 import type { GeneratedPlanPayload } from "@/components/TrainingPlanGeneratorForm";
+import { GarminWorkoutPreview } from "@/components/GarminWorkoutPreview";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -251,6 +252,7 @@ export function GarminTrainerGenerator({ sourcePlan }: GarminTrainerGeneratorPro
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {trainingJson ? <GarminWorkoutPreview workout={trainingJson} /> : null}
             <Button type="button" onClick={handlePushToGarmin} disabled={isPushing} className="w-full" isLoading={isPushing}>
               Envoyer l’entraînement sur Garmin
             </Button>
