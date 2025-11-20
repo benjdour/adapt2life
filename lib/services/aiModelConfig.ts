@@ -13,7 +13,15 @@ const DEFAULT_MODEL_MAP: Record<AiFeatureId, AiModelId> = featureIds.reduce((acc
 }, {} as Record<AiFeatureId, AiModelId>);
 
 export const listAiModelConfigs = async (): Promise<Record<AiFeatureId, AiModelId>> => {
-  const rows = await db.select().from(aiModelConfigs);
+  let rows: { featureId: string; modelId: string }[] = [];
+
+  try {
+    rows = await db.select().from(aiModelConfigs);
+  } catch (error) {
+    console.warn("AI model config store unavailable, falling back to defaults", error);
+    return { ...DEFAULT_MODEL_MAP };
+  }
+
   const result: Record<AiFeatureId, AiModelId> = { ...DEFAULT_MODEL_MAP };
 
   rows.forEach((row) => {
@@ -40,23 +48,28 @@ export const getAiModelCandidates = async (featureId: AiFeatureId): Promise<AiMo
 
 export const saveAiModelForFeature = async (featureId: AiFeatureId, modelId: AiModelId, updatedBy?: string | null) => {
   ensureSupportedModel(modelId);
-  const existing = await db
-    .select({ featureId: aiModelConfigs.featureId })
-    .from(aiModelConfigs)
-    .where(eq(aiModelConfigs.featureId, featureId))
-    .limit(1);
+  try {
+    const existing = await db
+      .select({ featureId: aiModelConfigs.featureId })
+      .from(aiModelConfigs)
+      .where(eq(aiModelConfigs.featureId, featureId))
+      .limit(1);
 
-  if (existing.length > 0) {
-    await db
-      .update(aiModelConfigs)
-      .set({ modelId, updatedBy: updatedBy ?? null, updatedAt: new Date() })
-      .where(eq(aiModelConfigs.featureId, featureId));
-  } else {
-    await db.insert(aiModelConfigs).values({
-      featureId,
-      modelId,
-      updatedBy: updatedBy ?? null,
-    });
+    if (existing.length > 0) {
+      await db
+        .update(aiModelConfigs)
+        .set({ modelId, updatedBy: updatedBy ?? null, updatedAt: new Date() })
+        .where(eq(aiModelConfigs.featureId, featureId));
+    } else {
+      await db.insert(aiModelConfigs).values({
+        featureId,
+        modelId,
+        updatedBy: updatedBy ?? null,
+      });
+    }
+  } catch (error) {
+    console.warn("Unable to persist AI model config, falling back to defaults", error);
+    throw new Error("Impossible d’enregistrer ce réglage tant que la base n’est pas à jour (migration en attente).");
   }
 };
 
