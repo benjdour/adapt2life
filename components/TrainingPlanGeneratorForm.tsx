@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { MarkdownPlan } from "@/components/MarkdownPlan";
-import { TRAINING_LOADING_MESSAGES } from "@/constants/loadingMessages";
+import { TRAINING_LOADING_MESSAGES, GARMIN_TRANSFER_LOADING_MESSAGES } from "@/constants/loadingMessages";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -64,17 +64,17 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = 
 
   useEffect(() => {
     if (!isSending) {
-      setSendLoadingMessage(TRAINING_LOADING_MESSAGES[0]);
+      setSendLoadingMessage(GARMIN_TRANSFER_LOADING_MESSAGES[0]);
       return;
     }
 
     const selectRandomMessage = (previous?: string | null) => {
-      if (TRAINING_LOADING_MESSAGES.length === 1) {
-        return TRAINING_LOADING_MESSAGES[0];
+      if (GARMIN_TRANSFER_LOADING_MESSAGES.length === 1) {
+        return GARMIN_TRANSFER_LOADING_MESSAGES[0];
       }
-      const candidates = TRAINING_LOADING_MESSAGES.filter((message) => message !== previous);
+      const candidates = GARMIN_TRANSFER_LOADING_MESSAGES.filter((message) => message !== previous);
       const index = Math.floor(Math.random() * candidates.length);
-      return candidates[index] ?? TRAINING_LOADING_MESSAGES[0];
+      return candidates[index] ?? GARMIN_TRANSFER_LOADING_MESSAGES[0];
     };
 
     setSendLoadingMessage((prev) => selectRandomMessage(prev));

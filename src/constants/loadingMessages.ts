@@ -1,4 +1,27 @@
 export const TRAINING_LOADING_MESSAGES: string[] = [
+  "🧠 Calcul des watts nécessaires pour vaincre ton canapé…",
+  "🚴‍♂️ Je vérifie si ton vélo est prêt à souffrir…",
+  "🥵 Synchronisation des gouttes de sueur prévues…",
+  "🏋️‍♀️ Téléchargement de la motivation… (ça peut prendre un moment)",
+  "⏳ Ajustement du karma sportif… patience, athlète !",
+  "💪 Chargement des quadriceps à 82 %…",
+  "🍌 Épluchage de la banane pré-entraînement…",
+  "😎 Vérification de ton niveau de badassitude…",
+  "🔥 Calibration de la douleur “qui fait du bien”…",
+  "🤖 L’IA s’étire avant de te proposer une séance.",
+  "🧘‍♂️ Respire… ton entraînement arrive, pas ton jugement dernier.",
+  "🎧 Choix de la playlist “Je vais transpirer élégamment”.",
+  "🩳 Vérification du short : prêt, propre, ou approximatif ?",
+  "🧩 Assemblage du plan parfait pour te faire dire “jamais plus”.",
+  "🧃 Mélange des électrolytes imaginaires…",
+  "🕺 Petit échauffement du code source…",
+  "🚀 Mise en orbite de ton mental de champion.",
+  "🦵 Calcul du risque de courbatures demain matin…",
+  "🧊 Refroidissement anticipé des mollets en prévision.",
+  "🥇 Ajustement du mode “je ne lâche rien”.",
+];
+
+export const GARMIN_TRANSFER_LOADING_MESSAGES: string[] = [
   "📡 Envoi de ta séance à Garmin… avec amour (et un peu de sueur numérique).",
   "🛰️ Connexion avec les satellites… ils te jugent gentiment.",
   "🤖 Négociation avec Garmin : “Non, il ne veut pas un mode facile.”",
