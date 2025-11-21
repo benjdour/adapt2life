@@ -10,21 +10,23 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
 const contactSchema = z.object({
-  name: z.string().min(2, "Merci d’indiquer votre nom."),
+  firstName: z.string().min(2, "Merci d’indiquer votre prénom."),
+  lastName: z.string().min(2, "Merci d’indiquer votre nom."),
   email: z.string().email("Adresse e-mail invalide."),
   subject: z.string().min(3, "Merci d’ajouter un objet."),
   message: z.string().min(10, "Merci de détailler votre message."),
 });
 
 type FormState = {
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   subject: string;
   message: string;
 };
 
 export default function ContactPage() {
-  const [formState, setFormState] = useState<FormState>({ name: "", email: "", subject: "", message: "" });
+  const [formState, setFormState] = useState<FormState>({ firstName: "", lastName: "", email: "", subject: "", message: "" });
   const [status, setStatus] = useState<{ type: "success" | "error" | null; message?: string }>({ type: null });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -61,7 +63,7 @@ export default function ContactPage() {
 
       window.location.href = data.mailto;
       setStatus({ type: "success", message: "Votre logiciel de messagerie va s’ouvrir." });
-      setFormState({ name: "", email: "", subject: "", message: "" });
+      setFormState({ firstName: "", lastName: "", email: "", subject: "", message: "" });
     } catch (error) {
       setStatus({
         type: "error",
@@ -89,13 +91,33 @@ export default function ContactPage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid gap-4 md:grid-cols-2">
               <div>
-                <label htmlFor="name" className="text-sm font-semibold text-foreground">
-                  Nom
+                <label htmlFor="firstName" className="text-sm font-semibold text-foreground">
+                  Prénom
                 </label>
-                <Input id="name" name="name" value={formState.name} onChange={handleChange} placeholder="Ex. Marie Dupont" />
+                <Input
+                  id="firstName"
+                  name="firstName"
+                  value={formState.firstName}
+                  onChange={handleChange}
+                  placeholder="Ex. Marie"
+                />
               </div>
 
               <div>
+                <label htmlFor="lastName" className="text-sm font-semibold text-foreground">
+                  Nom
+                </label>
+                <Input
+                  id="lastName"
+                  name="lastName"
+                  value={formState.lastName}
+                  onChange={handleChange}
+                  placeholder="Ex. Dupont"
+                />
+              </div>
+            </div>
+
+            <div>
                 <label htmlFor="email" className="text-sm font-semibold text-foreground">
                   E-mail
                 </label>
