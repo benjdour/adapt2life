@@ -14,7 +14,6 @@ import { saveGarminWorkoutForUser } from "@/lib/services/userGeneratedArtifacts"
 import { getAiModelCandidates } from "@/lib/services/aiModelConfig";
 import { shouldUseExerciseTool, EXERCISE_TOOL_FEATURE_ENABLED } from "@/lib/ai/exercisePolicy";
 import { parseJsonWithCodeFence } from "@/lib/utils/jsonCleanup";
-import type { GarminExerciseSport } from "@/constants/garminExerciseData";
 import { buildGarminExerciseCatalogSnippet } from "@/lib/garminExercises";
 import {
   inferExerciseSportsFromMarkdown,
@@ -22,7 +21,6 @@ import {
   isFallbackExerciseSportsList,
 } from "@/lib/garmin/exerciseInference";
 import { getGarminAiClients, type GarminAiResult } from "@/lib/ai/garminAiClient";
-import { extractMessageText, type OpenRouterChoice, type OpenRouterResponse } from "@/lib/ai/openRouterResponse";
 
 const REQUEST_SCHEMA = z.object({
   exampleMarkdown: z

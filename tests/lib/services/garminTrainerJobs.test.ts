@@ -143,7 +143,7 @@ describe("convertPlanMarkdownForUser", () => {
     mockGetAiModelCandidates.mockResolvedValue(["test-model"]);
     mockBuildExerciseCatalogSnippet.mockReturnValue("[CATALOG]");
     mockInferPrimarySportFromMarkdown.mockReturnValue(null);
-    mockIsFallbackExerciseSportsList.mockImplementation((sports) => {
+    mockIsFallbackExerciseSportsList.mockImplementation((sports: GarminExerciseSport[] | null | undefined) => {
       if (!sports || sports.length === 0) {
         return true;
       }
@@ -151,7 +151,7 @@ describe("convertPlanMarkdownForUser", () => {
         return false;
       }
       const fallbackSet = new Set(FALLBACK_SPORTS);
-      return sports.every((sport) => fallbackSet.has(sport as GarminExerciseSport));
+      return sports.every((sport: GarminExerciseSport) => fallbackSet.has(sport));
     });
   });
 
