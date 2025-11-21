@@ -272,7 +272,7 @@ const ensureOwnerIdType = (garminUserId: string): string | number => {
   return garminUserId;
 };
 
-const logger = createLogger("garmin-trainer-jobs");
+const baseLogger = createLogger("garmin-trainer-jobs");
 const DEFAULT_JOB_TIMEOUT_MS = Number(process.env.GARMIN_TRAINER_JOB_TIMEOUT_MS ?? "600000");
 const FETCH_TIMEOUT_MS = Number(process.env.GARMIN_TRAINER_FETCH_TIMEOUT_MS ?? "120000");
 
@@ -284,6 +284,7 @@ const updateJob = async (jobId: number, values: Partial<typeof garminTrainerJobs
 };
 
 const convertPlanMarkdownForUser = async (userId: number, planMarkdown: string) => {
+  const logger = baseLogger.child({ userId });
   const connection = await fetchGarminConnectionByUserId(userId);
   if (!connection) {
     throw new Error("Aucune connexion Garmin trouvée pour cet utilisateur.");
@@ -346,7 +347,7 @@ const convertPlanMarkdownForUser = async (userId: number, planMarkdown: string) 
     throw new Error("Réponse IA vide.");
   }
 
-  logger.info("garmin trainer job conversion completed", { userId, useExerciseTool });
+  logger.info("garmin trainer job conversion completed", { useExerciseTool });
 
   const parsedResult = parseJsonWithCodeFence(aiResult.rawText);
   if (!parsedResult) {
@@ -387,7 +388,7 @@ const convertPlanMarkdownForUser = async (userId: number, planMarkdown: string) 
   }
 
   await saveGarminWorkoutForUser(userId, validation.data as Record<string, unknown>);
-  logger.info("garmin trainer job workout saved", { userId });
+  logger.info("garmin trainer job workout saved");
 
   return {
     workout: validation.data as GarminTrainerWorkout,
@@ -396,12 +397,13 @@ const convertPlanMarkdownForUser = async (userId: number, planMarkdown: string) 
 };
 
 const pushWorkoutForUser = async (userId: number, workout: GarminTrainerWorkout) => {
+  const logger = baseLogger.child({ userId });
   const garminConnection = await fetchGarminConnectionByUserId(userId);
   if (!garminConnection) {
     throw new Error("Aucune connexion Garmin trouvée pour cet utilisateur. Connecte ton compte Garmin puis réessaie.");
   }
 
-  logger.info("garmin trainer job push started", { userId });
+  logger.info("garmin trainer job push started");
   const { accessToken, connection } = await ensureGarminAccessToken(garminConnection);
   const garminUserId = connection.garminUserId;
 
@@ -419,7 +421,7 @@ const pushWorkoutForUser = async (userId: number, workout: GarminTrainerWorkout)
     workoutSourceId: normalizeSourceField(workout.workoutSourceId, "Adapt2Life"),
   };
 
-  logger.info("garmin trainer job push creating workout", { userId, garminUserId });
+  logger.info("garmin trainer job push creating workout", { garminUserId });
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   const createResponse = await fetch("https://apis.garmin.com/workoutportal/workout/v2", {
@@ -474,7 +476,7 @@ const pushWorkoutForUser = async (userId: number, workout: GarminTrainerWorkout)
 
   const scheduleDate = new Date().toISOString().slice(0, 10);
 
-  logger.info("garmin trainer job push scheduling workout", { userId, garminUserId, workoutId, scheduleDate });
+  logger.info("garmin trainer job push scheduling workout", { garminUserId, workoutId, scheduleDate });
   const scheduleController = new AbortController();
   const scheduleTimeoutId = setTimeout(() => scheduleController.abort(), FETCH_TIMEOUT_MS);
   const scheduleResponse = await fetch("https://apis.garmin.com/training-api/schedule/", {
@@ -522,7 +524,7 @@ const pushWorkoutForUser = async (userId: number, workout: GarminTrainerWorkout)
       schedule: scheduleJson ?? scheduleText ?? null,
     },
   };
-  logger.info("garmin trainer job push completed", { userId, garminUserId, workoutId });
+  logger.info("garmin trainer job push completed", { garminUserId, workoutId });
   return result;
 };
 
@@ -596,8 +598,9 @@ export const hasGarminTrainerJobTimedOut = (
 };
 
 const processJob = async (job: { id: number; userId: number; planMarkdown: string }) => {
+  const logger = baseLogger.child({ jobId: job.id, userId: job.userId });
   await updateJob(job.id, { status: "processing" });
-  logger.info("garmin trainer job processing started", { jobId: job.id, userId: job.userId });
+  logger.info("garmin trainer job processing started");
   try {
     const conversion = await convertPlanMarkdownForUser(job.userId, job.planMarkdown);
     const pushResult = await pushWorkoutForUser(job.userId, conversion.workout);
@@ -614,7 +617,7 @@ const processJob = async (job: { id: number; userId: number; planMarkdown: strin
       aiRawResponse: conversion.raw,
       aiDebugPayload: null,
     });
-    logger.info("garmin trainer job completed", { jobId: job.id, userId: job.userId, workoutId: pushResult.workoutId });
+    logger.info("garmin trainer job completed", { workoutId: pushResult.workoutId });
   } catch (error) {
     if (error instanceof GarminConversionError) {
       logger.error("garmin trainer job failed", {
