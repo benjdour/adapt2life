@@ -46,25 +46,53 @@ const extractRequestId = (headers?: Headers): string | null => {
   return null;
 };
 
+type LoggerContext = Record<string, unknown>;
+
 export type Logger = {
   reqId: string;
   scope: string;
-  info: (message: string, data?: Record<string, unknown>) => void;
-  warn: (message: string, data?: Record<string, unknown>) => void;
-  error: (message: string, data?: Record<string, unknown>) => void;
+  info: (message: string, data?: LoggerContext) => void;
+  warn: (message: string, data?: LoggerContext) => void;
+  error: (message: string, data?: LoggerContext) => void;
+  child: (context: LoggerContext) => Logger;
 };
 
-const outputLog = (level: LogLevel, scope: string, reqId: string, message: string, data?: Record<string, unknown>) => {
+const outputLog = (
+  level: LogLevel,
+  scope: string,
+  reqId: string,
+  message: string,
+  baseContext?: LoggerContext,
+  data?: LoggerContext,
+) => {
+  const combined = { ...(baseContext ?? {}), ...(data ?? {}) };
   const payload = {
     ts: new Date().toISOString(),
     level,
     scope,
     reqId,
     message,
-    ...sanitizeData(data),
+    ...sanitizeData(combined),
   };
   LOG_METHOD[level](JSON.stringify(payload));
 };
+
+const createInternalLogger = (
+  scope: string,
+  reqId: string,
+  baseContext?: LoggerContext,
+): Logger => ({
+  reqId,
+  scope,
+  info: (message, data) => outputLog("info", scope, reqId, message, baseContext, data),
+  warn: (message, data) => outputLog("warn", scope, reqId, message, baseContext, data),
+  error: (message, data) => outputLog("error", scope, reqId, message, baseContext, data),
+  child: (context) =>
+    createInternalLogger(scope, reqId, {
+      ...(baseContext ?? {}),
+      ...context,
+    }),
+});
 
 export const createLogger = (
   scope: string,
@@ -72,11 +100,5 @@ export const createLogger = (
 ): Logger => {
   const reqId = options?.requestId ?? extractRequestId(options?.headers) ?? randomUUID();
 
-  return {
-    reqId,
-    scope,
-    info: (message, data) => outputLog("info", scope, reqId, message, data),
-    warn: (message, data) => outputLog("warn", scope, reqId, message, data),
-    error: (message, data) => outputLog("error", scope, reqId, message, data),
-  };
+  return createInternalLogger(scope, reqId);
 };
