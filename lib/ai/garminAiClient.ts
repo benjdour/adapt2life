@@ -23,6 +23,11 @@ export type GarminAiClient = {
   generate: (request: GenerateRequest) => Promise<GarminAiResult>;
 };
 
+const REASONING_MODEL_PATTERNS = [/gpt-5\.1/i, /gpt-4\.1/i, /reasoning/i];
+
+const modelSupportsTemperature = (modelId: string): boolean =>
+  !REASONING_MODEL_PATTERNS.some((pattern) => pattern.test(modelId));
+
 export const createClassicGarminAiClient = (): GarminAiClient => ({
   async generate({ basePrompt, systemPrompt, modelIds, referer, temperature = 0.7, maxOutputTokens = 32_768 }) {
     let lastError: AiRequestError | null = null;
@@ -99,14 +104,20 @@ export const createStrictGarminAiClient = (): GarminAiClient => ({
 
     for (const modelId of modelIds) {
       try {
-        const result = await generateText({
+        const allowTemperature = modelSupportsTemperature(modelId);
+        const generateParams: Parameters<typeof generateText>[0] = {
           model: openai(modelId),
           system: systemPrompt,
           prompt: basePrompt,
           tools: { exercise_lookup: exerciseLookupTool },
-          temperature,
           maxOutputTokens,
-        });
+        };
+
+        if (allowTemperature) {
+          generateParams.temperature = temperature;
+        }
+
+        const result = await generateText(generateParams);
 
         const text = (result.text ?? "").trim();
         let rawText = text;
