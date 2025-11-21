@@ -493,6 +493,7 @@ export const Segment = z
   .object({
     segmentOrder: z.number().int().positive(),
     sport: Sport,
+    description: z.string().max(512).nullable().optional(),
     estimatedDurationInSecs: nullable(z.number().nonnegative()),
     estimatedDistanceInMeters: nullable(z.number()),
     poolLength: nullable(z.number()),
