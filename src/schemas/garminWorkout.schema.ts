@@ -548,13 +548,6 @@ export const Segment = z
           }
         }
         if (step.type === "WorkoutRepeatStep") {
-          if (step.skipLastRestStep !== true) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: "Natation => skipLastRestStep doit être true pour les WorkoutRepeatStep.",
-              path: [...path, "skipLastRestStep"],
-            });
-          }
           step.steps.forEach((child, childIndex) => {
             ensureSwimCompliance(child, [...path, "steps", childIndex]);
           });
