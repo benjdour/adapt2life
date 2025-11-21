@@ -76,8 +76,8 @@ GARMIN_TRAINER_MODEL=openai/gpt-5                # optionnel
 GARMIN_TRAINER_SYSTEM_PROMPT="..."               # optionnel
 GARMIN_TRAINER_PROMPT="..."                      # peut aussi provenir de docs/garmin_trainer_prompt.txt
 
-# Debug front & outils
-DEBUG_GENERATOR_USER_IDS=user-id-1,user-id-2
+# Admin front
+ADMIN_MENU_USER_IDS=user-id-1,user-id-2
 ```
 
 `CRON_SECRET` alimente l’en-tête `x-cron-secret` attendu par `/api/cron/garmin/women-health/pull` (par exemple depuis un job Vercel Cron toutes les 12 h).

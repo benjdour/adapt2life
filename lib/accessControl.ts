@@ -4,15 +4,9 @@ const parseIdList = (value: string | undefined): string[] =>
     .map((entry) => entry.trim())
     .filter(Boolean);
 
-const debugUserIds = parseIdList(process.env.DEBUG_GENERATOR_USER_IDS);
+const adminUserIds = parseIdList(process.env.ADMIN_MENU_USER_IDS ?? process.env.DEBUG_GENERATOR_USER_IDS);
 
-export const DEBUG_GENERATOR_USER_IDS = new Set(debugUserIds);
-export const ADMIN_MENU_USER_IDS = new Set(debugUserIds);
-
-export const canAccessDebugGenerator = (userId?: string | null): boolean => {
-  if (!userId) return false;
-  return DEBUG_GENERATOR_USER_IDS.has(userId);
-};
+export const ADMIN_MENU_USER_IDS = new Set(adminUserIds);
 
 export const canAccessAdminArea = (userId?: string | null): boolean => {
   if (!userId) return false;

@@ -9,11 +9,10 @@ import { cn } from "@/lib/utils";
 
 type TopNavProps = {
   isAuthenticated: boolean;
-  showDebugLink?: boolean;
   showAdminLink?: boolean;
 };
 
-const buildAuthenticatedLinks = (showDebugLink: boolean, showAdminLink: boolean) => {
+const buildAuthenticatedLinks = (showAdminLink: boolean) => {
   const links = [
     { label: "Dashboard", href: "/" },
     { label: "Générateur", href: "/generateur-entrainement" },
@@ -21,10 +20,6 @@ const buildAuthenticatedLinks = (showDebugLink: boolean, showAdminLink: boolean)
     { label: "Profil", href: "/secure/user-information" },
     { label: "Intégration Garmin", href: "/integrations/garmin" },
   ];
-
-  if (showDebugLink) {
-    links.push({ label: "Générateur debug", href: "/generateur-debug" });
-  }
 
   if (showAdminLink) {
     links.push({ label: "Admin", href: "/admin" });
@@ -40,9 +35,9 @@ const guestLinks = [
   { label: "Contact", href: "/contact" },
 ];
 
-export const TopNav = ({ isAuthenticated, showDebugLink = false, showAdminLink = false }: TopNavProps) => {
+export const TopNav = ({ isAuthenticated, showAdminLink = false }: TopNavProps) => {
   const [isOpen, setIsOpen] = useState(false);
-  const links = isAuthenticated ? buildAuthenticatedLinks(showDebugLink, showAdminLink) : guestLinks;
+  const links = isAuthenticated ? buildAuthenticatedLinks(showAdminLink) : guestLinks;
 
   const handleSignOut = () => {
     const form = document.createElement("form");
