@@ -75,6 +75,7 @@ OPENROUTER_CHAT_PATH=/chat/completions            # optionnel
 GARMIN_TRAINER_MODEL=openai/gpt-5                # optionnel
 GARMIN_TRAINER_SYSTEM_PROMPT="..."               # optionnel
 GARMIN_TRAINER_PROMPT="..."                      # peut aussi provenir de docs/garmin_trainer_prompt.txt
+GARMIN_TRAINER_JOB_TIMEOUT_MS=300000             # optionnel (5 min par défaut)
 
 # Admin front
 ADMIN_MENU_USER_IDS=user-id-1,user-id-2
@@ -100,6 +101,7 @@ ADMIN_MENU_USER_IDS=user-id-1,user-id-2
 - `npm run verify` : pipeline CI complet (lint + typecheck + tests + audit)
 - `npm run db:push` : pousse le schéma sur la base cible via Drizzle
 - `npm run validate:workout` : valide un JSON d’entraînement via `scripts/validateWorkout.ts`
+- `npm run test -- --coverage` : exécute la suite Vitest avec coverage (installer `@vitest/coverage-v8` localement pour générer le rapport).
 
 ## Base de données (Drizzle)
 
@@ -115,6 +117,7 @@ La stack de tests s’appuie sur Vitest + Testing Library.
 - `npm run test` : tests unitaires (helpers, composants, lib).
 - `npm run test:routes` : tests d’API Next.js (ex : `/api/training-plan`).
 - `npm run test:garmin` : couverture dédiée aux flux Garmin (OAuth, webhooks, librairies).
+- `npm run test -- --coverage` : génère un rapport de couverture (nécessite `@vitest/coverage-v8`).
 
 Les dossiers `tests/app`, `tests/components` et `tests/lib` couvrent respectivement les routes, les composants et la logique partagée.
 
@@ -158,6 +161,14 @@ L’endpoint `/api/garmin-trainer` convertit une description Markdown "humaine" 
 - `GARMIN_TRAINER_MODEL` et `GARMIN_TRAINER_SYSTEM_PROMPT` sont optionnels (défaut : `openai/gpt-5` + prompt système local).
 - Les métadonnées Stack (`ownerId`) sont récupérées côté serveur pour contextualiser la génération et lier un utilisateur local si nécessaire.
 - En cas de surcharge OpenRouter (429), une réponse explicite est renvoyée au client pour ajuster la fréquence des requêtes.
+- Les jobs `/api/garmin-trainer/jobs` sont traités en arrière-plan (`lib/services/garminTrainerJobs.ts`) avec un timeout configurable (`GARMIN_TRAINER_JOB_TIMEOUT_MS`, 5 min par défaut). Au-delà, le job passe en `failed` avec un message invitant à relancer.
+
+# Pages publiques
+
+- `/features` : présentation des fonctionnalités clés.
+- `/how-it-works` : processus en 4 étapes + CTA.
+- `/faq` : 20 questions/réponses avec schema FAQ pour le SEO.
+- `/contact` : formulaire (prénom, nom, email, objet, message) + mailto fallback.
 
 ## Architecture
 
