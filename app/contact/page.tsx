@@ -118,18 +118,17 @@ export default function ContactPage() {
             </div>
 
             <div>
-                <label htmlFor="email" className="text-sm font-semibold text-foreground">
-                  E-mail
-                </label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={formState.email}
-                  onChange={handleChange}
-                  placeholder="exemple@adapt2life.app"
-                />
-              </div>
+              <label htmlFor="email" className="text-sm font-semibold text-foreground">
+                E-mail
+              </label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                value={formState.email}
+                onChange={handleChange}
+                placeholder="exemple@adapt2life.app"
+              />
             </div>
 
             <div>
