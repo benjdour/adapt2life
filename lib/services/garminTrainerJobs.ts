@@ -285,6 +285,7 @@ const updateJob = async (jobId: number, values: Partial<typeof garminTrainerJobs
 
 const convertPlanMarkdownForUser = async (userId: number, planMarkdown: string) => {
   const logger = baseLogger.child({ userId });
+  logger.info("garmin trainer job conversion started");
   const connection = await fetchGarminConnectionByUserId(userId);
   if (!connection) {
     throw new Error("Aucune connexion Garmin trouvée pour cet utilisateur.");
