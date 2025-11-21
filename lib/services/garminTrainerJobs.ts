@@ -215,6 +215,9 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
       }
 
       const step = { ...(entry as Record<string, unknown>) };
+      if (isSwim && step.type === "WorkoutRepeatStep") {
+        step.skipLastRestStep = false;
+      }
       ensureCadenceTargets(step);
       ensureRestDescriptions(step);
 
@@ -248,7 +251,7 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
     }
     const sportType = typeof segmentRecord.sportType === "string" ? segmentRecord.sportType : null;
 
-    const isSwim = sportType === "swimming" || sportType === "pool_swimming";
+    const isSwim = sportType === "swimming" || sportType === "pool_swimming" || segmentRecord.sport === "LAP_SWIMMING";
     segmentRecord.steps = normalizeSteps(segmentRecord.steps, isSwim);
 
     if (isSwim && !segmentRecord.poolLength && swimSegmentPoolValues.length > 0) {
