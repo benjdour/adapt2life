@@ -10,7 +10,7 @@ import { fetchGarminConnectionByUserId, ensureGarminAccessToken } from "@/lib/se
 import { saveGarminWorkoutForUser } from "@/lib/services/userGeneratedArtifacts";
 import { getAiModelCandidates } from "@/lib/services/aiModelConfig";
 import { parseJsonWithCodeFence } from "@/lib/utils/jsonCleanup";
-import { createLogger } from "@/lib/logger";
+import { createLogger, type Logger } from "@/lib/logger";
 import { buildGarminExerciseCatalogSnippet } from "@/lib/garminExercises";
 import { shouldUseExerciseTool, EXERCISE_TOOL_FEATURE_ENABLED } from "@/lib/ai/exercisePolicy";
 import {
@@ -283,18 +283,23 @@ const updateJob = async (jobId: number, values: Partial<typeof garminTrainerJobs
     .where(eq(garminTrainerJobs.id, jobId));
 };
 
-const convertPlanMarkdownForUser = async (userId: number, planMarkdown: string) => {
-  const logger = baseLogger.child({ userId });
-  logger.info("garmin trainer job conversion started");
+const convertPlanMarkdownForUser = async (userId: number, planMarkdown: string, jobLogger?: Logger) => {
+  const logger = jobLogger ?? baseLogger.child({ userId });
+  logger.info("garmin trainer job conversion started", { planLength: planMarkdown.length });
   const connection = await fetchGarminConnectionByUserId(userId);
   if (!connection) {
     throw new Error("Aucune connexion Garmin trouvée pour cet utilisateur.");
   }
+  logger.info("garmin trainer job conversion connection resolved", {
+    garminConnectionId: connection.id ?? null,
+    garminUserId: connection.garminUserId ?? null,
+  });
 
   const promptTemplate = await loadPromptTemplate();
   if (!promptTemplate) {
     throw new Error("Prompt Garmin introuvable. Ajoute la variable GARMIN_TRAINER_PROMPT ou le fichier docs/garmin_trainer_prompt.txt.");
   }
+  logger.info("garmin trainer job conversion prompt loaded");
 
   const ownerInstruction = `Utilise strictement "ownerId": "${connection.garminUserId}" (premier champ du JSON) et ne modifie jamais cette valeur.`;
   const basePrompt = [ownerInstruction, buildFinalPrompt(promptTemplate, planMarkdown.trim())].join("\n\n");
@@ -309,6 +314,7 @@ const convertPlanMarkdownForUser = async (userId: number, planMarkdown: string) 
     primarySportSupportsTool;
 
   const candidateModels = await getAiModelCandidates("garmin-trainer");
+  logger.info("garmin trainer job conversion candidates resolved", { candidateModels });
   const systemPrompt = process.env.GARMIN_TRAINER_SYSTEM_PROMPT ??
     "Tu es un assistant spécialisé dans la préparation d’entraînements Garmin pour Adapt2Life. Analyse l’exemple fourni et applique fidèlement les instructions du prompt utilisateur.";
 
@@ -319,6 +325,7 @@ const convertPlanMarkdownForUser = async (userId: number, planMarkdown: string) 
 
   try {
     if (useExerciseTool) {
+      logger.info("garmin trainer job conversion invoking strict client", { candidateModels });
       aiResult = await strictClient.generate({
         basePrompt,
         systemPrompt,
@@ -333,6 +340,7 @@ const convertPlanMarkdownForUser = async (userId: number, planMarkdown: string) 
       });
       const userPrompt = [basePrompt, exerciseCatalogSnippet].join("\n\n");
 
+      logger.info("garmin trainer job conversion invoking classic client", { candidateModels, promptLength: userPrompt.length });
       aiResult = await classicClient.generate({
         basePrompt: userPrompt,
         systemPrompt,
@@ -341,6 +349,7 @@ const convertPlanMarkdownForUser = async (userId: number, planMarkdown: string) 
       });
     }
   } catch (error) {
+    logger.error("garmin trainer job conversion request failed", { error });
     throw error instanceof Error ? error : new Error(String(error));
   }
 
@@ -397,8 +406,8 @@ const convertPlanMarkdownForUser = async (userId: number, planMarkdown: string) 
   };
 };
 
-const pushWorkoutForUser = async (userId: number, workout: GarminTrainerWorkout) => {
-  const logger = baseLogger.child({ userId });
+const pushWorkoutForUser = async (userId: number, workout: GarminTrainerWorkout, jobLogger?: Logger) => {
+  const logger = jobLogger ?? baseLogger.child({ userId });
   const garminConnection = await fetchGarminConnectionByUserId(userId);
   if (!garminConnection) {
     throw new Error("Aucune connexion Garmin trouvée pour cet utilisateur. Connecte ton compte Garmin puis réessaie.");
@@ -407,6 +416,7 @@ const pushWorkoutForUser = async (userId: number, workout: GarminTrainerWorkout)
   logger.info("garmin trainer job push started");
   const { accessToken, connection } = await ensureGarminAccessToken(garminConnection);
   const garminUserId = connection.garminUserId;
+  logger.info("garmin trainer job push token resolved", { garminUserId });
 
   const normalizeSourceField = (value: unknown, fallback: string): string => {
     if (typeof value === "string" && value.trim().length > 0) {
@@ -425,17 +435,28 @@ const pushWorkoutForUser = async (userId: number, workout: GarminTrainerWorkout)
   logger.info("garmin trainer job push creating workout", { garminUserId });
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-  const createResponse = await fetch("https://apis.garmin.com/workoutportal/workout/v2", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    },
-    body: JSON.stringify(workoutPayload),
-    signal: controller.signal,
-  }).finally(() => {
+  const createStartedAt = Date.now();
+  let createResponse: Response;
+  try {
+    createResponse = await fetch("https://apis.garmin.com/workoutportal/workout/v2", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify(workoutPayload),
+      signal: controller.signal,
+    });
+  } catch (error) {
+    logger.error("garmin trainer job push create request failed", { error });
+    throw error;
+  } finally {
     clearTimeout(timeoutId);
+  }
+  logger.info("garmin trainer job push workout response", {
+    status: createResponse.status,
+    durationMs: Date.now() - createStartedAt,
   });
 
   const createText = await createResponse.text();
@@ -480,20 +501,31 @@ const pushWorkoutForUser = async (userId: number, workout: GarminTrainerWorkout)
   logger.info("garmin trainer job push scheduling workout", { garminUserId, workoutId, scheduleDate });
   const scheduleController = new AbortController();
   const scheduleTimeoutId = setTimeout(() => scheduleController.abort(), FETCH_TIMEOUT_MS);
-  const scheduleResponse = await fetch("https://apis.garmin.com/training-api/schedule/", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    },
-    body: JSON.stringify({
-      workoutId,
-      date: scheduleDate,
-    }),
-    signal: scheduleController.signal,
-  }).finally(() => {
+  const scheduleStartedAt = Date.now();
+  let scheduleResponse: Response;
+  try {
+    scheduleResponse = await fetch("https://apis.garmin.com/training-api/schedule/", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({
+        workoutId,
+        date: scheduleDate,
+      }),
+      signal: scheduleController.signal,
+    });
+  } catch (error) {
+    logger.error("garmin trainer job push schedule request failed", { error });
+    throw error;
+  } finally {
     clearTimeout(scheduleTimeoutId);
+  }
+  logger.info("garmin trainer job push schedule response", {
+    status: scheduleResponse.status,
+    durationMs: Date.now() - scheduleStartedAt,
   });
 
   const scheduleText = await scheduleResponse.text();
@@ -604,8 +636,8 @@ const processJob = async (job: { id: number; userId: number; planMarkdown: strin
   await updateJob(job.id, { status: "processing" });
   logger.info("garmin trainer job processing started");
   try {
-    const conversion = await convertPlanMarkdownForUser(job.userId, job.planMarkdown);
-    const pushResult = await pushWorkoutForUser(job.userId, conversion.workout);
+    const conversion = await convertPlanMarkdownForUser(job.userId, job.planMarkdown, logger);
+    const pushResult = await pushWorkoutForUser(job.userId, conversion.workout, logger);
 
     await updateJob(job.id, {
       status: "success",
