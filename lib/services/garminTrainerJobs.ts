@@ -343,6 +343,8 @@ const convertPlanMarkdownForUser = async (userId: number, planMarkdown: string) 
     throw new Error("Réponse IA vide.");
   }
 
+  logger.info("garmin trainer job conversion completed", { userId, useExerciseTool });
+
   const parsedResult = parseJsonWithCodeFence(aiResult.rawText);
   if (!parsedResult) {
     throw new GarminConversionError("JSON invalide renvoyé par l’IA : impossible de parser la réponse.", {
@@ -382,6 +384,7 @@ const convertPlanMarkdownForUser = async (userId: number, planMarkdown: string) 
   }
 
   await saveGarminWorkoutForUser(userId, validation.data as Record<string, unknown>);
+  logger.info("garmin trainer job workout saved", { userId });
 
   return {
     workout: validation.data as GarminTrainerWorkout,
@@ -582,6 +585,7 @@ export const hasGarminTrainerJobTimedOut = (
 
 const processJob = async (job: { id: number; userId: number; planMarkdown: string }) => {
   await updateJob(job.id, { status: "processing" });
+  logger.info("garmin trainer job processing started", { jobId: job.id, userId: job.userId });
   try {
     const conversion = await convertPlanMarkdownForUser(job.userId, job.planMarkdown);
     const pushResult = await pushWorkoutForUser(job.userId, conversion.workout);
@@ -598,6 +602,7 @@ const processJob = async (job: { id: number; userId: number; planMarkdown: strin
       aiRawResponse: conversion.raw,
       aiDebugPayload: null,
     });
+    logger.info("garmin trainer job completed", { jobId: job.id, userId: job.userId, workoutId: pushResult.workoutId });
   } catch (error) {
     if (error instanceof GarminConversionError) {
       logger.error("garmin trainer job failed", {

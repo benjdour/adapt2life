@@ -552,6 +552,11 @@ export async function POST(request: NextRequest) {
     hasLocalUser: Boolean(ownerContext.localUserId),
   });
 
+  logger.info("garmin trainer conversion requested", {
+    ownerId: ownerContext.ownerId ?? null,
+    hasLocalUser: Boolean(ownerContext.localUserId),
+  });
+
   const promptTemplate = await loadPromptTemplate();
   if (!promptTemplate) {
     return NextResponse.json(
@@ -635,9 +640,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Réponse IA vide.", raw: null }, { status: 502 });
   }
 
+  logger.info("garmin trainer conversion response received", { useExerciseTool, modelIds: modelCandidates });
+
   rawContent = aiResult.rawText;
 
   if (!useExerciseTool && !aiResult.data && aiResult.parseError) {
+    logger.warn("garmin trainer conversion returned invalid JSON", { useExerciseTool, rawLength: rawContent.length });
     return NextResponse.json(
       {
         raw: rawContent,
