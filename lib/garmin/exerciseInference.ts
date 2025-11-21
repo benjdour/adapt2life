@@ -29,7 +29,18 @@ const EXERCISE_SPORT_HINTS: Record<GarminExerciseSport, RegExp[]> = {
 const PRIMARY_SPORT_HINTS: Array<{ sport: string; patterns: RegExp[] }> = [
   {
     sport: "LAP_SWIMMING",
-    patterns: [/🏊/u, /natation/i, /swim/i, /piscine/i, /palme/i],
+    patterns: [
+      /🏊/u,
+      /natation/i,
+      /swim/i,
+      /piscine/i,
+      /palme/i,
+      /nage/i,
+      /crawl/i,
+      /dos\s*crawl/i,
+      /brasse/i,
+      /eau\s*libre/i,
+    ],
   },
   {
     sport: "CYCLING",
