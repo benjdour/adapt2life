@@ -75,7 +75,7 @@ OPENROUTER_CHAT_PATH=/chat/completions            # optionnel
 GARMIN_TRAINER_MODEL=openai/gpt-5                # optionnel
 GARMIN_TRAINER_SYSTEM_PROMPT="..."               # optionnel
 GARMIN_TRAINER_PROMPT="..."                      # peut aussi provenir de docs/garmin_trainer_prompt.txt
-GARMIN_TRAINER_JOB_TIMEOUT_MS=300000             # optionnel (5 min par défaut)
+GARMIN_TRAINER_JOB_TIMEOUT_MS=600000             # optionnel (10 min par défaut)
 
 # Admin front
 ADMIN_MENU_USER_IDS=user-id-1,user-id-2
@@ -161,7 +161,7 @@ L’endpoint `/api/garmin-trainer` convertit une description Markdown "humaine" 
 - `GARMIN_TRAINER_MODEL` et `GARMIN_TRAINER_SYSTEM_PROMPT` sont optionnels (défaut : `openai/gpt-5` + prompt système local).
 - Les métadonnées Stack (`ownerId`) sont récupérées côté serveur pour contextualiser la génération et lier un utilisateur local si nécessaire.
 - En cas de surcharge OpenRouter (429), une réponse explicite est renvoyée au client pour ajuster la fréquence des requêtes.
-- Les jobs `/api/garmin-trainer/jobs` sont traités en arrière-plan (`lib/services/garminTrainerJobs.ts`) avec un timeout configurable (`GARMIN_TRAINER_JOB_TIMEOUT_MS`, 5 min par défaut). Au-delà, le job passe en `failed` avec un message invitant à relancer.
+- Les jobs `/api/garmin-trainer/jobs` sont traités en arrière-plan (`lib/services/garminTrainerJobs.ts`) avec un timeout configurable (`GARMIN_TRAINER_JOB_TIMEOUT_MS`, 10 min par défaut). Au-delà, le job passe en `failed` avec un message invitant à relancer.
 
 # Pages publiques
 

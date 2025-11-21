@@ -270,7 +270,8 @@ const ensureOwnerIdType = (garminUserId: string): string | number => {
 };
 
 const logger = createLogger("garmin-trainer-jobs");
-const DEFAULT_JOB_TIMEOUT_MS = Number(process.env.GARMIN_TRAINER_JOB_TIMEOUT_MS ?? "300000");
+const DEFAULT_JOB_TIMEOUT_MS = Number(process.env.GARMIN_TRAINER_JOB_TIMEOUT_MS ?? "600000");
+const FETCH_TIMEOUT_MS = Number(process.env.GARMIN_TRAINER_FETCH_TIMEOUT_MS ?? "120000");
 
 const updateJob = async (jobId: number, values: Partial<typeof garminTrainerJobs.$inferInsert>) => {
   await db
@@ -394,6 +395,7 @@ const pushWorkoutForUser = async (userId: number, workout: GarminTrainerWorkout)
     throw new Error("Aucune connexion Garmin trouvée pour cet utilisateur. Connecte ton compte Garmin puis réessaie.");
   }
 
+  logger.info("garmin trainer job push started", { userId });
   const { accessToken, connection } = await ensureGarminAccessToken(garminConnection);
   const garminUserId = connection.garminUserId;
 
@@ -411,6 +413,9 @@ const pushWorkoutForUser = async (userId: number, workout: GarminTrainerWorkout)
     workoutSourceId: normalizeSourceField(workout.workoutSourceId, "Adapt2Life"),
   };
 
+  logger.info("garmin trainer job push creating workout", { userId, garminUserId });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   const createResponse = await fetch("https://apis.garmin.com/workoutportal/workout/v2", {
     method: "POST",
     headers: {
@@ -419,6 +424,9 @@ const pushWorkoutForUser = async (userId: number, workout: GarminTrainerWorkout)
       Accept: "application/json",
     },
     body: JSON.stringify(workoutPayload),
+    signal: controller.signal,
+  }).finally(() => {
+    clearTimeout(timeoutId);
   });
 
   const createText = await createResponse.text();
@@ -460,6 +468,9 @@ const pushWorkoutForUser = async (userId: number, workout: GarminTrainerWorkout)
 
   const scheduleDate = new Date().toISOString().slice(0, 10);
 
+  logger.info("garmin trainer job push scheduling workout", { userId, garminUserId, workoutId, scheduleDate });
+  const scheduleController = new AbortController();
+  const scheduleTimeoutId = setTimeout(() => scheduleController.abort(), FETCH_TIMEOUT_MS);
   const scheduleResponse = await fetch("https://apis.garmin.com/training-api/schedule/", {
     method: "POST",
     headers: {
@@ -471,6 +482,9 @@ const pushWorkoutForUser = async (userId: number, workout: GarminTrainerWorkout)
       workoutId,
       date: scheduleDate,
     }),
+    signal: scheduleController.signal,
+  }).finally(() => {
+    clearTimeout(scheduleTimeoutId);
   });
 
   const scheduleText = await scheduleResponse.text();
@@ -494,7 +508,7 @@ const pushWorkoutForUser = async (userId: number, workout: GarminTrainerWorkout)
     throw new Error(errorMessage);
   }
 
-  return {
+  const result = {
     workoutId,
     scheduledFor: scheduleDate,
     garminResponse: {
@@ -502,6 +516,8 @@ const pushWorkoutForUser = async (userId: number, workout: GarminTrainerWorkout)
       schedule: scheduleJson ?? scheduleText ?? null,
     },
   };
+  logger.info("garmin trainer job push completed", { userId, garminUserId, workoutId });
+  return result;
 };
 
 export const createGarminTrainerJob = async (userId: number, planMarkdown: string) => {
