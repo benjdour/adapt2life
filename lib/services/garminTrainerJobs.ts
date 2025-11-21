@@ -672,6 +672,7 @@ export const processGarminTrainerJobById = async (jobId: number) => {
 };
 
 export const triggerGarminTrainerJobProcessing = (jobId: number) => {
+  const logger = baseLogger.child({ jobId });
   processGarminTrainerJobById(jobId).catch((error) => {
     logger.error("garmin trainer job processing failed", { jobId, error });
   });
