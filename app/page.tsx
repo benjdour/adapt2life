@@ -195,7 +195,7 @@ export default async function Home(props: HomePageProps) {
 
   const quickActions = [
     {
-      title: "Générateur IA",
+      title: "Générateur d’entraînements",
       description: "Crée ta séance personnalisée en quelques secondes.",
       href: "/generateur-entrainement",
       buttonLabel: "Lancer",
