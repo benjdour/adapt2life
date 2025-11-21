@@ -267,6 +267,7 @@ const ensureOwnerIdType = (garminUserId: string): string | number => {
 };
 
 const logger = createLogger("garmin-trainer-jobs");
+const DEFAULT_JOB_TIMEOUT_MS = Number(process.env.GARMIN_TRAINER_JOB_TIMEOUT_MS ?? "300000");
 
 const updateJob = async (jobId: number, values: Partial<typeof garminTrainerJobs.$inferInsert>) => {
   await db
@@ -508,7 +509,19 @@ export const createGarminTrainerJob = async (userId: number, planMarkdown: strin
   return job;
 };
 
-export const getGarminTrainerJobForUser = async (jobId: number, userId: number) => {
+export type GarminTrainerJobView = {
+  id: number;
+  status: string;
+  error: string | null;
+  processedAt: Date | null;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+};
+
+export const getGarminTrainerJobForUser = async (
+  jobId: number,
+  userId: number,
+): Promise<GarminTrainerJobView | null> => {
   const [job] = await db
     .select({
       id: garminTrainerJobs.id,
@@ -516,12 +529,36 @@ export const getGarminTrainerJobForUser = async (jobId: number, userId: number) 
       error: garminTrainerJobs.error,
       processedAt: garminTrainerJobs.processedAt,
       createdAt: garminTrainerJobs.createdAt,
+      updatedAt: garminTrainerJobs.updatedAt,
     })
     .from(garminTrainerJobs)
     .where(and(eq(garminTrainerJobs.id, jobId), eq(garminTrainerJobs.userId, userId)))
     .limit(1);
 
   return job ?? null;
+};
+
+export const markGarminTrainerJobFailed = async (jobId: number, errorMessage: string) => {
+  await updateJob(jobId, {
+    status: "failed",
+    error: errorMessage,
+    processedAt: new Date(),
+  });
+};
+
+export const hasGarminTrainerJobTimedOut = (
+  job: GarminTrainerJobView,
+  options?: { timeoutMs?: number },
+): boolean => {
+  if (job.status === "success" || job.status === "failed") {
+    return false;
+  }
+  const timeoutMs = Number.isFinite(options?.timeoutMs) ? Number(options?.timeoutMs) : DEFAULT_JOB_TIMEOUT_MS;
+  const referenceDate = job.updatedAt ?? job.createdAt;
+  if (!referenceDate) {
+    return false;
+  }
+  return Date.now() - referenceDate.getTime() > timeoutMs;
 };
 
 const processJob = async (job: { id: number; userId: number; planMarkdown: string }) => {
