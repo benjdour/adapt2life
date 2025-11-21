@@ -141,7 +141,7 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = 
         rawPlan: fallbackRaw,
       });
       toast.success("Plan généré avec succès", {
-        description: "Tu peux le consulter et le convertir juste en dessous.",
+        description: "Tu peux le consulter et le envoyer juste en dessous.",
       });
     } catch (submissionError) {
       const descriptor = describeAppError(submissionError, "training-plan/request-failed");
