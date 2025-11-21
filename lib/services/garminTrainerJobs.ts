@@ -243,6 +243,9 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
     }
 
     const segmentRecord = { ...(segment as Record<string, unknown>) };
+    if ("segmentId" in segmentRecord) {
+      delete segmentRecord.segmentId;
+    }
     const sportType = typeof segmentRecord.sportType === "string" ? segmentRecord.sportType : null;
 
     const isSwim = sportType === "swimming" || sportType === "pool_swimming";
