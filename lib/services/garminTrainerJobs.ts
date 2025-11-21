@@ -583,7 +583,16 @@ export const hasGarminTrainerJobTimedOut = (
   if (!referenceDate) {
     return false;
   }
-  return Date.now() - referenceDate.getTime() > timeoutMs;
+  const hasTimedOut = Date.now() - referenceDate.getTime() > timeoutMs;
+  if (hasTimedOut) {
+    logger.warn("garmin trainer job timeout reached", {
+      jobId: job.id,
+      status: job.status,
+      referenceDate: referenceDate.toISOString(),
+      timeoutMs,
+    });
+  }
+  return hasTimedOut;
 };
 
 const processJob = async (job: { id: number; userId: number; planMarkdown: string }) => {
