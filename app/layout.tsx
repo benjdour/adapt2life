@@ -33,13 +33,42 @@ const orbitron = Orbitron({
   display: "swap",
 });
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://adapt2life.app";
+
 export const metadata: Metadata = {
   title: "Adapt2Life",
   description: "Your AI-powered training companion",
+  metadataBase: new URL(siteUrl),
   icons: {
     icon: "/favicon.png",
     shortcut: "/favicon.png",
     apple: "/favicon.png",
+  },
+  openGraph: {
+    type: "website",
+    url: siteUrl,
+    title: "Adapt2Life — Ton coach IA connecté à Garmin",
+    description: "Génère des entraînements personnalisés, synchronisés avec ta montre et adaptés à ta réalité.",
+    siteName: "Adapt2Life",
+    images: [
+      {
+        url: `${siteUrl}/brand/og-image.jpg`,
+        width: 1200,
+        height: 630,
+        alt: "Adapt2Life - Coach IA",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    site: "@adapt2life",
+    creator: "@adapt2life",
+    title: "Adapt2Life — Ton coach IA connecté à Garmin",
+    description: "Des entraînements sur mesure, générés par IA et envoyés sur ta montre.",
+    images: [`${siteUrl}/brand/og-image.jpg`],
+  },
+  alternates: {
+    canonical: siteUrl,
   },
 };
 
@@ -65,6 +94,20 @@ export default async function RootLayout({
             <UiToaster />
             <Analytics />
             <SpeedInsights />
+            <script
+              type="application/ld+json"
+              suppressHydrationWarning
+              dangerouslySetInnerHTML={{
+                __html: JSON.stringify({
+                  "@context": "https://schema.org",
+                  "@type": "Organization",
+                  name: "Adapt2Life",
+                  url: siteUrl,
+                  logo: `${siteUrl}/brand/logo-main.png`,
+                  sameAs: ["https://www.linkedin.com/company/adapt2life"],
+                }),
+              }}
+            />
           </StackTheme>
         </StackProvider>
       </body>
