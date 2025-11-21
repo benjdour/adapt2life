@@ -577,6 +577,7 @@ export const hasGarminTrainerJobTimedOut = (
   job: GarminTrainerJobView,
   options?: { timeoutMs?: number },
 ): boolean => {
+  const logger = baseLogger.child({ jobId: job.id });
   if (job.status === "success" || job.status === "failed") {
     return false;
   }
