@@ -543,7 +543,17 @@ const processJob = async (job: { id: number; userId: number; planMarkdown: strin
       aiDebugPayload: null,
     });
   } catch (error) {
-    logger.error("garmin trainer job failed", { jobId: job.id, error });
+    if (error instanceof GarminConversionError) {
+      logger.error("garmin trainer job failed", {
+        jobId: job.id,
+        error,
+        rawResponse: error.rawResponse,
+        debugPayload: error.debugPayload,
+        issues: error.issues ?? null,
+      });
+    } else {
+      logger.error("garmin trainer job failed", { jobId: job.id, error });
+    }
     await updateJob(job.id, {
       status: "failed",
       error: error instanceof Error ? error.message : String(error),
