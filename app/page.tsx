@@ -382,16 +382,18 @@ export default async function Home(props: HomePageProps) {
 
   return (
     <main className="mx-auto flex h-full w-full max-w-6xl flex-col gap-10 px-6 py-12 text-foreground">
-      <section className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+      <section className="flex flex-col gap-6 text-center md:flex-row md:text-left md:items-center md:justify-between">
         <div className="space-y-6 md:w-1/2">
           <p className="text-sm uppercase tracking-[0.4em] text-primary/80">Ton coach IA</p>
           <h1 className="text-4xl font-heading md:text-5xl">Qui s’adapte à ta vie.</h1>
           <p className="text-base text-muted-foreground">
             Des séances personnalisées, générées en temps réel selon ta forme, tes objectifs et tes contraintes quotidiennes.
           </p>
-          <Button asChild className="px-8 py-6 text-base font-semibold">
+          <div className="flex justify-center md:justify-start">
+            <Button asChild className="px-8 py-6 text-base font-semibold">
             <Link href="/handler/sign-in?redirect=/generateur-entrainement">Découvrir ton potentiel</Link>
           </Button>
+          </div>
         </div>
         <div className="md:w-1/2">
           <Image
