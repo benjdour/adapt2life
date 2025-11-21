@@ -1,7 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { stackServerApp } from "@/stack/server";
-import { getGarminTrainerJobForUser, ensureLocalUser } from "@/lib/services/garminTrainerJobs";
+import {
+  getGarminTrainerJobForUser,
+  ensureLocalUser,
+  hasGarminTrainerJobTimedOut,
+  markGarminTrainerJobFailed,
+} from "@/lib/services/garminTrainerJobs";
+import { createLogger } from "@/lib/logger";
+
+const logger = createLogger("garmin-trainer-job-status");
+const JOB_TIMEOUT_ERROR =
+  "Le traitement Garmin a dépassé le délai autorisé et a été interrompu. Relance la conversion pour réessayer.";
 
 export async function GET(
   request: NextRequest,
@@ -22,6 +32,19 @@ export async function GET(
   const job = await getGarminTrainerJobForUser(numericJobId, localUser.id);
   if (!job) {
     return NextResponse.json({ error: "Job introuvable." }, { status: 404 });
+  }
+
+  if (hasGarminTrainerJobTimedOut(job)) {
+    await markGarminTrainerJobFailed(job.id, JOB_TIMEOUT_ERROR);
+    logger.warn("garmin trainer job timed out", {
+      jobId: job.id,
+      status: job.status,
+      updatedAt: job.updatedAt ?? job.createdAt,
+    });
+    const failedJob = await getGarminTrainerJobForUser(job.id, localUser.id);
+    if (failedJob) {
+      return NextResponse.json(failedJob);
+    }
   }
 
   return NextResponse.json(job);
