@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 const faqItems = [
   {
@@ -157,7 +159,9 @@ export default function FaqPage() {
               Contacte notre équipe ou rejoins la communauté pour échanger avec d’autres athlètes Adapt2Life.
             </p>
           </div>
-          <div className="text-sm text-primary">support@adapt2life.app</div>
+          <Button asChild size="lg" className="px-6 text-base font-semibold">
+            <Link href="/contact">Contacter l’équipe</Link>
+          </Button>
         </div>
       </section>
 
