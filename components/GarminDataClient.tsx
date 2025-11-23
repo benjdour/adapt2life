@@ -12,21 +12,10 @@ type GarminDataClientProps = {
   initialData: GarminDataBundle;
 };
 
-const renderMetricValue = ({
-  value,
-  hasSyncedOnce,
-}: {
-  value: string | null;
-  hasSyncedOnce: boolean;
-}) => {
+const renderMetricValue = (value: string | null) => {
   if (value) {
     return <span className="text-base font-semibold text-foreground">{value}</span>;
   }
-
-  if (hasSyncedOnce) {
-    return <span className="text-sm text-warning">En attente de synchro</span>;
-  }
-
   return null;
 };
 
@@ -217,7 +206,7 @@ const GarminDataClient = ({ initialData }: GarminDataClientProps) => {
       {hasConnection && hasSyncedOnce ? (
         <div className="space-y-6">
           {sections.map((section) => {
-            const visibleItems = section.items.filter((item) => hasSyncedOnce || Boolean(item.value));
+            const visibleItems = section.items.filter((item) => Boolean(item.value));
             const hasActivities = Boolean(section.activities && section.activities.length > 0);
             if (!hasActivities && visibleItems.length === 0) {
               return null;
@@ -233,17 +222,12 @@ const GarminDataClient = ({ initialData }: GarminDataClientProps) => {
                   {visibleItems.length > 0 ? (
                     <div className="grid gap-4 md:grid-cols-2">
                       {visibleItems.map((item) => {
-                        const metricValue = renderMetricValue({
-                          value: item.value,
-                          hasSyncedOnce,
-                        });
+                        const metricValue = renderMetricValue(item.value);
                         return (
                           <div key={item.label} className="rounded-2xl border border-white/10 bg-muted/30 p-4">
                             <p className="text-xs uppercase tracking-wide text-muted-foreground">{item.label}</p>
                             <div className="mt-2">
-                              {metricValue ?? (
-                                <span className="text-sm text-muted-foreground">Donnée indisponible</span>
-                              )}
+                              {metricValue}
                             </div>
                           </div>
                         );
