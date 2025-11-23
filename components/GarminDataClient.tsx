@@ -215,7 +215,15 @@ const GarminDataClient = ({ initialData }: GarminDataClientProps) => {
       {hasConnection && hasSyncedOnce ? (
         <div className="space-y-6">
           {sections.map((section) => {
-            const visibleItems = section.items.filter((item) => hasSyncedOnce || Boolean(item.value));
+            const visibleItems = section.items.filter((item) => {
+              if (item.hasHistory === false) {
+                return false;
+              }
+              if (item.value) {
+                return true;
+              }
+              return hasSyncedOnce;
+            });
             const hasActivities = Boolean(section.activities && section.activities.length > 0);
             if (!hasActivities && visibleItems.length === 0) {
               return null;

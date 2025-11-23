@@ -18,6 +18,7 @@ export type GarminSectionItem = {
   label: string;
   value: string | null;
   hint?: string;
+  hasHistory?: boolean;
 };
 
 export type GarminActivityHighlight = {
@@ -1777,16 +1778,19 @@ export const fetchGarminData = async (
           label: "SpO₂ moyen",
           value: spo2Average !== null ? formatPercentage(spo2Average, 1) : null,
           hint: "Pulse Ox summaries (docs/Garmin_Health_API_1.2.2.md §7.8).",
+          hasHistory: Boolean(latestPulseOx),
         },
         {
           label: "Variation de température corporelle",
           value: skinTempDeviation !== null ? `Δ ${formatCelsius(skinTempDeviation)}` : null,
           hint: "Skin Temperature summaries (§7.12).",
+          hasHistory: Boolean(latestSkinTemp),
         },
         {
           label: "Poids corporel",
           value: formatKg(bodyWeight),
           hint: "Body Composition summaries (§7.4).",
+          hasHistory: bodyWeight !== null || Boolean(latestBodyComposition),
         },
         {
           label: "Composition corporelle (masse grasse, musculaire, hydratation)",
@@ -1801,6 +1805,7 @@ export const fetchGarminData = async (
                   .join(" · ")
               : null,
           hint: "Body Composition summaries (§7.4).",
+          hasHistory: Boolean(latestBodyComposition),
         },
         {
           label: "Hydratation estimée",
