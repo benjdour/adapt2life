@@ -58,12 +58,20 @@ vi.mock("ai", () => ({
   generateText: vi.fn(),
 }));
 
-vi.mock("@/lib/logger", () => ({
-  createLogger: () => ({
-    info: vi.fn(),
-    error: vi.fn(),
-  }),
-}));
+vi.mock("@/lib/logger", () => {
+  const buildMockLogger = () => {
+    const logger = {
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      child: vi.fn(() => logger),
+    };
+    return logger;
+  };
+  return {
+    createLogger: () => buildMockLogger(),
+  };
+});
 
 const { setGarminAiClientFactory } = await import("@/lib/ai/garminAiClient");
 const { __garminTrainerJobsTesting } = await import("@/lib/services/garminTrainerJobs");
