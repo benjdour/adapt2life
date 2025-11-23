@@ -12,12 +12,22 @@ type GarminDataClientProps = {
   initialData: GarminDataBundle;
 };
 
-const renderMetricValue = (value: string | null) => {
+const renderMetricValue = ({
+  value,
+  hasSyncedData,
+}: {
+  value: string | null;
+  hasSyncedData: boolean;
+}) => {
   if (value) {
     return <span className="text-base font-semibold text-foreground">{value}</span>;
   }
 
-  return <span className="text-sm text-warning">En attente de synchro</span>;
+  if (hasSyncedData) {
+    return <span className="text-sm text-warning">En attente de synchro</span>;
+  }
+
+  return null;
 };
 
 const ActivityCarousel = ({ activities }: { activities: GarminActivityHighlight[] }) => {
@@ -175,6 +185,7 @@ const GarminDataClient = ({ initialData }: GarminDataClientProps) => {
   }, []);
 
   const sections: GarminSection[] = useMemo(() => data.sections ?? [], [data.sections]);
+  const hasSyncedData = Boolean(data.connection);
 
   return (
     <div className="space-y-6">
@@ -205,12 +216,21 @@ const GarminDataClient = ({ initialData }: GarminDataClientProps) => {
                 ) : null}
                 {section.items.length > 0 ? (
                   <div className="grid gap-4 md:grid-cols-2">
-                    {section.items.map((item) => (
-                      <div key={item.label} className="rounded-2xl border border-white/10 bg-muted/30 p-4">
-                        <p className="text-xs uppercase tracking-wide text-muted-foreground">{item.label}</p>
-                        <div className="mt-2">{renderMetricValue(item.value)}</div>
-                      </div>
-                    ))}
+                    {section.items.map((item) => {
+                      const metricValue = renderMetricValue({
+                        value: item.value,
+                        hasSyncedData,
+                      });
+                      if (!metricValue && !hasSyncedData) {
+                        return null;
+                      }
+                      return (
+                        <div key={item.label} className="rounded-2xl border border-white/10 bg-muted/30 p-4">
+                          <p className="text-xs uppercase tracking-wide text-muted-foreground">{item.label}</p>
+                          <div className="mt-2">{metricValue ?? <span className="text-sm text-muted-foreground">Donnée indisponible</span>}</div>
+                        </div>
+                      );
+                    })}
                   </div>
                 ) : null}
                 {section.items.length === 0 && (!section.activities || section.activities.length === 0) ? (
