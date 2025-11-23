@@ -58,6 +58,7 @@ export default async function GarminDataPage() {
                 sections: [],
                 trainingGaugeData: mockGarminData(),
                 usedRealtimeMetrics: false,
+                hasSyncedOnce: false,
               }
             }
           />

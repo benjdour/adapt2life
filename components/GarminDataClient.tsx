@@ -14,16 +14,16 @@ type GarminDataClientProps = {
 
 const renderMetricValue = ({
   value,
-  hasSyncedData,
+  hasSyncedOnce,
 }: {
   value: string | null;
-  hasSyncedData: boolean;
+  hasSyncedOnce: boolean;
 }) => {
   if (value) {
     return <span className="text-base font-semibold text-foreground">{value}</span>;
   }
 
-  if (hasSyncedData) {
+  if (hasSyncedOnce) {
     return <span className="text-sm text-warning">En attente de synchro</span>;
   }
 
@@ -185,13 +185,14 @@ const GarminDataClient = ({ initialData }: GarminDataClientProps) => {
   }, []);
 
   const sections: GarminSection[] = useMemo(() => data.sections ?? [], [data.sections]);
-  const hasSyncedData = Boolean(data.connection);
+  const hasSyncedOnce = data.hasSyncedOnce;
+  const hasConnection = Boolean(data.connection);
 
   return (
     <div className="space-y-6">
       <TrainingScoreGauge data={data.trainingGaugeData} />
 
-      {!data.connection ? (
+      {!hasConnection ? (
         <Card className="border-dashed">
           <CardContent className="space-y-2 py-6">
             <p className="text-sm font-semibold text-foreground">Aucune connexion Garmin</p>
@@ -202,10 +203,21 @@ const GarminDataClient = ({ initialData }: GarminDataClientProps) => {
         </Card>
       ) : null}
 
-      {data.connection ? (
+      {hasConnection && !hasSyncedOnce ? (
+        <Card className="border-dashed border-primary/40 bg-card/80">
+          <CardContent className="space-y-2 py-6">
+            <p className="text-sm font-semibold text-foreground">Première synchronisation en attente</p>
+            <p className="text-sm text-muted-foreground">
+              Dès que Garmin enverra tes premières données, elles apparaîtront automatiquement ici.
+            </p>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {hasConnection && hasSyncedOnce ? (
         <div className="space-y-6">
           {sections.map((section) => {
-            const visibleItems = section.items.filter((item) => hasSyncedData || Boolean(item.value));
+            const visibleItems = section.items.filter((item) => hasSyncedOnce || Boolean(item.value));
             const hasActivities = Boolean(section.activities && section.activities.length > 0);
             if (!hasActivities && visibleItems.length === 0) {
               return null;
@@ -223,7 +235,7 @@ const GarminDataClient = ({ initialData }: GarminDataClientProps) => {
                       {visibleItems.map((item) => {
                         const metricValue = renderMetricValue({
                           value: item.value,
-                          hasSyncedData,
+                          hasSyncedOnce,
                         });
                         return (
                           <div key={item.label} className="rounded-2xl border border-white/10 bg-muted/30 p-4">

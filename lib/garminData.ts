@@ -56,6 +56,7 @@ export type GarminDataBundle = {
   sections: GarminSection[];
   trainingGaugeData: TrainingScoreData;
   usedRealtimeMetrics: boolean;
+  hasSyncedOnce: boolean;
 };
 
 type FetchGarminDataOptions = {
@@ -828,6 +829,7 @@ export const fetchGarminData = async (
       sections: [],
       trainingGaugeData: mockGarminData(),
       usedRealtimeMetrics: false,
+      hasSyncedOnce: false,
     };
   }
 
@@ -1880,10 +1882,31 @@ export const fetchGarminData = async (
     activities: activityHighlights,
   });
 
+  const webhookEntries = [
+    latestSleep,
+    latestHrv,
+    latestStress,
+    latestUserMetrics,
+    latestPulseOx,
+    latestSkinTemp,
+    latestBodyComposition,
+    latestRespiration,
+    latestActivity,
+    latestActivityDetails,
+    latestWomenHealth,
+  ];
+
+  const hasWebhookData =
+    webhookEntries.some((entry) => Boolean(entry)) ||
+    activityHistory.length > 0 ||
+    activityDetailHistory.length > 0;
+  const hasDailyData = Boolean(latestDailyRaw);
+
   return {
     connection,
     sections,
     trainingGaugeData,
     usedRealtimeMetrics: hasTrainingInputs,
+    hasSyncedOnce: hasWebhookData || hasDailyData,
   };
 };

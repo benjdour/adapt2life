@@ -26,6 +26,7 @@ export async function GET() {
       sections: [],
       trainingGaugeData: mockGarminData(),
       usedRealtimeMetrics: false,
+      hasSyncedOnce: false,
     });
   }
 

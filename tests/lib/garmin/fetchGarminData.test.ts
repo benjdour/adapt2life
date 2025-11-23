@@ -56,6 +56,7 @@ describe("fetchGarminData", () => {
       sections: [],
       trainingGaugeData: trainingGaugeFallback,
       usedRealtimeMetrics: false,
+      hasSyncedOnce: false,
     });
     expect(mockTrainingGauge).toHaveBeenCalledTimes(1);
     expect(mockDbSelect).not.toHaveBeenCalled();
@@ -112,6 +113,7 @@ describe("fetchGarminData", () => {
     expect(result.usedRealtimeMetrics).toBe(true);
     expect(result.trainingGaugeData.bodyBattery?.current).toBe(55);
     expect(result.trainingGaugeData.steps).toBe(6543);
+    expect(result.hasSyncedOnce).toBe(true);
     const firstSection = result.sections[0];
     expect(firstSection.items[0].value).toBe("55/100 · +10 · -5");
     expect(firstSection.items[1].value).toBe("8.0 h");

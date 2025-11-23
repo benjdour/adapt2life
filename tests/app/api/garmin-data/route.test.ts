@@ -66,6 +66,7 @@ describe("GET /api/garmin-data", () => {
       sections: [],
       trainingGaugeData: mockTrainingGauge,
       usedRealtimeMetrics: false,
+      hasSyncedOnce: false,
     });
     expect(mockFetchGarminData).not.toHaveBeenCalled();
   });
@@ -73,7 +74,13 @@ describe("GET /api/garmin-data", () => {
   it("returns synced Garmin data for authenticated users with a local profile", async () => {
     mockGetUser.mockResolvedValueOnce({ id: "stack-user-42" });
     selectBuilder.limit.mockResolvedValueOnce([{ id: 99, gender: "femme" }]);
-    const garminData = { connection: { garminUserId: "abc" }, sections: [], trainingGaugeData: {}, usedRealtimeMetrics: true };
+    const garminData = {
+      connection: { garminUserId: "abc" },
+      sections: [],
+      trainingGaugeData: {},
+      usedRealtimeMetrics: true,
+      hasSyncedOnce: true,
+    };
     mockFetchGarminData.mockResolvedValueOnce(garminData);
 
     const response = await GET();
