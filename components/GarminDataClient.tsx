@@ -214,25 +214,32 @@ const GarminDataClient = ({ initialData }: GarminDataClientProps) => {
                 {section.activities && section.activities.length > 0 ? (
                   <ActivityCarousel activities={section.activities} />
                 ) : null}
-                {section.items.length > 0 ? (
-                  <div className="grid gap-4 md:grid-cols-2">
-                    {section.items.map((item) => {
-                      const metricValue = renderMetricValue({
-                        value: item.value,
-                        hasSyncedData,
-                      });
-                      if (!metricValue && !hasSyncedData) {
-                        return null;
-                      }
-                      return (
-                        <div key={item.label} className="rounded-2xl border border-white/10 bg-muted/30 p-4">
-                          <p className="text-xs uppercase tracking-wide text-muted-foreground">{item.label}</p>
-                          <div className="mt-2">{metricValue ?? <span className="text-sm text-muted-foreground">Donnée indisponible</span>}</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : null}
+                {(() => {
+                  const visibleItems = section.items.filter((item) => hasSyncedData || Boolean(item.value));
+                  if (visibleItems.length === 0) {
+                    return null;
+                  }
+                  return (
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {visibleItems.map((item) => {
+                        const metricValue = renderMetricValue({
+                          value: item.value,
+                          hasSyncedData,
+                        });
+                        return (
+                          <div key={item.label} className="rounded-2xl border border-white/10 bg-muted/30 p-4">
+                            <p className="text-xs uppercase tracking-wide text-muted-foreground">{item.label}</p>
+                            <div className="mt-2">
+                              {metricValue ?? (
+                                <span className="text-sm text-muted-foreground">Donnée indisponible</span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
                 {section.items.length === 0 && (!section.activities || section.activities.length === 0) ? (
                   <p className="text-sm text-muted-foreground">Aucune donnée disponible pour cette section pour l’instant.</p>
                 ) : null}
