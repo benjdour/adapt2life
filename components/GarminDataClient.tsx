@@ -204,22 +204,21 @@ const GarminDataClient = ({ initialData }: GarminDataClientProps) => {
 
       {data.connection ? (
         <div className="space-y-6">
-          {sections.map((section) => (
-            <Card key={section.title}>
-              <CardHeader>
-                <CardTitle>{section.title}</CardTitle>
-                {section.description ? <CardDescription>{section.description}</CardDescription> : null}
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {section.activities && section.activities.length > 0 ? (
-                  <ActivityCarousel activities={section.activities} />
-                ) : null}
-                {(() => {
-                  const visibleItems = section.items.filter((item) => hasSyncedData || Boolean(item.value));
-                  if (visibleItems.length === 0) {
-                    return null;
-                  }
-                  return (
+          {sections.map((section) => {
+            const visibleItems = section.items.filter((item) => hasSyncedData || Boolean(item.value));
+            const hasActivities = Boolean(section.activities && section.activities.length > 0);
+            if (!hasActivities && visibleItems.length === 0) {
+              return null;
+            }
+            return (
+              <Card key={section.title}>
+                <CardHeader>
+                  <CardTitle>{section.title}</CardTitle>
+                  {section.description ? <CardDescription>{section.description}</CardDescription> : null}
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {hasActivities && section.activities ? <ActivityCarousel activities={section.activities} /> : null}
+                  {visibleItems.length > 0 ? (
                     <div className="grid gap-4 md:grid-cols-2">
                       {visibleItems.map((item) => {
                         const metricValue = renderMetricValue({
@@ -238,14 +237,11 @@ const GarminDataClient = ({ initialData }: GarminDataClientProps) => {
                         );
                       })}
                     </div>
-                  );
-                })()}
-                {section.items.length === 0 && (!section.activities || section.activities.length === 0) ? (
-                  <p className="text-sm text-muted-foreground">Aucune donnée disponible pour cette section pour l’instant.</p>
-                ) : null}
-              </CardContent>
-            </Card>
-          ))}
+                  ) : null}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       ) : null}
     </div>
