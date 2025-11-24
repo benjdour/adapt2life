@@ -148,20 +148,36 @@ const pickFallbackExerciseName = (
 
 const normalizeExerciseMetadata = (step: Record<string, unknown>, segmentSport: string | null | undefined) => {
   const intensity = typeof step.intensity === "string" ? step.intensity.toUpperCase() : null;
-  if (intensity === "REST") {
-    step.exerciseCategory = null;
-    step.exerciseName = null;
-    return;
-  }
 
-  const category = typeof step.exerciseCategory === "string" ? step.exerciseCategory : null;
-  const name = typeof step.exerciseName === "string" ? step.exerciseName : null;
+  const ensureRestMetadata = () => {
+    const restCategory =
+      (hasGarminExerciseCategory(segmentSport, "CARDIO") && "CARDIO") ||
+      (hasGarminExerciseCategory(segmentSport, "WARM_UP") && "WARM_UP") ||
+      null;
+    if (!restCategory) {
+      return;
+    }
+    const restName =
+      pickFallbackExerciseName(segmentSport, restCategory, "walk", "walk") ??
+      pickFallbackExerciseName(segmentSport, restCategory, "recover", "recover") ??
+      pickFallbackExerciseName(segmentSport, restCategory, null, null);
+    if (restName) {
+      step.exerciseCategory = restCategory;
+      step.exerciseName = restName;
+    }
+  };
+
+  let category = typeof step.exerciseCategory === "string" ? step.exerciseCategory : null;
+  let name = typeof step.exerciseName === "string" ? step.exerciseName : null;
 
   if (category && name && isKnownGarminExercise(segmentSport, category, name)) {
     return;
   }
 
   if (!category || !hasGarminExerciseCategory(segmentSport, category)) {
+    if (intensity === "REST" || intensity === "RECOVERY") {
+      ensureRestMetadata();
+    }
     return;
   }
 
@@ -178,8 +194,23 @@ const normalizeExerciseMetadata = (step: Record<string, unknown>, segmentSport: 
     return;
   }
 
-  step.exerciseCategory = null;
-  step.exerciseName = null;
+  if (intensity === "REST" || intensity === "RECOVERY") {
+    const restName =
+      pickFallbackExerciseName(segmentSport, category, "walk", "walk") ??
+      pickFallbackExerciseName(segmentSport, category, "recover", "recover");
+    if (restName) {
+      step.exerciseCategory = category;
+      step.exerciseName = restName;
+      return;
+    }
+  }
+
+  const finalFallback =
+    pickFallbackExerciseName(segmentSport, category, null, typeof step.description === "string" ? step.description : null) ??
+    getGarminExerciseNames(segmentSport ?? "", category)[0] ??
+    null;
+  step.exerciseCategory = category;
+  step.exerciseName = finalFallback;
 };
 
 const ensureStepDescription = (step: Record<string, unknown>) => {
