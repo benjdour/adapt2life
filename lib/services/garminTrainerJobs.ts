@@ -182,6 +182,12 @@ const normalizeExerciseMetadata = (step: Record<string, unknown>, segmentSport: 
   step.exerciseName = null;
 };
 
+const ensureStepDescription = (step: Record<string, unknown>) => {
+  if (typeof step.description !== "string") {
+    step.description = "";
+  }
+};
+
 const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<string, unknown> => {
   const clone: Record<string, unknown> = { ...workout };
 
@@ -367,6 +373,7 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
       if (isSwim && step.type === "WorkoutRepeatStep") {
         step.skipLastRestStep = false;
       }
+      ensureStepDescription(step);
       ensureCadenceTargets(step);
       ensureRestDescriptions(step);
       normalizeExerciseMetadata(step, segmentSport);
@@ -399,6 +406,9 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
     const segmentRecord = { ...(segment as Record<string, unknown>) };
     if ("segmentId" in segmentRecord) {
       delete segmentRecord.segmentId;
+    }
+    if ("name" in segmentRecord) {
+      delete segmentRecord.name;
     }
     const sportType = typeof segmentRecord.sportType === "string" ? segmentRecord.sportType : null;
 
