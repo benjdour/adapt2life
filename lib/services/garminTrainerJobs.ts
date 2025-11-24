@@ -479,8 +479,10 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
 
       const applySwimInstruction = (intensity: string | null, providedValue: number | null = null) => {
         const normalizedIntensity = intensity ? intensity.toUpperCase() : null;
-        const intensityValue =
+        const intensityCandidate =
           (normalizedIntensity && SWIM_INTENSITY_TO_INSTRUCTION[normalizedIntensity]) ?? providedValue ?? 5;
+        const intensityValue =
+          typeof intensityCandidate === "number" && Number.isFinite(intensityCandidate) ? intensityCandidate : 5;
         const clampedValue = Math.min(10, Math.max(1, Math.round(intensityValue)));
         step.secondaryTargetType = "SWIM_INSTRUCTION";
         step.secondaryTargetValue = null;
