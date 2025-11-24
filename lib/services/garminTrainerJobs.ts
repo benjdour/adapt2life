@@ -125,6 +125,71 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
     return "ACTIVE";
   };
 
+  const flattenNestedRepeatChildren = (repeatStep: Record<string, unknown>) => {
+    if (!Array.isArray(repeatStep.steps)) {
+      repeatStep.steps = [];
+      return;
+    }
+
+    const expandRepeatStep = (nestedRepeat: Record<string, unknown>): Record<string, unknown>[] => {
+      const rawChildren = Array.isArray(nestedRepeat.steps) ? nestedRepeat.steps : [];
+      const normalizedChildren: Record<string, unknown>[] = rawChildren.flatMap((entry) => {
+        if (!entry || typeof entry !== "object") {
+          return [];
+        }
+        const child = { ...(entry as Record<string, unknown>) };
+        if (child.type === "WorkoutRepeatStep") {
+          return expandRepeatStep(child);
+        }
+        child.stepId = null;
+        return [child];
+      });
+
+      const repeatValue =
+        typeof nestedRepeat.repeatValue === "number" && Number.isFinite(nestedRepeat.repeatValue)
+          ? Math.max(1, Math.floor(nestedRepeat.repeatValue))
+          : 1;
+
+      const expanded: Record<string, unknown>[] = [];
+      for (let round = 0; round < repeatValue; round += 1) {
+        normalizedChildren.forEach((child, index) => {
+          const intensity = typeof child.intensity === "string" ? child.intensity : null;
+          const isRestIntensity = intensity === "REST" || intensity === "RECOVERY" || intensity === "EASY";
+          const isLastIteration = round === repeatValue - 1;
+          const isLastChild = index === normalizedChildren.length - 1;
+          if (nestedRepeat.skipLastRestStep && isRestIntensity && isLastIteration && isLastChild) {
+            return;
+          }
+          const clonedChild = { ...child };
+          clonedChild.stepId = null;
+          expanded.push(clonedChild);
+        });
+      }
+
+      return expanded;
+    };
+
+    const flattenedChildren: Record<string, unknown>[] = [];
+    repeatStep.steps.forEach((entry) => {
+      if (!entry || typeof entry !== "object") {
+        return;
+      }
+      const child = { ...(entry as Record<string, unknown>) };
+      if (child.type === "WorkoutRepeatStep") {
+        flattenedChildren.push(...expandRepeatStep(child));
+        return;
+      }
+      child.stepId = null;
+      flattenedChildren.push(child);
+    });
+
+    flattenedChildren.forEach((child, index) => {
+      child.stepOrder = index + 1;
+    });
+
+    repeatStep.steps = flattenedChildren;
+  };
+
   const normalizeSteps = (
     steps: unknown,
     isSwim: boolean,
@@ -224,6 +289,7 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
       if (step.type === "WorkoutRepeatStep") {
         step.intensity = typeof step.intensity === "string" && step.intensity.trim() ? step.intensity : inferRepeatIntensity(step);
         step.steps = normalizeSteps(step.steps, isSwim);
+        flattenNestedRepeatChildren(step);
       }
 
       if (isSwim && step.poolLength && typeof step.poolLength === "object") {
