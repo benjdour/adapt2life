@@ -846,7 +846,12 @@ const touchJob = async (jobId: number) => {
     .where(eq(garminTrainerJobs.id, jobId));
 };
 
-const convertPlanMarkdownForUser = async (userId: number, planMarkdown: string, jobLogger?: Logger) => {
+const convertPlanMarkdownForUser = async (
+  userId: number,
+  planMarkdown: string,
+  jobLogger?: Logger,
+  options?: { jobId?: number },
+) => {
   const logger = jobLogger ?? baseLogger.child({ userId });
   const startedAt = Date.now();
   const trimmedPlan = planMarkdown.trim();
@@ -944,6 +949,16 @@ const convertPlanMarkdownForUser = async (userId: number, planMarkdown: string, 
     useExerciseTool: usedExerciseTool,
     durationMs: Date.now() - startedAt,
   });
+  if (options?.jobId) {
+    try {
+      await updateJob(options.jobId, {
+        aiRawResponse: aiResult.rawText,
+        aiModelId: aiResult.modelId ?? null,
+      });
+    } catch (error) {
+      logger.warn("garmin trainer job conversion raw persist failed", { error });
+    }
+  }
 
   const parseStartedAt = Date.now();
   const parsedResult = parseJsonWithCodeFence(aiResult.rawText);
@@ -1263,7 +1278,7 @@ const processJob = async (job: { id: number; userId: number; planMarkdown: strin
   startHeartbeat();
   try {
     const conversion = await runWithTimeout(
-      () => convertPlanMarkdownForUser(job.userId, job.planMarkdown, logger),
+      () => convertPlanMarkdownForUser(job.userId, job.planMarkdown, logger, { jobId: job.id }),
       CONVERSION_TIMEOUT_MS,
       "Garmin conversion",
       logger,
