@@ -148,6 +148,7 @@ const pickFallbackExerciseName = (
 
 const GARMIN_SWIM_STROKES = new Set(["BACKSTROKE", "BREASTSTROKE", "BUTTERFLY", "FREESTYLE", "MIXED", "IM", "RIMO", "CHOICE"]);
 const SECONDARY_TARGET_RANGE_TYPES = new Set(["CADENCE", "HEART_RATE", "POWER", "SPEED", "PACE"]);
+const SWIM_SECONDARY_TARGET_TYPES = new Set(["PACE_ZONE", "SWIM_INSTRUCTION", "SWIM_CSS_OFFSET"]);
 
 const sanitizeStrokeType = (value: string | null | undefined): string | null => {
   if (!value) {
@@ -463,6 +464,24 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
       step.targetValueLow = null;
       step.targetValueHigh = null;
       step.targetValueType = null;
+
+      const secondaryType =
+        typeof step.secondaryTargetType === "string" ? step.secondaryTargetType.toUpperCase() : null;
+      const hasNumericRange =
+        numericOrNull(step.secondaryTargetValueLow) != null || numericOrNull(step.secondaryTargetValueHigh) != null;
+      if (!secondaryType || !SWIM_SECONDARY_TARGET_TYPES.has(secondaryType)) {
+        if (hasNumericRange) {
+          step.secondaryTargetType = "PACE_ZONE";
+        } else {
+          step.secondaryTargetType = null;
+          step.secondaryTargetValue = null;
+          step.secondaryTargetValueLow = null;
+          step.secondaryTargetValueHigh = null;
+          step.secondaryTargetValueType = null;
+        }
+      } else {
+        step.secondaryTargetType = secondaryType;
+      }
     };
 
     const ensurePowerTargetRanges = (step: Record<string, unknown>) => {
