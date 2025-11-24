@@ -574,6 +574,7 @@ const updateJob = async (jobId: number, values: Partial<typeof garminTrainerJobs
 
 const convertPlanMarkdownForUser = async (userId: number, planMarkdown: string, jobLogger?: Logger) => {
   const logger = jobLogger ?? baseLogger.child({ userId });
+  const startedAt = Date.now();
   const trimmedPlan = planMarkdown.trim();
   const normalizedPlan = MAX_PLAN_MARKDOWN_CHARS > 0 ? trimmedPlan.slice(0, MAX_PLAN_MARKDOWN_CHARS) : trimmedPlan;
   logger.info("garmin trainer job conversion started", {
@@ -657,7 +658,10 @@ const convertPlanMarkdownForUser = async (userId: number, planMarkdown: string, 
     throw new Error("Réponse IA vide.");
   }
 
-  logger.info("garmin trainer job conversion completed", { useExerciseTool: usedExerciseTool });
+  logger.info("garmin trainer job conversion completed", {
+    useExerciseTool: usedExerciseTool,
+    durationMs: Date.now() - startedAt,
+  });
 
   const parsedResult = parseJsonWithCodeFence(aiResult.rawText);
   if (!parsedResult) {
@@ -708,6 +712,7 @@ const convertPlanMarkdownForUser = async (userId: number, planMarkdown: string, 
 
 const pushWorkoutForUser = async (userId: number, workout: GarminTrainerWorkout, jobLogger?: Logger) => {
   const logger = jobLogger ?? baseLogger.child({ userId });
+  const startedAt = Date.now();
   const garminConnection = await fetchGarminConnectionByUserId(userId);
   if (!garminConnection) {
     throw new Error("Aucune connexion Garmin trouvée pour cet utilisateur. Connecte ton compte Garmin puis réessaie.");
