@@ -146,6 +146,47 @@ const pickFallbackExerciseName = (
   return candidates[0];
 };
 
+const GARMIN_SWIM_STROKES = new Set(["BACKSTROKE", "BREASTSTROKE", "BUTTERFLY", "FREESTYLE", "MIXED", "IM", "RIMO", "CHOICE"]);
+
+const sanitizeStrokeType = (value: string | null | undefined): string | null => {
+  if (!value) {
+    return null;
+  }
+  const normalized = value.trim().toUpperCase();
+  if (GARMIN_SWIM_STROKES.has(normalized)) {
+    return normalized;
+  }
+  const helpers = normalized.replace(/\s+/g, " ");
+  if (/CRAWL|FREESTYLE|FREE/.test(helpers)) {
+    return "FREESTYLE";
+  }
+  if (/BACK|DOS/.test(helpers)) {
+    return "BACKSTROKE";
+  }
+  if (/BREAST|BRASSE/.test(helpers)) {
+    return "BREASTSTROKE";
+  }
+  if (/BUTTER/.test(helpers)) {
+    return "BUTTERFLY";
+  }
+  if (/IM/.test(helpers)) {
+    return "IM";
+  }
+  if (/MIX|MEDLEY/.test(helpers)) {
+    return "MIXED";
+  }
+  if (/RIMO/.test(helpers)) {
+    return "RIMO";
+  }
+  if (/CHOICE|CHOIX/.test(helpers)) {
+    return "CHOICE";
+  }
+  if (/KICK|JAMBE/.test(helpers)) {
+    return "CHOICE";
+  }
+  return null;
+};
+
 const normalizeExerciseMetadata = (step: Record<string, unknown>, segmentSport: string | null | undefined) => {
   const intensity = typeof step.intensity === "string" ? step.intensity.toUpperCase() : null;
 
@@ -408,6 +449,13 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
       ensureCadenceTargets(step);
       ensureRestDescriptions(step);
       normalizeExerciseMetadata(step, segmentSport);
+      const rawStrokeType = typeof step.strokeType === "string" ? step.strokeType : null;
+      const sanitizedStrokeType = sanitizeStrokeType(rawStrokeType);
+      if (rawStrokeType && !sanitizedStrokeType) {
+        step.strokeType = null;
+      } else if (sanitizedStrokeType) {
+        step.strokeType = sanitizedStrokeType;
+      }
 
       if (step.type === "WorkoutRepeatStep") {
         step.intensity = typeof step.intensity === "string" && step.intensity.trim() ? step.intensity : inferRepeatIntensity(step);
