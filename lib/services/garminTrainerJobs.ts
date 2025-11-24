@@ -1340,4 +1340,6 @@ export const ensureLocalUser = async (
 
 export const __garminTrainerJobsTesting = {
   convertPlanMarkdownForUser,
+  sanitizeWorkoutValue,
+  enforceWorkoutPostProcessing,
 };
