@@ -979,6 +979,10 @@ const convertPlanMarkdownForUser = async (userId: number, planMarkdown: string, 
   const validationStartedAt = Date.now();
   const validation = workoutSchema.safeParse(normalized);
   if (!validation.success) {
+    logger.error("garmin trainer job conversion validation failed", {
+      issues: validation.error.issues,
+      durationMs: Date.now() - validationStartedAt,
+    });
     throw new GarminConversionError("L’entraînement généré ne respecte pas le schéma attendu.", {
       rawResponse: sourceJson,
       debugPayload: normalized,
