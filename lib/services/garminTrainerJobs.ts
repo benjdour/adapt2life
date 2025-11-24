@@ -344,7 +344,6 @@ const FETCH_TIMEOUT_MS = Number(process.env.GARMIN_TRAINER_FETCH_TIMEOUT_MS ?? "
 const CONVERSION_TIMEOUT_MS = Number(process.env.GARMIN_TRAINER_CONVERSION_TIMEOUT_MS ?? "240000");
 const PUSH_TIMEOUT_MS = Number(process.env.GARMIN_TRAINER_PUSH_TIMEOUT_MS ?? "240000");
 const MAX_PLAN_MARKDOWN_CHARS = Number(process.env.GARMIN_TRAINER_PLAN_MAX_CHARS ?? "12000");
-const FORCE_CLASSIC_PATTERN = /(hiit|poids\s+du\s+corps|sans\s+mat[eé]riel|bodyweight|circuit\s+poids\s+du\s+corps)/i;
 
 const runWithTimeout = async <T>(factory: () => Promise<T>, timeoutMs: number, label: string): Promise<T> => {
   if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
@@ -417,17 +416,13 @@ const convertPlanMarkdownForUser = async (userId: number, planMarkdown: string, 
   const sportsForPrompt = inferExerciseSportsFromMarkdown(normalizedPlan);
   const primaryMarkdownSport = inferPrimarySportFromMarkdown(normalizedPlan);
   const primarySportSupportsTool = primaryMarkdownSport ? shouldUseExerciseTool(primaryMarkdownSport) : true;
-  const looksLikeBodyweightHiit = FORCE_CLASSIC_PATTERN.test(normalizedPlan);
   const initialExerciseToolEligibility =
     EXERCISE_TOOL_FEATURE_ENABLED &&
     sportsForPrompt.length > 0 &&
     !isFallbackExerciseSportsList(sportsForPrompt) &&
     sportsForPrompt.every((sport) => shouldUseExerciseTool(sport)) &&
     primarySportSupportsTool;
-  if (looksLikeBodyweightHiit && initialExerciseToolEligibility) {
-    logger.info("garmin trainer job forcing classic mode due to bodyweight HIIT heuristics");
-  }
-  const canUseExerciseTool = initialExerciseToolEligibility && !looksLikeBodyweightHiit;
+  const canUseExerciseTool = initialExerciseToolEligibility;
 
   const candidateModels = await getAiModelCandidates("garmin-trainer");
   logger.info("garmin trainer job conversion candidates resolved", { candidateModels });
@@ -439,24 +434,17 @@ const convertPlanMarkdownForUser = async (userId: number, planMarkdown: string, 
   const { strict: strictClient, classic: classicClient } = getGarminAiClients();
   let aiResult: GarminAiResult | null = null;
   let usedExerciseTool = false;
-  let strictGenerationError: unknown = null;
 
   try {
     if (canUseExerciseTool) {
-      try {
-        logger.info("garmin trainer job conversion invoking strict client", { candidateModels });
-        aiResult = await strictClient.generate({
-          basePrompt,
-          systemPrompt,
-          modelIds: candidateModels,
-          referer,
-        });
-        usedExerciseTool = true;
-      } catch (error) {
-        strictGenerationError = error;
-        usedExerciseTool = false;
-        logger.warn("garmin trainer job conversion strict client failed", { error });
-      }
+      logger.info("garmin trainer job conversion invoking strict client", { candidateModels });
+      aiResult = await strictClient.generate({
+        basePrompt,
+        systemPrompt,
+        modelIds: candidateModels,
+        referer,
+      });
+      usedExerciseTool = true;
     }
 
     if (!aiResult) {
@@ -482,12 +470,6 @@ const convertPlanMarkdownForUser = async (userId: number, planMarkdown: string, 
   }
 
   if (!aiResult) {
-    if (strictGenerationError instanceof Error) {
-      throw strictGenerationError;
-    }
-    if (strictGenerationError) {
-      throw new Error(String(strictGenerationError));
-    }
     throw new Error("Réponse IA vide.");
   }
 
