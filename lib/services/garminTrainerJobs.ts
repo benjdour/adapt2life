@@ -714,6 +714,7 @@ const convertPlanMarkdownForUser = async (userId: number, planMarkdown: string, 
 
 const pushWorkoutForUser = async (userId: number, workout: GarminTrainerWorkout, jobLogger?: Logger) => {
   const logger = jobLogger ?? baseLogger.child({ userId });
+  const startedAt = Date.now();
   const garminConnection = await fetchGarminConnectionByUserId(userId);
   if (!garminConnection) {
     throw new Error("Aucune connexion Garmin trouvée pour cet utilisateur. Connecte ton compte Garmin puis réessaie.");
