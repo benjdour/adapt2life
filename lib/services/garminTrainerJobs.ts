@@ -571,7 +571,7 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
       applySwimInstruction(intensity);
     };
 
-    const ensurePowerTargetRanges = (step: Record<string, unknown>) => {
+    const ensurePrimaryTargetRanges = (step: Record<string, unknown>) => {
       if (step.type === "WorkoutRepeatStep") {
         return;
       }
@@ -580,7 +580,8 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
         return;
       }
       step.targetType = rawTargetType;
-      if (rawTargetType !== "POWER") {
+      const requiresPercentRange = rawTargetType === "POWER" || rawTargetType === "HEART_RATE";
+      if (!requiresPercentRange) {
         return;
       }
 
@@ -640,7 +641,7 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
       }
       ensureStepDescription(step);
       ensureCadenceTargets(step);
-      ensurePowerTargetRanges(step);
+      ensurePrimaryTargetRanges(step);
       ensureSecondaryTargetRanges(step);
       ensureRestDescriptions(step);
       ensureSwimTargets(step);
