@@ -25,14 +25,15 @@ const ensureAdmin = async (request: NextRequest) => {
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { userId: string } },
+  { params }: { params: Promise<{ userId: string }> },
 ) {
+  const { userId: userIdParam } = await params;
   const admin = await ensureAdmin(request);
   if (!admin) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const userId = Number(params.userId);
+  const userId = Number(userIdParam);
   if (!Number.isFinite(userId)) {
     return NextResponse.json({ error: "Identifiant utilisateur invalide." }, { status: 400 });
   }
