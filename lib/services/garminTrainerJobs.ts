@@ -343,6 +343,8 @@ const DEFAULT_JOB_TIMEOUT_MS = Number(process.env.GARMIN_TRAINER_JOB_TIMEOUT_MS 
 const FETCH_TIMEOUT_MS = Number(process.env.GARMIN_TRAINER_FETCH_TIMEOUT_MS ?? "120000");
 const CONVERSION_TIMEOUT_MS = Number(process.env.GARMIN_TRAINER_CONVERSION_TIMEOUT_MS ?? "240000");
 const PUSH_TIMEOUT_MS = Number(process.env.GARMIN_TRAINER_PUSH_TIMEOUT_MS ?? "240000");
+const MAX_PLAN_MARKDOWN_CHARS = Number(process.env.GARMIN_TRAINER_PLAN_MAX_CHARS ?? "12000");
+const FORCE_CLASSIC_PATTERN = /(hiit|poids\s+du\s+corps|sans\s+mat[eé]riel|bodyweight|circuit\s+poids\s+du\s+corps)/i;
 
 const runWithTimeout = async <T>(factory: () => Promise<T>, timeoutMs: number, label: string): Promise<T> => {
   if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
@@ -389,7 +391,12 @@ const updateJob = async (jobId: number, values: Partial<typeof garminTrainerJobs
 
 const convertPlanMarkdownForUser = async (userId: number, planMarkdown: string, jobLogger?: Logger) => {
   const logger = jobLogger ?? baseLogger.child({ userId });
-  logger.info("garmin trainer job conversion started", { planLength: planMarkdown.length });
+  const trimmedPlan = planMarkdown.trim();
+  const normalizedPlan = MAX_PLAN_MARKDOWN_CHARS > 0 ? trimmedPlan.slice(0, MAX_PLAN_MARKDOWN_CHARS) : trimmedPlan;
+  logger.info("garmin trainer job conversion started", {
+    planLength: planMarkdown.length,
+    normalizedLength: normalizedPlan.length,
+  });
   const connection = await fetchGarminConnectionByUserId(userId);
   if (!connection) {
     throw new Error("Aucune connexion Garmin trouvée pour cet utilisateur.");
@@ -406,16 +413,21 @@ const convertPlanMarkdownForUser = async (userId: number, planMarkdown: string, 
   logger.info("garmin trainer job conversion prompt loaded");
 
   const ownerInstruction = `Utilise strictement "ownerId": "${connection.garminUserId}" (premier champ du JSON) et ne modifie jamais cette valeur.`;
-  const basePrompt = [ownerInstruction, buildFinalPrompt(promptTemplate, planMarkdown.trim())].join("\n\n");
-  const sportsForPrompt = inferExerciseSportsFromMarkdown(planMarkdown);
-  const primaryMarkdownSport = inferPrimarySportFromMarkdown(planMarkdown);
+  const basePrompt = [ownerInstruction, buildFinalPrompt(promptTemplate, normalizedPlan)].join("\n\n");
+  const sportsForPrompt = inferExerciseSportsFromMarkdown(normalizedPlan);
+  const primaryMarkdownSport = inferPrimarySportFromMarkdown(normalizedPlan);
   const primarySportSupportsTool = primaryMarkdownSport ? shouldUseExerciseTool(primaryMarkdownSport) : true;
-  const canUseExerciseTool =
+  const looksLikeBodyweightHiit = FORCE_CLASSIC_PATTERN.test(normalizedPlan);
+  const initialExerciseToolEligibility =
     EXERCISE_TOOL_FEATURE_ENABLED &&
     sportsForPrompt.length > 0 &&
     !isFallbackExerciseSportsList(sportsForPrompt) &&
     sportsForPrompt.every((sport) => shouldUseExerciseTool(sport)) &&
     primarySportSupportsTool;
+  if (looksLikeBodyweightHiit && initialExerciseToolEligibility) {
+    logger.info("garmin trainer job forcing classic mode due to bodyweight HIIT heuristics");
+  }
+  const canUseExerciseTool = initialExerciseToolEligibility && !looksLikeBodyweightHiit;
 
   const candidateModels = await getAiModelCandidates("garmin-trainer");
   logger.info("garmin trainer job conversion candidates resolved", { candidateModels });
