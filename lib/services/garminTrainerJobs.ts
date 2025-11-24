@@ -403,7 +403,8 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
     const sportType = typeof segmentRecord.sportType === "string" ? segmentRecord.sportType : null;
 
     const isSwim = sportType === "swimming" || sportType === "pool_swimming" || segmentRecord.sport === "LAP_SWIMMING";
-    segmentRecord.steps = normalizeSteps(segmentRecord.steps, isSwim, segmentRecord.sport ?? null);
+    const segmentSport = typeof segmentRecord.sport === "string" ? segmentRecord.sport : null;
+    segmentRecord.steps = normalizeSteps(segmentRecord.steps, isSwim, segmentSport);
 
     if (isSwim && !segmentRecord.poolLength && swimSegmentPoolValues.length > 0) {
       segmentRecord.poolLength = swimSegmentPoolValues[0];
