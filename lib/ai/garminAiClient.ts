@@ -24,9 +24,46 @@ export type GarminAiClient = {
 };
 
 const REASONING_MODEL_PATTERNS = [/gpt-5\.1/i, /gpt-4\.1/i, /reasoning/i];
+const STRICT_GENERATION_TIMEOUT_MS = Number(process.env.GARMIN_TRAINER_STRICT_AI_TIMEOUT_MS ?? "180000");
 
 const modelSupportsTemperature = (modelId: string): boolean =>
   !REASONING_MODEL_PATTERNS.some((pattern) => pattern.test(modelId));
+
+const runWithTimeout = async <T>(factory: () => Promise<T>, timeoutMs: number, label: string): Promise<T> => {
+  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+    return factory();
+  }
+
+  return await new Promise<T>((resolve, reject) => {
+    let settled = false;
+    const timer = setTimeout(() => {
+      settled = true;
+      reject(new Error(`${label} timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+
+    const clear = () => {
+      clearTimeout(timer);
+    };
+
+    factory()
+      .then((value) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        clear();
+        resolve(value);
+      })
+      .catch((error) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        clear();
+        reject(error);
+      });
+  });
+};
 
 export const createClassicGarminAiClient = (): GarminAiClient => ({
   async generate({ basePrompt, systemPrompt, modelIds, referer, temperature = 0.7, maxOutputTokens = 32_768 }) {
@@ -117,7 +154,11 @@ export const createStrictGarminAiClient = (): GarminAiClient => ({
           generateParams.temperature = temperature;
         }
 
-        const result = await generateText(generateParams);
+        const result = await runWithTimeout(
+          () => generateText(generateParams),
+          STRICT_GENERATION_TIMEOUT_MS,
+          `Strict AI request (${modelId})`,
+        );
 
         const text = (result.text ?? "").trim();
         let rawText = text;

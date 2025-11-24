@@ -372,7 +372,7 @@ const convertPlanMarkdownForUser = async (userId: number, planMarkdown: string, 
   const sportsForPrompt = inferExerciseSportsFromMarkdown(planMarkdown);
   const primaryMarkdownSport = inferPrimarySportFromMarkdown(planMarkdown);
   const primarySportSupportsTool = primaryMarkdownSport ? shouldUseExerciseTool(primaryMarkdownSport) : true;
-  const useExerciseTool =
+  const canUseExerciseTool =
     EXERCISE_TOOL_FEATURE_ENABLED &&
     sportsForPrompt.length > 0 &&
     !isFallbackExerciseSportsList(sportsForPrompt) &&
@@ -388,17 +388,28 @@ const convertPlanMarkdownForUser = async (userId: number, planMarkdown: string, 
 
   const { strict: strictClient, classic: classicClient } = getGarminAiClients();
   let aiResult: GarminAiResult | null = null;
+  let usedExerciseTool = false;
+  let strictGenerationError: unknown = null;
 
   try {
-    if (useExerciseTool) {
-      logger.info("garmin trainer job conversion invoking strict client", { candidateModels });
-      aiResult = await strictClient.generate({
-        basePrompt,
-        systemPrompt,
-        modelIds: candidateModels,
-        referer,
-      });
-    } else {
+    if (canUseExerciseTool) {
+      try {
+        logger.info("garmin trainer job conversion invoking strict client", { candidateModels });
+        aiResult = await strictClient.generate({
+          basePrompt,
+          systemPrompt,
+          modelIds: candidateModels,
+          referer,
+        });
+        usedExerciseTool = true;
+      } catch (error) {
+        strictGenerationError = error;
+        usedExerciseTool = false;
+        logger.warn("garmin trainer job conversion strict client failed", { error });
+      }
+    }
+
+    if (!aiResult) {
       const catalogMaxChars = Number(process.env.GARMIN_EXERCISE_PROMPT_MAX_CHARS ?? "60000") || 60_000;
       const exerciseCatalogSnippet = buildGarminExerciseCatalogSnippet({
         sports: sportsForPrompt,
@@ -413,6 +424,7 @@ const convertPlanMarkdownForUser = async (userId: number, planMarkdown: string, 
         modelIds: candidateModels,
         referer,
       });
+      usedExerciseTool = false;
     }
   } catch (error) {
     logger.error("garmin trainer job conversion request failed", { error });
@@ -420,10 +432,16 @@ const convertPlanMarkdownForUser = async (userId: number, planMarkdown: string, 
   }
 
   if (!aiResult) {
+    if (strictGenerationError instanceof Error) {
+      throw strictGenerationError;
+    }
+    if (strictGenerationError) {
+      throw new Error(String(strictGenerationError));
+    }
     throw new Error("Réponse IA vide.");
   }
 
-  logger.info("garmin trainer job conversion completed", { useExerciseTool });
+  logger.info("garmin trainer job conversion completed", { useExerciseTool: usedExerciseTool });
 
   const parsedResult = parseJsonWithCodeFence(aiResult.rawText);
   if (!parsedResult) {
@@ -441,7 +459,7 @@ const convertPlanMarkdownForUser = async (userId: number, planMarkdown: string, 
     });
   }
 
-  if (useExerciseTool && (!("segments" in parsedJson) || !Array.isArray((parsedJson as Record<string, unknown>).segments))) {
+  if (usedExerciseTool && (!("segments" in parsedJson) || !Array.isArray((parsedJson as Record<string, unknown>).segments))) {
     const toolError = typeof (parsedJson as Record<string, unknown>).error === "string"
       ? (parsedJson as Record<string, unknown>).error
       : "Aucun exercice valide trouvé dans le catalogue Garmin.";
