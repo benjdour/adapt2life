@@ -147,6 +147,7 @@ const pickFallbackExerciseName = (
 };
 
 const GARMIN_SWIM_STROKES = new Set(["BACKSTROKE", "BREASTSTROKE", "BUTTERFLY", "FREESTYLE", "MIXED", "IM", "RIMO", "CHOICE"]);
+const SECONDARY_TARGET_RANGE_TYPES = new Set(["CADENCE", "HEART_RATE", "POWER", "SPEED", "PACE"]);
 
 const sanitizeStrokeType = (value: string | null | undefined): string | null => {
   if (!value) {
@@ -360,6 +361,9 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
       return steps;
     }
 
+    const numericOrNull = (value: unknown): number | null =>
+      typeof value === "number" && Number.isFinite(value) ? value : null;
+
     const ensureCadenceTargets = (step: Record<string, unknown>) => {
       if (step.type === "WorkoutRepeatStep") {
         return;
@@ -436,6 +440,56 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
       }
     };
 
+    const ensurePowerTargetRanges = (step: Record<string, unknown>) => {
+      if (step.type === "WorkoutRepeatStep") {
+        return;
+      }
+      const rawTargetType = typeof step.targetType === "string" ? step.targetType.toUpperCase() : null;
+      if (!rawTargetType) {
+        return;
+      }
+      step.targetType = rawTargetType;
+      if (rawTargetType !== "POWER") {
+        return;
+      }
+
+      const low = numericOrNull(step.targetValueLow);
+      const high = numericOrNull(step.targetValueHigh);
+      if (low == null && high == null) {
+        return;
+      }
+
+      const resolvedLow = low ?? high;
+      const resolvedHigh = high ?? low;
+      step.targetValue = null;
+      step.targetValueLow = resolvedLow ?? null;
+      step.targetValueHigh = resolvedHigh ?? resolvedLow ?? null;
+      step.targetValueType = "PERCENT";
+    };
+
+    const ensureSecondaryTargetRanges = (step: Record<string, unknown>) => {
+      if (step.type === "WorkoutRepeatStep") {
+        return;
+      }
+      const rawType = typeof step.secondaryTargetType === "string" ? step.secondaryTargetType.toUpperCase() : null;
+      if (!rawType || !SECONDARY_TARGET_RANGE_TYPES.has(rawType)) {
+        return;
+      }
+      step.secondaryTargetType = rawType;
+      const low = numericOrNull(step.secondaryTargetValueLow);
+      const high = numericOrNull(step.secondaryTargetValueHigh);
+      const single = numericOrNull(step.secondaryTargetValue);
+      if (low == null && high == null && single == null) {
+        return;
+      }
+      const resolvedLow = low ?? single ?? high;
+      const resolvedHigh = high ?? single ?? low ?? resolvedLow;
+      step.secondaryTargetValueLow = resolvedLow ?? null;
+      step.secondaryTargetValueHigh = resolvedHigh ?? resolvedLow ?? null;
+      step.secondaryTargetValue = null;
+      step.secondaryTargetValueType = null;
+    };
+
     return steps.map((entry) => {
       if (!entry || typeof entry !== "object") {
         return entry;
@@ -447,6 +501,8 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
       }
       ensureStepDescription(step);
       ensureCadenceTargets(step);
+      ensurePowerTargetRanges(step);
+      ensureSecondaryTargetRanges(step);
       ensureRestDescriptions(step);
       normalizeExerciseMetadata(step, segmentSport);
       const rawStrokeType = typeof step.strokeType === "string" ? step.strokeType : null;
