@@ -145,15 +145,6 @@ const WorkoutStepSchema = z
   /** Durée cohérente selon le type */
   .superRefine((s, ctx) => {
     const description = typeof s.description === "string" ? s.description : "";
-    const implicitRepeatPattern = /\b\d+\s*[x×]\s*\d/i;
-    if (implicitRepeatPattern.test(description)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message:
-          "description mentionne une répétition 'N × ...' mais ce step n'est pas modélisé en WorkoutRepeatStep.",
-        path: ["description"],
-      });
-    }
 
     if (s.durationType === "OPEN") {
       if (s.durationValue != null) {
