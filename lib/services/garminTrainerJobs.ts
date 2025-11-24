@@ -148,6 +148,7 @@ const pickFallbackExerciseName = (
 
 const GARMIN_SWIM_STROKES = new Set(["BACKSTROKE", "BREASTSTROKE", "BUTTERFLY", "FREESTYLE", "MIXED", "IM", "RIMO", "CHOICE"]);
 const SECONDARY_TARGET_RANGE_TYPES = new Set(["CADENCE", "HEART_RATE", "POWER", "SPEED", "PACE"]);
+const SECONDARY_TARGET_SPORTS = new Set(["CYCLING", "LAP_SWIMMING"]);
 const SWIM_INTENSITY_TO_INSTRUCTION: Record<string, number> = {
   REST: 2,
   RECOVERY: 3,
@@ -160,6 +161,18 @@ const SWIM_INTENSITY_TO_INSTRUCTION: Record<string, number> = {
 
 const toNumberOrNull = (value: unknown): number | null =>
   typeof value === "number" && Number.isFinite(value) ? value : null;
+
+class TimeoutError extends Error {
+  label: string;
+  timeoutMs: number;
+
+  constructor(label: string, timeoutMs: number) {
+    super(`${label} timed out after ${timeoutMs}ms`);
+    this.name = "TimeoutError";
+    this.label = label;
+    this.timeoutMs = timeoutMs;
+  }
+}
 
 const sanitizeStrokeType = (value: string | null | undefined): string | null => {
   if (!value) {
@@ -372,6 +385,8 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
     if (!Array.isArray(steps)) {
       return steps;
     }
+    const normalizedSport = segmentSport ? segmentSport.toUpperCase() : null;
+    const supportsSecondaryTargets = normalizedSport ? SECONDARY_TARGET_SPORTS.has(normalizedSport) : false;
 
     const ensureCadenceTargets = (step: Record<string, unknown>) => {
       if (step.type === "WorkoutRepeatStep") {
@@ -585,6 +600,14 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
       if (step.type === "WorkoutRepeatStep") {
         return;
       }
+      if (!supportsSecondaryTargets) {
+        step.secondaryTargetType = null;
+        step.secondaryTargetValue = null;
+        step.secondaryTargetValueLow = null;
+        step.secondaryTargetValueHigh = null;
+        step.secondaryTargetValueType = null;
+        return;
+      }
       const rawType = typeof step.secondaryTargetType === "string" ? step.secondaryTargetType.toUpperCase() : null;
       if (!rawType || !SECONDARY_TARGET_RANGE_TYPES.has(rawType)) {
         return;
@@ -723,18 +746,25 @@ const FETCH_TIMEOUT_MS = Number(process.env.GARMIN_TRAINER_FETCH_TIMEOUT_MS ?? "
 const CONVERSION_TIMEOUT_MS = Number(process.env.GARMIN_TRAINER_CONVERSION_TIMEOUT_MS ?? "300000");
 const PUSH_TIMEOUT_MS = Number(process.env.GARMIN_TRAINER_PUSH_TIMEOUT_MS ?? "300000");
 const MAX_PLAN_MARKDOWN_CHARS = Number(process.env.GARMIN_TRAINER_PLAN_MAX_CHARS ?? "12000");
+const JOB_HEARTBEAT_INTERVAL_MS = Number(process.env.GARMIN_TRAINER_JOB_HEARTBEAT_MS ?? "30000");
 
 const runWithTimeout = async <T>(factory: () => Promise<T>, timeoutMs: number, label: string, logger?: Logger): Promise<T> => {
   if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
     return factory();
   }
 
+  const startedAt = Date.now();
+  logger?.info(`${label} started`, { label, timeoutMs });
+
   return await new Promise<T>((resolve, reject) => {
     let settled = false;
     const timer = setTimeout(() => {
+      if (settled) {
+        return;
+      }
       settled = true;
-      const timeoutError = new Error(`${label} timed out after ${timeoutMs}ms`);
-      logger?.error(timeoutError.message);
+      const timeoutError = new TimeoutError(label, timeoutMs);
+      logger?.error(`${label} timed out`, { label, timeoutMs, durationMs: Date.now() - startedAt });
       reject(timeoutError);
     }, timeoutMs);
 
@@ -749,6 +779,7 @@ const runWithTimeout = async <T>(factory: () => Promise<T>, timeoutMs: number, l
         }
         settled = true;
         clear();
+        logger?.info(`${label} completed`, { label, durationMs: Date.now() - startedAt });
         resolve(value);
       })
       .catch((error) => {
@@ -757,6 +788,7 @@ const runWithTimeout = async <T>(factory: () => Promise<T>, timeoutMs: number, l
         }
         settled = true;
         clear();
+        logger?.error(`${label} failed`, { label, durationMs: Date.now() - startedAt, error });
         reject(error);
       });
   });
@@ -766,6 +798,13 @@ const updateJob = async (jobId: number, values: Partial<typeof garminTrainerJobs
   await db
     .update(garminTrainerJobs)
     .set({ ...values, updatedAt: new Date() })
+    .where(eq(garminTrainerJobs.id, jobId));
+};
+
+const touchJob = async (jobId: number) => {
+  await db
+    .update(garminTrainerJobs)
+    .set({ updatedAt: new Date() })
     .where(eq(garminTrainerJobs.id, jobId));
 };
 
@@ -1150,6 +1189,24 @@ const processJob = async (job: { id: number; userId: number; planMarkdown: strin
   const logger = baseLogger.child({ jobId: job.id, userId: job.userId });
   await updateJob(job.id, { status: "processing" });
   logger.info("garmin trainer job processing started");
+  let heartbeatId: NodeJS.Timeout | null = null;
+  const startHeartbeat = () => {
+    if (!Number.isFinite(JOB_HEARTBEAT_INTERVAL_MS) || JOB_HEARTBEAT_INTERVAL_MS <= 0) {
+      return;
+    }
+    heartbeatId = setInterval(() => {
+      touchJob(job.id).catch((error) => {
+        logger.warn("garmin trainer job heartbeat failed", { error });
+      });
+    }, JOB_HEARTBEAT_INTERVAL_MS);
+  };
+  const stopHeartbeat = () => {
+    if (heartbeatId) {
+      clearInterval(heartbeatId);
+      heartbeatId = null;
+    }
+  };
+  startHeartbeat();
   try {
     const conversion = await runWithTimeout(
       () => convertPlanMarkdownForUser(job.userId, job.planMarkdown, logger),
@@ -1157,7 +1214,7 @@ const processJob = async (job: { id: number; userId: number; planMarkdown: strin
       "Garmin conversion",
       logger,
     );
-    await updateJob(job.id, { status: "processing" });
+    await touchJob(job.id);
     const pushResult = await runWithTimeout(
       () => pushWorkoutForUser(job.userId, conversion.workout, logger),
       PUSH_TIMEOUT_MS,
@@ -1179,6 +1236,13 @@ const processJob = async (job: { id: number; userId: number; planMarkdown: strin
     });
     logger.info("garmin trainer job completed", { workoutId: pushResult.workoutId });
   } catch (error) {
+    if (error instanceof TimeoutError) {
+      logger.error("garmin trainer job stage timed out", {
+        jobId: job.id,
+        stage: error.label,
+        timeoutMs: error.timeoutMs,
+      });
+    }
     if (error instanceof GarminConversionError) {
       logger.error("garmin trainer job failed", {
         jobId: job.id,
@@ -1198,6 +1262,7 @@ const processJob = async (job: { id: number; userId: number; planMarkdown: strin
       aiDebugPayload: error instanceof GarminConversionError ? (error.debugPayload ?? null) : null,
     });
   }
+  stopHeartbeat();
 };
 
 export const processPendingGarminTrainerJobs = async (limit = 5) => {
