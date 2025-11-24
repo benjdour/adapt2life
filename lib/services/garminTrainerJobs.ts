@@ -341,6 +341,44 @@ const ensureOwnerIdType = (garminUserId: string): string | number => {
 const baseLogger = createLogger("garmin-trainer-jobs");
 const DEFAULT_JOB_TIMEOUT_MS = Number(process.env.GARMIN_TRAINER_JOB_TIMEOUT_MS ?? "600000");
 const FETCH_TIMEOUT_MS = Number(process.env.GARMIN_TRAINER_FETCH_TIMEOUT_MS ?? "120000");
+const CONVERSION_TIMEOUT_MS = Number(process.env.GARMIN_TRAINER_CONVERSION_TIMEOUT_MS ?? "240000");
+const PUSH_TIMEOUT_MS = Number(process.env.GARMIN_TRAINER_PUSH_TIMEOUT_MS ?? "240000");
+
+const runWithTimeout = async <T>(factory: () => Promise<T>, timeoutMs: number, label: string): Promise<T> => {
+  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+    return factory();
+  }
+
+  return await new Promise<T>((resolve, reject) => {
+    let settled = false;
+    const timer = setTimeout(() => {
+      settled = true;
+      reject(new Error(`${label} timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+
+    const clear = () => {
+      clearTimeout(timer);
+    };
+
+    factory()
+      .then((value) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        clear();
+        resolve(value);
+      })
+      .catch((error) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        clear();
+        reject(error);
+      });
+  });
+};
 
 const updateJob = async (jobId: number, values: Partial<typeof garminTrainerJobs.$inferInsert>) => {
   await db
@@ -720,8 +758,16 @@ const processJob = async (job: { id: number; userId: number; planMarkdown: strin
   await updateJob(job.id, { status: "processing" });
   logger.info("garmin trainer job processing started");
   try {
-    const conversion = await convertPlanMarkdownForUser(job.userId, job.planMarkdown, logger);
-    const pushResult = await pushWorkoutForUser(job.userId, conversion.workout, logger);
+    const conversion = await runWithTimeout(
+      () => convertPlanMarkdownForUser(job.userId, job.planMarkdown, logger),
+      CONVERSION_TIMEOUT_MS,
+      "Garmin conversion",
+    );
+    const pushResult = await runWithTimeout(
+      () => pushWorkoutForUser(job.userId, conversion.workout, logger),
+      PUSH_TIMEOUT_MS,
+      "Garmin push",
+    );
 
     await updateJob(job.id, {
       status: "success",
