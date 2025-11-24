@@ -81,12 +81,7 @@ export function AdminUserTable({ users }: AdminUserTableProps) {
                   <td className="py-2 pr-4 font-mono text-xs">{user.email}</td>
                   <td className="py-2 pr-4 text-muted-foreground">{formatDate(user.createdAt)}</td>
                   <td className="py-2 pr-0 text-right">
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      disabled={deletingId === user.id}
-                      onClick={() => handleDelete(user.id)}
-                    >
+                    <Button variant="error" size="sm" disabled={deletingId === user.id} onClick={() => handleDelete(user.id)}>
                       {deletingId === user.id ? "Suppression..." : "Supprimer"}
                     </Button>
                   </td>

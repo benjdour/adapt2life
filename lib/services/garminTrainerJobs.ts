@@ -208,8 +208,8 @@ const normalizeExerciseMetadata = (step: Record<string, unknown>, segmentSport: 
     }
   };
 
-  let category = typeof step.exerciseCategory === "string" ? step.exerciseCategory : null;
-  let name = typeof step.exerciseName === "string" ? step.exerciseName : null;
+  const category = typeof step.exerciseCategory === "string" ? step.exerciseCategory : null;
+  const name = typeof step.exerciseName === "string" ? step.exerciseName : null;
 
   if (category && name && isKnownGarminExercise(segmentSport, category, name)) {
     return;
