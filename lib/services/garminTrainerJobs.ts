@@ -20,6 +20,11 @@ import {
 } from "@/lib/garmin/exerciseInference";
 import { getGarminAiClients, type GarminAiResult } from "@/lib/ai/garminAiClient";
 import { GarminConversionError } from "@/lib/errors";
+import {
+  getGarminExerciseNames,
+  hasGarminExerciseCategory,
+  isKnownGarminExercise,
+} from "@/constants/garminExerciseData";
 
 const GARMIN_PROMPT_FILENAME = "docs/garmin_trainer_prompt.txt";
 
@@ -97,6 +102,84 @@ const sanitizeWorkoutValue = (value: unknown): unknown => {
   }
 
   return value;
+};
+
+const toSearchableText = (value: string | null | undefined): string =>
+  value
+    ? value
+        .normalize("NFD")
+        .replace(/\p{Diacritic}/gu, "")
+        .toLowerCase()
+    : "";
+
+const pickFallbackExerciseName = (
+  sport: string | null | undefined,
+  category: string,
+  currentName: string | null | undefined,
+  description: string | null | undefined,
+): string | null => {
+  const candidates = getGarminExerciseNames(sport ?? "", category);
+  if (!candidates.length) {
+    return null;
+  }
+
+  const searchable = `${toSearchableText(currentName)} ${toSearchableText(description)}`;
+  const directMatch = candidates.find((entry) => searchable.includes(entry.toLowerCase()));
+  if (directMatch) {
+    return directMatch;
+  }
+
+  if (/jog|run|course|footing/.test(searchable)) {
+    const jogCandidate = candidates.find((entry) => entry.toLowerCase().includes("jog"));
+    if (jogCandidate) {
+      return jogCandidate;
+    }
+  }
+
+  if (/walk|marche|recover|recup|repos|cooldown/.test(searchable)) {
+    const walkCandidate = candidates.find((entry) => entry.toLowerCase().includes("walk"));
+    if (walkCandidate) {
+      return walkCandidate;
+    }
+  }
+
+  return candidates[0];
+};
+
+const normalizeExerciseMetadata = (step: Record<string, unknown>, segmentSport: string | null | undefined) => {
+  const intensity = typeof step.intensity === "string" ? step.intensity.toUpperCase() : null;
+  if (intensity === "REST") {
+    step.exerciseCategory = null;
+    step.exerciseName = null;
+    return;
+  }
+
+  const category = typeof step.exerciseCategory === "string" ? step.exerciseCategory : null;
+  const name = typeof step.exerciseName === "string" ? step.exerciseName : null;
+
+  if (category && name && isKnownGarminExercise(segmentSport, category, name)) {
+    return;
+  }
+
+  if (!category || !hasGarminExerciseCategory(segmentSport, category)) {
+    return;
+  }
+
+  const fallbackName = pickFallbackExerciseName(
+    segmentSport,
+    category,
+    name,
+    typeof step.description === "string" ? step.description : null,
+  );
+
+  if (fallbackName) {
+    step.exerciseCategory = category;
+    step.exerciseName = fallbackName;
+    return;
+  }
+
+  step.exerciseCategory = null;
+  step.exerciseName = null;
 };
 
 const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<string, unknown> => {
@@ -193,6 +276,7 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
   const normalizeSteps = (
     steps: unknown,
     isSwim: boolean,
+    segmentSport: string | null | undefined,
   ): unknown => {
     if (!Array.isArray(steps)) {
       return steps;
@@ -285,10 +369,11 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
       }
       ensureCadenceTargets(step);
       ensureRestDescriptions(step);
+      normalizeExerciseMetadata(step, segmentSport);
 
       if (step.type === "WorkoutRepeatStep") {
         step.intensity = typeof step.intensity === "string" && step.intensity.trim() ? step.intensity : inferRepeatIntensity(step);
-        step.steps = normalizeSteps(step.steps, isSwim);
+        step.steps = normalizeSteps(step.steps, isSwim, segmentSport);
         flattenNestedRepeatChildren(step);
       }
 
@@ -318,7 +403,7 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
     const sportType = typeof segmentRecord.sportType === "string" ? segmentRecord.sportType : null;
 
     const isSwim = sportType === "swimming" || sportType === "pool_swimming" || segmentRecord.sport === "LAP_SWIMMING";
-    segmentRecord.steps = normalizeSteps(segmentRecord.steps, isSwim);
+    segmentRecord.steps = normalizeSteps(segmentRecord.steps, isSwim, segmentRecord.sport ?? null);
 
     if (isSwim && !segmentRecord.poolLength && swimSegmentPoolValues.length > 0) {
       segmentRecord.poolLength = swimSegmentPoolValues[0];
