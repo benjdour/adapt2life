@@ -75,7 +75,7 @@ OPENROUTER_CHAT_PATH=/chat/completions            # optionnel
 GARMIN_TRAINER_MODEL=openai/gpt-5                # optionnel
 GARMIN_TRAINER_SYSTEM_PROMPT="..."               # optionnel
 GARMIN_TRAINER_PROMPT="..."                      # peut aussi provenir de docs/garmin_trainer_prompt.txt
-GARMIN_TRAINER_JOB_TIMEOUT_MS=600000             # optionnel (10 min par défaut)
+GARMIN_TRAINER_JOB_TIMEOUT_MS=300000             # optionnel (5 min par défaut)
 GARMIN_TRAINER_FETCH_TIMEOUT_MS=120000           # optionnel (timeout création/schedule Garmin)
 
 # Admin front
