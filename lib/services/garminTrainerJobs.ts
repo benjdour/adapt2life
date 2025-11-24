@@ -624,12 +624,16 @@ const convertPlanMarkdownForUser = async (userId: number, planMarkdown: string, 
 
   try {
     if (canUseExerciseTool) {
+      const strictStartedAt = Date.now();
       logger.info("garmin trainer job conversion invoking strict client", { candidateModels });
       aiResult = await strictClient.generate({
         basePrompt,
         systemPrompt,
         modelIds: candidateModels,
         referer,
+      });
+      logger.info("garmin trainer job conversion strict client response received", {
+        durationMs: Date.now() - strictStartedAt,
       });
       usedExerciseTool = true;
     }
@@ -642,12 +646,16 @@ const convertPlanMarkdownForUser = async (userId: number, planMarkdown: string, 
       });
       const userPrompt = [basePrompt, exerciseCatalogSnippet].join("\n\n");
 
+      const classicStartedAt = Date.now();
       logger.info("garmin trainer job conversion invoking classic client", { candidateModels, promptLength: userPrompt.length });
       aiResult = await classicClient.generate({
         basePrompt: userPrompt,
         systemPrompt,
         modelIds: candidateModels,
         referer,
+      });
+      logger.info("garmin trainer job conversion classic client response received", {
+        durationMs: Date.now() - classicStartedAt,
       });
       usedExerciseTool = false;
     }
@@ -665,12 +673,14 @@ const convertPlanMarkdownForUser = async (userId: number, planMarkdown: string, 
     durationMs: Date.now() - startedAt,
   });
 
+  const parseStartedAt = Date.now();
   const parsedResult = parseJsonWithCodeFence(aiResult.rawText);
   if (!parsedResult) {
     throw new GarminConversionError("JSON invalide renvoyé par l’IA : impossible de parser la réponse.", {
       rawResponse: aiResult.rawText,
     });
   }
+  logger.info("garmin trainer job conversion response parsed", { durationMs: Date.now() - parseStartedAt });
 
   const parsedJson = parsedResult.parsed;
   const sourceJson = parsedResult.source;
@@ -694,6 +704,7 @@ const convertPlanMarkdownForUser = async (userId: number, planMarkdown: string, 
   const sanitized = sanitizeWorkoutValue(parsedJson) as Record<string, unknown>;
   const normalized = enforceWorkoutPostProcessing(sanitized);
 
+  const validationStartedAt = Date.now();
   const validation = workoutSchema.safeParse(normalized);
   if (!validation.success) {
     throw new GarminConversionError("L’entraînement généré ne respecte pas le schéma attendu.", {
@@ -702,6 +713,7 @@ const convertPlanMarkdownForUser = async (userId: number, planMarkdown: string, 
       issues: validation.error.issues,
     });
   }
+  logger.info("garmin trainer job conversion workout validated", { durationMs: Date.now() - validationStartedAt });
 
   await saveGarminWorkoutForUser(userId, validation.data as Record<string, unknown>);
   logger.info("garmin trainer job workout saved");
