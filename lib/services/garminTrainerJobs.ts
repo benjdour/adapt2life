@@ -863,8 +863,8 @@ const pushWorkoutForUser = async (userId: number, workout: GarminTrainerWorkout,
       schedule: scheduleJson ?? scheduleText ?? null,
     },
   };
-  logger.info("garmin trainer job push completed", { garminUserId, workoutId });
-  logger.info("garmin trainer job push completed", { garminUserId, workoutId, durationMs: Date.now() - startedAt });
+  const durationMs = Date.now() - startedAt;
+  logger.info("garmin trainer job push completed", { garminUserId, workoutId, durationMs });
   return result;
 };
 
