@@ -674,7 +674,7 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
 
   const segments = Array.isArray(clone.segments) ? clone.segments : [];
 
-  clone.segments = segments.map((segment) => {
+  const normalizedSegments = segments.map((segment) => {
     if (!segment || typeof segment !== "object") {
       return segment;
     }
@@ -731,6 +731,41 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
 
     return segmentRecord;
   });
+
+  const workoutSport = typeof clone.sport === "string" ? clone.sport : null;
+  if (workoutSport !== "MULTI_SPORT" && normalizedSegments.length > 1) {
+    const [firstSegment, ...extraSegments] = normalizedSegments;
+    const mergedSteps = Array.isArray(firstSegment?.steps) ? [...(firstSegment.steps as Record<string, unknown>[])] : [];
+    let currentOrder = mergedSteps.length;
+    for (const extra of extraSegments) {
+      const steps = Array.isArray(extra?.steps) ? (extra.steps as Record<string, unknown>[]) : [];
+      for (const entry of steps) {
+        const clonedStep = entry && typeof entry === "object" ? { ...(entry as Record<string, unknown>) } : entry;
+        if (clonedStep && typeof clonedStep === "object") {
+          currentOrder += 1;
+          clonedStep.stepOrder = currentOrder;
+          mergedSteps.push(clonedStep);
+        }
+      }
+    }
+    if (firstSegment && typeof firstSegment === "object") {
+      const baseSegment = { ...(firstSegment as Record<string, unknown>) };
+      baseSegment.steps = mergedSteps;
+      const estimatedDurationSum = normalizedSegments.reduce((total, segment) => {
+        const duration = segment && typeof segment === "object" ? (segment as Record<string, unknown>).estimatedDurationInSecs : null;
+        if (typeof duration === "number" && Number.isFinite(duration)) {
+          return total + duration;
+        }
+        return total;
+      }, 0);
+      baseSegment.estimatedDurationInSecs = estimatedDurationSum > 0 ? estimatedDurationSum : baseSegment.estimatedDurationInSecs ?? null;
+      clone.segments = [baseSegment];
+    } else {
+      clone.segments = normalizedSegments.slice(0, 1);
+    }
+  } else {
+    clone.segments = normalizedSegments;
+  }
 
   return clone;
 };
