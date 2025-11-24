@@ -176,6 +176,7 @@ describe("convertPlanMarkdownForUser", () => {
       rawText: JSON.stringify(buildWorkout("STRENGTH_TRAINING")),
       data: buildWorkout("STRENGTH_TRAINING"),
       parseError: null,
+      modelId: "test-model",
     });
 
     const classicClient = createMockClient();
@@ -206,6 +207,7 @@ describe("convertPlanMarkdownForUser", () => {
       rawText: JSON.stringify(buildWorkout("CARDIO_TRAINING")),
       data: buildWorkout("CARDIO_TRAINING"),
       parseError: null,
+      modelId: "test-model",
     });
 
     setGarminAiClientFactory(() => ({
@@ -239,6 +241,7 @@ describe("convertPlanMarkdownForUser", () => {
       rawText: JSON.stringify(buildWorkout("CARDIO_TRAINING")),
       data: buildWorkout("CARDIO_TRAINING"),
       parseError: null,
+      modelId: "test-model",
     });
 
     setGarminAiClientFactory(() => ({
@@ -264,6 +267,7 @@ describe("convertPlanMarkdownForUser", () => {
       rawText: JSON.stringify(buildWorkout("CARDIO_TRAINING")),
       data: buildWorkout("CARDIO_TRAINING"),
       parseError: null,
+      modelId: "test-model",
     });
 
     setGarminAiClientFactory(() => ({

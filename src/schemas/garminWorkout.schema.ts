@@ -144,7 +144,6 @@ const WorkoutStepSchema = z
   .strict()
   /** Durée cohérente selon le type */
   .superRefine((s, ctx) => {
-    const description = typeof s.description === "string" ? s.description : "";
 
     if (s.durationType === "OPEN") {
       if (s.durationValue != null) {
