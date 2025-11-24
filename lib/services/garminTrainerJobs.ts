@@ -529,7 +529,7 @@ const CONVERSION_TIMEOUT_MS = Number(process.env.GARMIN_TRAINER_CONVERSION_TIMEO
 const PUSH_TIMEOUT_MS = Number(process.env.GARMIN_TRAINER_PUSH_TIMEOUT_MS ?? "300000");
 const MAX_PLAN_MARKDOWN_CHARS = Number(process.env.GARMIN_TRAINER_PLAN_MAX_CHARS ?? "12000");
 
-const runWithTimeout = async <T>(factory: () => Promise<T>, timeoutMs: number, label: string): Promise<T> => {
+const runWithTimeout = async <T>(factory: () => Promise<T>, timeoutMs: number, label: string, logger?: Logger): Promise<T> => {
   if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
     return factory();
   }
@@ -538,7 +538,9 @@ const runWithTimeout = async <T>(factory: () => Promise<T>, timeoutMs: number, l
     let settled = false;
     const timer = setTimeout(() => {
       settled = true;
-      reject(new Error(`${label} timed out after ${timeoutMs}ms`));
+      const timeoutError = new Error(`${label} timed out after ${timeoutMs}ms`);
+      logger?.error(timeoutError.message);
+      reject(timeoutError);
     }, timeoutMs);
 
     const clear = () => {
@@ -650,7 +652,7 @@ const convertPlanMarkdownForUser = async (userId: number, planMarkdown: string, 
       usedExerciseTool = false;
     }
   } catch (error) {
-    logger.error("garmin trainer job conversion request failed", { error });
+    logger.error("garmin trainer job conversion request failed", { error, durationMs: Date.now() - startedAt });
     throw error instanceof Error ? error : new Error(String(error));
   }
 
@@ -712,7 +714,6 @@ const convertPlanMarkdownForUser = async (userId: number, planMarkdown: string, 
 
 const pushWorkoutForUser = async (userId: number, workout: GarminTrainerWorkout, jobLogger?: Logger) => {
   const logger = jobLogger ?? baseLogger.child({ userId });
-  const startedAt = Date.now();
   const garminConnection = await fetchGarminConnectionByUserId(userId);
   if (!garminConnection) {
     throw new Error("Aucune connexion Garmin trouvée pour cet utilisateur. Connecte ton compte Garmin puis réessaie.");
@@ -863,6 +864,7 @@ const pushWorkoutForUser = async (userId: number, workout: GarminTrainerWorkout,
     },
   };
   logger.info("garmin trainer job push completed", { garminUserId, workoutId });
+  logger.info("garmin trainer job push completed", { garminUserId, workoutId, durationMs: Date.now() - startedAt });
   return result;
 };
 
@@ -945,11 +947,13 @@ const processJob = async (job: { id: number; userId: number; planMarkdown: strin
       () => convertPlanMarkdownForUser(job.userId, job.planMarkdown, logger),
       CONVERSION_TIMEOUT_MS,
       "Garmin conversion",
+      logger,
     );
     const pushResult = await runWithTimeout(
       () => pushWorkoutForUser(job.userId, conversion.workout, logger),
       PUSH_TIMEOUT_MS,
       "Garmin push",
+      logger,
     );
 
     await updateJob(job.id, {
