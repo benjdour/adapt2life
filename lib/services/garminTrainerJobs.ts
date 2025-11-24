@@ -440,6 +440,31 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
       }
     };
 
+    const ensureSwimTargets = (step: Record<string, unknown>) => {
+      if (!isSwim || step.type === "WorkoutRepeatStep") {
+        return;
+      }
+      const hasPrimaryTarget =
+        typeof step.targetType === "string" && step.targetType !== "" && step.targetType !== "OPEN";
+      if (!hasPrimaryTarget) {
+        return;
+      }
+
+      if (!step.secondaryTargetType) {
+        step.secondaryTargetType = step.targetType;
+        step.secondaryTargetValue = step.targetValue ?? null;
+        step.secondaryTargetValueLow = step.targetValueLow ?? null;
+        step.secondaryTargetValueHigh = step.targetValueHigh ?? null;
+        step.secondaryTargetValueType = step.targetValueType ?? null;
+      }
+
+      step.targetType = null;
+      step.targetValue = null;
+      step.targetValueLow = null;
+      step.targetValueHigh = null;
+      step.targetValueType = null;
+    };
+
     const ensurePowerTargetRanges = (step: Record<string, unknown>) => {
       if (step.type === "WorkoutRepeatStep") {
         return;
@@ -504,6 +529,7 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
       ensurePowerTargetRanges(step);
       ensureSecondaryTargetRanges(step);
       ensureRestDescriptions(step);
+      ensureSwimTargets(step);
       normalizeExerciseMetadata(step, segmentSport);
       const rawStrokeType = typeof step.strokeType === "string" ? step.strokeType : null;
       const sanitizedStrokeType = sanitizeStrokeType(rawStrokeType);
