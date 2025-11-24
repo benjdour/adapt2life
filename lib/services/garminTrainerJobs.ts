@@ -148,7 +148,18 @@ const pickFallbackExerciseName = (
 
 const GARMIN_SWIM_STROKES = new Set(["BACKSTROKE", "BREASTSTROKE", "BUTTERFLY", "FREESTYLE", "MIXED", "IM", "RIMO", "CHOICE"]);
 const SECONDARY_TARGET_RANGE_TYPES = new Set(["CADENCE", "HEART_RATE", "POWER", "SPEED", "PACE"]);
-const SWIM_SECONDARY_TARGET_TYPES = new Set(["PACE_ZONE", "SWIM_INSTRUCTION", "SWIM_CSS_OFFSET"]);
+const SWIM_INTENSITY_TO_INSTRUCTION: Record<string, number> = {
+  REST: 2,
+  RECOVERY: 3,
+  WARMUP: 4,
+  COOLDOWN: 3,
+  ACTIVE: 6,
+  INTERVAL: 8,
+  MAIN: 7,
+};
+
+const toNumberOrNull = (value: unknown): number | null =>
+  typeof value === "number" && Number.isFinite(value) ? value : null;
 
 const sanitizeStrokeType = (value: string | null | undefined): string | null => {
   if (!value) {
@@ -362,9 +373,6 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
       return steps;
     }
 
-    const numericOrNull = (value: unknown): number | null =>
-      typeof value === "number" && Number.isFinite(value) ? value : null;
-
     const ensureCadenceTargets = (step: Record<string, unknown>) => {
       if (step.type === "WorkoutRepeatStep") {
         return;
@@ -445,43 +453,105 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
       if (!isSwim || step.type === "WorkoutRepeatStep") {
         return;
       }
-      const hasPrimaryTarget =
-        typeof step.targetType === "string" && step.targetType !== "" && step.targetType !== "OPEN";
-      if (!hasPrimaryTarget) {
-        return;
-      }
 
-      if (!step.secondaryTargetType) {
-        step.secondaryTargetType = step.targetType;
-        step.secondaryTargetValue = step.targetValue ?? null;
-        step.secondaryTargetValueLow = step.targetValueLow ?? null;
-        step.secondaryTargetValueHigh = step.targetValueHigh ?? null;
-        step.secondaryTargetValueType = step.targetValueType ?? null;
-      }
+      const dropSecondaryTarget = () => {
+        step.secondaryTargetType = null;
+        step.secondaryTargetValue = null;
+        step.secondaryTargetValueLow = null;
+        step.secondaryTargetValueHigh = null;
+        step.secondaryTargetValueType = null;
+      };
 
-      step.targetType = null;
-      step.targetValue = null;
-      step.targetValueLow = null;
-      step.targetValueHigh = null;
-      step.targetValueType = null;
+      const applySwimInstruction = (intensity: string | null, providedValue: number | null = null) => {
+        const normalizedIntensity = intensity ? intensity.toUpperCase() : null;
+        const intensityValue =
+          (normalizedIntensity && SWIM_INTENSITY_TO_INSTRUCTION[normalizedIntensity]) ?? providedValue ?? 5;
+        const clampedValue = Math.min(10, Math.max(1, Math.round(intensityValue)));
+        step.secondaryTargetType = "SWIM_INSTRUCTION";
+        step.secondaryTargetValue = null;
+        step.secondaryTargetValueLow = clampedValue;
+        step.secondaryTargetValueHigh = null;
+        step.secondaryTargetValueType = null;
+      };
+
+      const applyCssOffset = (value: number | null) => {
+        const resolved = value == null ? null : Math.max(-60, Math.min(60, Math.round(value)));
+        if (resolved == null) {
+          dropSecondaryTarget();
+          return;
+        }
+        step.secondaryTargetType = "SWIM_CSS_OFFSET";
+        step.secondaryTargetValue = null;
+        step.secondaryTargetValueLow = resolved;
+        step.secondaryTargetValueHigh = null;
+        step.secondaryTargetValueType = null;
+      };
+
+      const applyPaceZone = (value: number | null) => {
+        if (value == null) {
+          dropSecondaryTarget();
+          return;
+        }
+        const resolved = Math.max(0, value);
+        step.secondaryTargetType = "PACE_ZONE";
+        step.secondaryTargetValue = null;
+        step.secondaryTargetValueLow = resolved;
+        step.secondaryTargetValueHigh = null;
+        step.secondaryTargetValueType = null;
+      };
+
+      const intensity = typeof step.intensity === "string" ? step.intensity.toUpperCase() : null;
+      const primaryType =
+        typeof step.targetType === "string" && step.targetType.trim().length > 0
+          ? step.targetType.toUpperCase()
+          : null;
+      const primaryLow = toNumberOrNull(step.targetValueLow);
+      const primaryHigh = toNumberOrNull(step.targetValueHigh);
+      const primaryValue = toNumberOrNull(step.targetValue);
+
+      if (primaryType && primaryType !== "OPEN") {
+        if (primaryType === "PACE" || primaryType === "SPEED") {
+          applyPaceZone(primaryLow ?? primaryHigh ?? primaryValue);
+        } else if (primaryType === "SWIM_CSS_OFFSET") {
+          applyCssOffset(primaryLow ?? primaryHigh ?? primaryValue);
+        } else {
+          applySwimInstruction(intensity);
+        }
+
+        step.targetType = null;
+        step.targetValue = null;
+        step.targetValueLow = null;
+        step.targetValueHigh = null;
+        step.targetValueType = null;
+      }
 
       const secondaryType =
         typeof step.secondaryTargetType === "string" ? step.secondaryTargetType.toUpperCase() : null;
-      const hasNumericRange =
-        numericOrNull(step.secondaryTargetValueLow) != null || numericOrNull(step.secondaryTargetValueHigh) != null;
-      if (!secondaryType || !SWIM_SECONDARY_TARGET_TYPES.has(secondaryType)) {
-        if (hasNumericRange) {
-          step.secondaryTargetType = "PACE_ZONE";
-        } else {
-          step.secondaryTargetType = null;
-          step.secondaryTargetValue = null;
-          step.secondaryTargetValueLow = null;
-          step.secondaryTargetValueHigh = null;
-          step.secondaryTargetValueType = null;
-        }
-      } else {
-        step.secondaryTargetType = secondaryType;
+
+      if (!secondaryType) {
+        return;
       }
+
+      if (secondaryType === "SWIM_INSTRUCTION") {
+        applySwimInstruction(intensity, toNumberOrNull(step.secondaryTargetValueLow));
+        return;
+      }
+
+      if (secondaryType === "SWIM_CSS_OFFSET") {
+        applyCssOffset(toNumberOrNull(step.secondaryTargetValueLow));
+        return;
+      }
+
+      if (secondaryType === "PACE_ZONE") {
+        applyPaceZone(
+          toNumberOrNull(step.secondaryTargetValueLow) ??
+            toNumberOrNull(step.secondaryTargetValueHigh) ??
+            toNumberOrNull(step.secondaryTargetValue),
+        );
+        return;
+      }
+
+      applySwimInstruction(intensity);
     };
 
     const ensurePowerTargetRanges = (step: Record<string, unknown>) => {
@@ -497,8 +567,8 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
         return;
       }
 
-      const low = numericOrNull(step.targetValueLow);
-      const high = numericOrNull(step.targetValueHigh);
+      const low = toNumberOrNull(step.targetValueLow);
+      const high = toNumberOrNull(step.targetValueHigh);
       if (low == null && high == null) {
         return;
       }
@@ -520,9 +590,9 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
         return;
       }
       step.secondaryTargetType = rawType;
-      const low = numericOrNull(step.secondaryTargetValueLow);
-      const high = numericOrNull(step.secondaryTargetValueHigh);
-      const single = numericOrNull(step.secondaryTargetValue);
+      const low = toNumberOrNull(step.secondaryTargetValueLow);
+      const high = toNumberOrNull(step.secondaryTargetValueHigh);
+      const single = toNumberOrNull(step.secondaryTargetValue);
       if (low == null && high == null && single == null) {
         return;
       }
@@ -566,10 +636,10 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
 
       if (isSwim && step.poolLength && typeof step.poolLength === "object") {
         const pool = step.poolLength as Record<string, unknown>;
-        const lengthValue =
-          typeof pool.value === "number" && Number.isFinite(pool.value) ? pool.value : null;
+        const lengthValue = toNumberOrNull(pool.value);
         const lengthUnit = typeof pool.unit === "string" ? pool.unit : null;
         swimSegmentPoolValues.push({ length: lengthValue, unit: lengthUnit });
+        delete step.poolLength;
       }
 
       return step;
@@ -605,8 +675,32 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
     const segmentSport = typeof segmentRecord.sport === "string" ? segmentRecord.sport : null;
     segmentRecord.steps = normalizeSteps(segmentRecord.steps, isSwim, segmentSport);
 
-    if (isSwim && !segmentRecord.poolLength && swimSegmentPoolValues.length > 0) {
-      segmentRecord.poolLength = swimSegmentPoolValues[0];
+    if (isSwim) {
+      const poolLengthObject =
+        segmentRecord.poolLength && typeof segmentRecord.poolLength === "object"
+          ? (segmentRecord.poolLength as Record<string, unknown>)
+          : null;
+      const directPoolLength = toNumberOrNull(segmentRecord.poolLength);
+      const inferredLength = directPoolLength ?? (poolLengthObject ? toNumberOrNull(poolLengthObject.value) : null);
+      const directPoolUnit =
+        typeof segmentRecord.poolLengthUnit === "string"
+          ? segmentRecord.poolLengthUnit
+          : poolLengthObject && typeof poolLengthObject.unit === "string"
+            ? (poolLengthObject.unit as string)
+            : null;
+
+      segmentRecord.poolLength = inferredLength ?? null;
+      if (directPoolUnit) {
+        segmentRecord.poolLengthUnit = directPoolUnit;
+      }
+
+      if (segmentRecord.poolLength == null && swimSegmentPoolValues.length > 0) {
+        const fallback = swimSegmentPoolValues[0];
+        segmentRecord.poolLength = fallback.length ?? null;
+        if (fallback.unit && !segmentRecord.poolLengthUnit) {
+          segmentRecord.poolLengthUnit = fallback.unit;
+        }
+      }
     }
 
     return segmentRecord;
@@ -1063,6 +1157,7 @@ const processJob = async (job: { id: number; userId: number; planMarkdown: strin
       "Garmin conversion",
       logger,
     );
+    await updateJob(job.id, { status: "processing" });
     const pushResult = await runWithTimeout(
       () => pushWorkoutForUser(job.userId, conversion.workout, logger),
       PUSH_TIMEOUT_MS,
