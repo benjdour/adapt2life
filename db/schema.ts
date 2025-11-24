@@ -17,13 +17,22 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const workouts = pgTable("workouts", {
-  id: serial("id").primaryKey(),
-  userId: serial("user_id").notNull(),
-  type: text("type").notNull(), // ex: "run", "bike", "swim"
-  duration: text("duration"),   // ex: "45min"
-  createdAt: timestamp("created_at").defaultNow(),
-});
+export const workouts = pgTable(
+  "workouts",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    type: text("type").notNull(), // ex: "run", "bike", "swim"
+    duration: text("duration"), // ex: "45min"
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => ({
+    userIndex: index("workouts_user_id_idx").on(table.userId),
+    typeUserIndex: index("workouts_type_user_idx").on(table.type, table.userId),
+  }),
+);
 
 export const garminConnections = pgTable(
   "garmin_connections",
@@ -67,6 +76,7 @@ export const garminDailySummaries = pgTable(
   },
   (table) => ({
     summaryIdUnique: uniqueIndex("garmin_daily_summaries_summary_id_unique").on(table.summaryId),
+    garminUserDateIdx: index("garmin_daily_summaries_user_date_idx").on(table.garminUserId, table.calendarDate),
   }),
 );
 
@@ -104,6 +114,7 @@ export const garminPullCursors = pgTable(
   },
   (table) => ({
     userTypeUnique: uniqueIndex("garmin_pull_cursors_user_type_unique").on(table.userId, table.type),
+    garminCursorIdx: index("garmin_pull_cursors_garmin_user_type_idx").on(table.garminUserId, table.type),
   }),
 );
 
@@ -135,6 +146,8 @@ export const garminTrainerJobs = pgTable(
     error: text("error"),
     aiRawResponse: text("ai_raw_response"),
     aiDebugPayload: jsonb("ai_debug_payload"),
+    phase: text("phase").notNull().default("pending"),
+    aiModelId: text("ai_model_id"),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow().$onUpdate(() => new Date()),
     processedAt: timestamp("processed_at"),
@@ -142,6 +155,7 @@ export const garminTrainerJobs = pgTable(
   (table) => ({
     statusIndex: index("garmin_trainer_jobs_status_idx").on(table.status),
     userIndex: index("garmin_trainer_jobs_user_idx").on(table.userId),
+    phaseIndex: index("garmin_trainer_jobs_phase_idx").on(table.phase),
   }),
 );
 

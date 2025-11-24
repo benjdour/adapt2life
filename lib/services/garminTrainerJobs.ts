@@ -958,6 +958,7 @@ const convertPlanMarkdownForUser = async (userId: number, planMarkdown: string, 
   return {
     workout: validation.data as GarminTrainerWorkout,
     raw: JSON.stringify(validation.data, null, 2),
+    aiModelId: aiResult.modelId,
   };
 };
 
@@ -1121,18 +1122,25 @@ const pushWorkoutForUser = async (userId: number, workout: GarminTrainerWorkout,
 export const createGarminTrainerJob = async (userId: number, planMarkdown: string) => {
   const [job] = await db
     .insert(garminTrainerJobs)
-    .values({ userId, planMarkdown: planMarkdown.trim(), status: "pending" })
-    .returning({ id: garminTrainerJobs.id, status: garminTrainerJobs.status, createdAt: garminTrainerJobs.createdAt });
+    .values({ userId, planMarkdown: planMarkdown.trim(), status: "pending", phase: "pending" })
+    .returning({
+      id: garminTrainerJobs.id,
+      status: garminTrainerJobs.status,
+      createdAt: garminTrainerJobs.createdAt,
+      phase: garminTrainerJobs.phase,
+    });
   return job;
 };
 
 export type GarminTrainerJobView = {
   id: number;
   status: string;
+  phase: string | null;
   error: string | null;
   processedAt: Date | null;
   createdAt: Date | null;
   updatedAt: Date | null;
+  aiModelId: string | null;
 };
 
 export const getGarminTrainerJobForUser = async (
@@ -1143,10 +1151,12 @@ export const getGarminTrainerJobForUser = async (
     .select({
       id: garminTrainerJobs.id,
       status: garminTrainerJobs.status,
+       phase: garminTrainerJobs.phase,
       error: garminTrainerJobs.error,
       processedAt: garminTrainerJobs.processedAt,
       createdAt: garminTrainerJobs.createdAt,
       updatedAt: garminTrainerJobs.updatedAt,
+      aiModelId: garminTrainerJobs.aiModelId,
     })
     .from(garminTrainerJobs)
     .where(and(eq(garminTrainerJobs.id, jobId), eq(garminTrainerJobs.userId, userId)))
@@ -1159,6 +1169,7 @@ export const markGarminTrainerJobFailed = async (jobId: number, errorMessage: st
   await updateJob(jobId, {
     status: "failed",
     error: errorMessage,
+    phase: "failed",
     processedAt: new Date(),
   });
 };
@@ -1178,19 +1189,20 @@ export const hasGarminTrainerJobTimedOut = (
   }
   const hasTimedOut = Date.now() - referenceDate.getTime() > timeoutMs;
   if (hasTimedOut) {
-    logger.warn("garmin trainer job timeout reached", {
-      jobId: job.id,
-      status: job.status,
-      referenceDate: referenceDate.toISOString(),
-      timeoutMs,
-    });
+      logger.warn("garmin trainer job timeout reached", {
+        jobId: job.id,
+        status: job.status,
+        phase: job.phase ?? null,
+        referenceDate: referenceDate.toISOString(),
+        timeoutMs,
+      });
   }
   return hasTimedOut;
 };
 
 const processJob = async (job: { id: number; userId: number; planMarkdown: string }) => {
   const logger = baseLogger.child({ jobId: job.id, userId: job.userId });
-  await updateJob(job.id, { status: "processing" });
+  await updateJob(job.id, { status: "processing", phase: "conversion" });
   logger.info("garmin trainer job processing started");
   let heartbeatId: NodeJS.Timeout | null = null;
   const startHeartbeat = () => {
@@ -1217,6 +1229,7 @@ const processJob = async (job: { id: number; userId: number; planMarkdown: strin
       "Garmin conversion",
       logger,
     );
+    await updateJob(job.id, { phase: "push", aiModelId: conversion.aiModelId ?? null });
     await touchJob(job.id);
     const pushResult = await runWithTimeout(
       () => pushWorkoutForUser(job.userId, conversion.workout, logger),
@@ -1227,6 +1240,7 @@ const processJob = async (job: { id: number; userId: number; planMarkdown: strin
 
     await updateJob(job.id, {
       status: "success",
+      phase: "completed",
       resultJson: {
         workoutId: pushResult.workoutId,
         scheduledFor: pushResult.scheduledFor,
@@ -1260,6 +1274,7 @@ const processJob = async (job: { id: number; userId: number; planMarkdown: strin
     await updateJob(job.id, {
       status: "failed",
       error: error instanceof Error ? error.message : String(error),
+      phase: "failed",
       processedAt: new Date(),
       aiRawResponse: error instanceof GarminConversionError ? error.rawResponse : null,
       aiDebugPayload: error instanceof GarminConversionError ? (error.debugPayload ?? null) : null,

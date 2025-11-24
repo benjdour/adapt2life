@@ -74,13 +74,15 @@ const buildRedirectUrl = (request: NextRequest, basePath: string) => new URL(bas
 const isPublicApiRoute = (pathname: string) => PUBLIC_API_PATTERNS.some((pattern) => pattern.test(pathname));
 
 export async function proxy(request: NextRequest) {
-  const rateLimitResponse = await enforceRateLimit(request);
-  if (rateLimitResponse) {
-    return rateLimitResponse;
-  }
-
   const { pathname } = request.nextUrl;
   const isApiRoute = pathname.startsWith("/api/");
+
+  if (isApiRoute) {
+    const rateLimitResponse = await enforceRateLimit(request);
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
+  }
 
   let policy = findRoutePolicy(pathname);
   if (!policy && isApiRoute && !isPublicApiRoute(pathname)) {

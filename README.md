@@ -77,6 +77,7 @@ GARMIN_TRAINER_SYSTEM_PROMPT="..."               # optionnel
 GARMIN_TRAINER_PROMPT="..."                      # peut aussi provenir de docs/garmin_trainer_prompt.txt
 GARMIN_TRAINER_JOB_TIMEOUT_MS=300000             # optionnel (5 min par défaut)
 GARMIN_TRAINER_FETCH_TIMEOUT_MS=120000           # optionnel (timeout création/schedule Garmin)
+GARMIN_TRAINER_JOB_HEARTBEAT_MS=30000            # optionnel (heartbeat pour les jobs longs)
 
 # Admin front
 ADMIN_MENU_USER_IDS=user-id-1,user-id-2
@@ -101,7 +102,7 @@ ADMIN_MENU_USER_IDS=user-id-1,user-id-2
 - `npm run audit` : `scripts/audit-allowlist.mjs` (`npm audit` avec allowlist contrôlée)
 - `npm run verify` : pipeline CI complet (lint + typecheck + tests + audit)
 - `npm run db:push` : pousse le schéma sur la base cible via Drizzle
-- `npm run validate:workout` : valide un JSON d’entraînement via `scripts/validateWorkout.ts`
+- `npm run validate:workout` : valide un JSON d’entraînement (fichier ou `-` pour stdin) via `scripts/validateWorkout.ts`
 - `npm run test -- --coverage` : exécute la suite Vitest avec coverage (installer `@vitest/coverage-v8` localement pour générer le rapport).
 
 ## Base de données (Drizzle)

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { desc } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 
 import { stackServerApp } from "@/stack/server";
 import { canAccessAdminArea } from "@/lib/accessControl";
@@ -8,8 +8,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { buildAiModelAdminSnapshot } from "@/lib/services/aiModelConfig";
 import { AdminAiModelManager } from "@/components/AdminAiModelManager";
 import { db } from "@/db";
-import { users } from "@/db/schema";
+import { garminTrainerJobs, users } from "@/db/schema";
 import { AdminUserTable } from "@/components/AdminUserTable";
+import { AdminGarminJobsTable } from "@/components/AdminGarminJobsTable";
 
 export default async function AdminPage() {
   const user = await stackServerApp.getUser({ or: "return-null", tokenStore: "nextjs-cookie" });
@@ -36,6 +37,27 @@ export default async function AdminPage() {
     createdAt: entry.createdAt?.toISOString() ?? null,
   }));
 
+  const recentJobs = (
+    await db
+      .select({
+        id: garminTrainerJobs.id,
+        status: garminTrainerJobs.status,
+        phase: garminTrainerJobs.phase,
+        aiModelId: garminTrainerJobs.aiModelId,
+        createdAt: garminTrainerJobs.createdAt,
+        updatedAt: garminTrainerJobs.updatedAt,
+        userEmail: users.email,
+      })
+      .from(garminTrainerJobs)
+      .leftJoin(users, eq(garminTrainerJobs.userId, users.id))
+      .orderBy(desc(garminTrainerJobs.updatedAt))
+      .limit(20)
+  ).map((entry) => ({
+    ...entry,
+    createdAt: entry.createdAt?.toISOString() ?? null,
+    updatedAt: entry.updatedAt?.toISOString() ?? null,
+  }));
+
   return (
     <div className="mx-auto max-w-5xl space-y-8 px-4 py-10">
       <Card>
@@ -59,6 +81,16 @@ export default async function AdminPage() {
         </CardHeader>
         <CardContent>
           <AdminUserTable users={adminUsers} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Jobs Garmin Trainer</CardTitle>
+          <CardDescription>Statut des 20 derniers jobs (phase, modèle IA, mise à jour).</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AdminGarminJobsTable jobs={recentJobs} />
         </CardContent>
       </Card>
     </div>

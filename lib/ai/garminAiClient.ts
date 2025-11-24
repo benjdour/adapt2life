@@ -17,6 +17,7 @@ export type GarminAiResult = {
   rawText: string;
   data: Record<string, unknown> | null;
   parseError: string | null;
+  modelId: string;
 };
 
 export type GarminAiClient = {
@@ -108,6 +109,7 @@ export const createClassicGarminAiClient = (): GarminAiClient => ({
           rawText,
           data,
           parseError,
+          modelId,
         };
       } catch (error) {
         if (error instanceof AiConfigurationError) {
@@ -189,6 +191,7 @@ export const createStrictGarminAiClient = (): GarminAiClient => ({
           rawText,
           data,
           parseError,
+          modelId,
         };
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
