@@ -525,11 +525,7 @@ const cleanTextPlan = (raw: string): string => {
     .split(/\n+/)
     .map((line) => line.trim())
     .filter((line) => line.length > 0);
-  const firstContentIndex = lines.findIndex((line) =>
-    /^(total|warm[- ]?up|échauffement|seance|séance|plan|1[\).\s])/i.test(line),
-  );
-  const relevantLines = firstContentIndex > -1 ? lines.slice(firstContentIndex) : lines;
-  const result = relevantLines.join("\n\n").trim();
+  const result = lines.join("\n\n").trim();
   return result.length > 0 ? result : raw.trim();
 };
 
