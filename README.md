@@ -154,16 +154,26 @@ Les colonnes sensibles `access_token_encrypted` et `refresh_token_encrypted` son
   - variables `RATE_LIMIT_WINDOW_MS`, `RATE_LIMIT_MAX_REQUESTS`, `RATE_LIMIT_REDIS_PREFIX` permettent de régler la fenêtre.
   - `/api/garmin/webhooks` est ignoré pour éviter de bloquer les callbacks Garmin.
 
-## Garmin Trainer & OpenRouter
+## Garmin Trainer (Claude / OpenAI via OpenRouter)
 
-L’endpoint `/api/garmin-trainer` convertit une description Markdown "humaine" en JSON Garmin Training API V2.
+- Les modèles utilisés pour la génération et la conversion sont configurables à chaud dans la table `ai_model_configs`. Par défaut :
+  - `training-plan` → `anthropic/claude-3.7-sonnet`
+  - `garmin-trainer` → `anthropic/claude-3.7-sonnet` (fallback `openai/gpt-5-mini`)
+- Les strict/classic clients (lib/ai/garminAiClient) décident dynamiquement s’il faut injecter le catalogue d’exercices (`EXERCISE_TOOL_FEATURE_ENABLED`, `GARMIN_EXERCISE_PROMPT_MAX_CHARS`). Cours/velo/natation restent en mode classique, les sports nécessitant des `exerciseName` passent en mode strict.
+- Les jobs `/api/garmin-trainer/jobs` sont persistés dans `garmin_trainer_jobs`. Chaque étape du pipeline est loggée (`conversion.*`, `push.*`) avec heartbeat (`GARMIN_TRAINER_JOB_HEARTBEAT_MS`) pour diagnostiquer les timeouts.
+- Variables pertinentes :
+  - `OPENROUTER_API_KEY` (obligatoire), `OPENROUTER_BASE_URL`, `OPENROUTER_CHAT_PATH`
+  - `GARMIN_TRAINER_PROMPT` ou `docs/garmin_trainer_prompt.txt`
+  - `GARMIN_TRAINER_SYSTEM_PROMPT` (optionnel)
+  - `GARMIN_EXERCISE_TOOL_ENABLED=true|false`
+  - `GARMIN_TRAINER_JOB_TIMEOUT_MS` (timeout global, 10 min par défaut)
+  - `GARMIN_TRAINER_FETCH_TIMEOUT_MS` (timeout push Garmin)
+- `lib/services/garminTrainerJobs.ts` gère :
+  - Detect sport → choisit strict vs classic
+  - Normalisation des steps (natation, course, vélo…) et validation `workoutSchema`
+  - Push de l’entraînement via l’API Garmin Workout V2
 
-- Le prompt est chargé depuis `GARMIN_TRAINER_PROMPT` ou, par défaut, `docs/garmin_trainer_prompt.txt`.
-- `OPENROUTER_API_KEY` est obligatoire. `OPENROUTER_BASE_URL` et `OPENROUTER_CHAT_PATH` permettent de cibler un proxy personnalisé.
-- `GARMIN_TRAINER_MODEL` et `GARMIN_TRAINER_SYSTEM_PROMPT` sont optionnels (défaut : `openai/gpt-5` + prompt système local).
-- Les métadonnées Stack (`ownerId`) sont récupérées côté serveur pour contextualiser la génération et lier un utilisateur local si nécessaire.
-- En cas de surcharge OpenRouter (429), une réponse explicite est renvoyée au client pour ajuster la fréquence des requêtes.
-- Les jobs `/api/garmin-trainer/jobs` sont traités en arrière-plan (`lib/services/garminTrainerJobs.ts`) avec un timeout configurable (`GARMIN_TRAINER_JOB_TIMEOUT_MS`, 10 min par défaut). Au-delà, le job passe en `failed` avec un message invitant à relancer.
+En cas d’erreur (timeout modèle, validation, push), les logs `garmin trainer job step` permettent de savoir à quelle étape l’échec a eu lieu. Les jobs peuvent être rejoués via `/api/garmin-trainer/jobs/:id/retry`.
 
 # Pages publiques
 
