@@ -577,6 +577,8 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
         typeof step.secondaryTargetType === "string" ? step.secondaryTargetType.toUpperCase() : null;
 
       if (!secondaryType) {
+        step.secondaryTargetType = "SWIM_INSTRUCTION";
+        applySwimInstruction(intensity);
         return;
       }
 
