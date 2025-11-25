@@ -197,7 +197,7 @@ describe("convertPlanMarkdownForUser", () => {
     expect(mockSaveGarminWorkoutForUser).toHaveBeenCalledWith(1, expect.any(Object));
   });
 
-  it("appelle le client classique pour les sports non pris en charge et ajoute le snippet catalogue", async () => {
+  it("appelle le client classique pour les sports d’endurance sans snippet catalogue", async () => {
     mockInferExerciseSportsFromMarkdown.mockReturnValue(["RUNNING"]);
     mockShouldUseExerciseTool.mockReturnValue(false);
 
@@ -221,7 +221,7 @@ describe("convertPlanMarkdownForUser", () => {
     expect(strictClient.generate).not.toHaveBeenCalled();
     const calledPrompt = classicClient.generate.mock.calls[0]?.[0]?.basePrompt ?? "";
     expect(calledPrompt).toContain("Plan cardio");
-    expect(calledPrompt).toContain("[CATALOG]");
+    expect(calledPrompt).not.toContain("[CATALOG]");
     expect(result.workout.sport).toBe("CARDIO_TRAINING");
     expect(mockSaveGarminWorkoutForUser).toHaveBeenCalledWith(2, expect.any(Object));
   });
