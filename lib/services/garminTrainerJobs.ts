@@ -901,16 +901,9 @@ const convertPlanMarkdownForUser = async (
     sports: sportsForPrompt,
     primarySport: primaryMarkdownSport ?? null,
   });
-  const primarySportSupportsTool = primaryMarkdownSport ? shouldUseExerciseTool(primaryMarkdownSport) : true;
-  const initialExerciseToolEligibility =
-    EXERCISE_TOOL_FEATURE_ENABLED &&
-    sportsForPrompt.length > 0 &&
-    !isFallbackExerciseSportsList(sportsForPrompt) &&
-    sportsForPrompt.every((sport) => shouldUseExerciseTool(sport)) &&
-        primarySportSupportsTool;
-  const canUseExerciseTool = initialExerciseToolEligibility;
-  const needsExerciseCatalog =
-    sportsForPrompt.some((sport) => shouldUseExerciseTool(sport)) && !canUseExerciseTool;
+  const hasToolSport = sportsForPrompt.some((sport) => shouldUseExerciseTool(sport));
+  const canUseExerciseTool = EXERCISE_TOOL_FEATURE_ENABLED && hasToolSport;
+  const needsExerciseCatalog = hasToolSport && !canUseExerciseTool;
 
   const candidateModels = await getAiModelCandidates("garmin-trainer");
   logStepStatus(logger, "conversion.model_candidates", "ok", { candidates: candidateModels });

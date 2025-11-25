@@ -579,16 +579,10 @@ export async function POST(request: NextRequest) {
 
   const sportsForPrompt = inferExerciseSportsFromMarkdown(normalizedExample);
   const primaryMarkdownSport = inferPrimarySportFromMarkdown(normalizedExample);
-  const primarySportSupportsTool = primaryMarkdownSport ? shouldUseExerciseTool(primaryMarkdownSport) : true;
   const defaultPrompt = [ownerContext.ownerInstruction, buildFinalPrompt(promptTemplate, normalizedExample)].join("\n\n");
-  const useExerciseTool =
-    EXERCISE_TOOL_FEATURE_ENABLED &&
-    sportsForPrompt.length > 0 &&
-    !isFallbackExerciseSportsList(sportsForPrompt) &&
-    sportsForPrompt.every((sport) => shouldUseExerciseTool(sport)) &&
-    primarySportSupportsTool;
-  const needsExerciseCatalog =
-    sportsForPrompt.some((sport) => shouldUseExerciseTool(sport)) && !useExerciseTool;
+  const hasToolSport = sportsForPrompt.some((sport) => shouldUseExerciseTool(sport));
+  const useExerciseTool = EXERCISE_TOOL_FEATURE_ENABLED && hasToolSport;
+  const needsExerciseCatalog = hasToolSport && !useExerciseTool;
 
   const { strict: strictClient, classic: classicClient } = getGarminAiClients();
   let rawContent: string | null = null;
