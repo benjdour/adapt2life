@@ -112,6 +112,17 @@ const toSearchableText = (value: string | null | undefined): string =>
         .toLowerCase()
     : "";
 
+type StepStatus = "ok" | "ko";
+
+const logStepStatus = (logger: Logger, step: string, status: StepStatus, context?: Record<string, unknown>) => {
+  const payload = { step, status, ...context };
+  if (status === "ok") {
+    logger.info("garmin trainer job step", payload);
+  } else {
+    logger.error("garmin trainer job step", payload);
+  }
+};
+
 const pickFallbackExerciseName = (
   sport: string | null | undefined,
   category: string,
@@ -862,8 +873,13 @@ const convertPlanMarkdownForUser = async (
   });
   const connection = await fetchGarminConnectionByUserId(userId);
   if (!connection) {
+    logStepStatus(logger, "conversion.connection", "ko", { reason: "missing_garmin_connection" });
     throw new Error("Aucune connexion Garmin trouvée pour cet utilisateur.");
   }
+  logStepStatus(logger, "conversion.connection", "ok", {
+    garminConnectionId: connection.id ?? null,
+    garminUserId: connection.garminUserId ?? null,
+  });
   logger.info("garmin trainer job conversion connection resolved", {
     garminConnectionId: connection.id ?? null,
     garminUserId: connection.garminUserId ?? null,
@@ -871,14 +887,20 @@ const convertPlanMarkdownForUser = async (
 
   const promptTemplate = await loadPromptTemplate();
   if (!promptTemplate) {
+    logStepStatus(logger, "conversion.prompt", "ko", { reason: "prompt_missing" });
     throw new Error("Prompt Garmin introuvable. Ajoute la variable GARMIN_TRAINER_PROMPT ou le fichier docs/garmin_trainer_prompt.txt.");
   }
+  logStepStatus(logger, "conversion.prompt", "ok");
   logger.info("garmin trainer job conversion prompt loaded");
 
   const ownerInstruction = `Utilise strictement "ownerId": "${connection.garminUserId}" (premier champ du JSON) et ne modifie jamais cette valeur.`;
   const basePrompt = [ownerInstruction, buildFinalPrompt(promptTemplate, normalizedPlan)].join("\n\n");
   const sportsForPrompt = inferExerciseSportsFromMarkdown(normalizedPlan);
   const primaryMarkdownSport = inferPrimarySportFromMarkdown(normalizedPlan);
+  logStepStatus(logger, "conversion.sport_inference", "ok", {
+    sports: sportsForPrompt,
+    primarySport: primaryMarkdownSport ?? null,
+  });
   const primarySportSupportsTool = primaryMarkdownSport ? shouldUseExerciseTool(primaryMarkdownSport) : true;
   const initialExerciseToolEligibility =
     EXERCISE_TOOL_FEATURE_ENABLED &&
@@ -889,6 +911,7 @@ const convertPlanMarkdownForUser = async (
   const canUseExerciseTool = initialExerciseToolEligibility;
 
   const candidateModels = await getAiModelCandidates("garmin-trainer");
+  logStepStatus(logger, "conversion.model_candidates", "ok", { candidates: candidateModels });
   logger.info("garmin trainer job conversion candidates resolved", { candidateModels });
   const systemPrompt = process.env.GARMIN_TRAINER_SYSTEM_PROMPT ??
     "Tu es un assistant spécialisé dans la préparation d’entraînements Garmin pour Adapt2Life. Analyse l’exemple fourni et applique fidèlement les instructions du prompt utilisateur.";
@@ -912,6 +935,10 @@ const convertPlanMarkdownForUser = async (
       logger.info("garmin trainer job conversion strict client response received", {
         durationMs: Date.now() - strictStartedAt,
       });
+      logStepStatus(logger, "conversion.ai.strict", "ok", {
+        durationMs: Date.now() - strictStartedAt,
+        candidateCount: candidateModels.length,
+      });
       usedExerciseTool = true;
     }
 
@@ -934,9 +961,17 @@ const convertPlanMarkdownForUser = async (
       logger.info("garmin trainer job conversion classic client response received", {
         durationMs: Date.now() - classicStartedAt,
       });
+      logStepStatus(logger, "conversion.ai.classic", "ok", {
+        durationMs: Date.now() - classicStartedAt,
+        promptLength: userPrompt.length,
+        candidateCount: candidateModels.length,
+      });
       usedExerciseTool = false;
     }
   } catch (error) {
+    logStepStatus(logger, canUseExerciseTool ? "conversion.ai.strict" : "conversion.ai.classic", "ko", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     logger.error("garmin trainer job conversion request failed", { error, durationMs: Date.now() - startedAt });
     throw error instanceof Error ? error : new Error(String(error));
   }
@@ -967,7 +1002,7 @@ const convertPlanMarkdownForUser = async (
       rawResponse: aiResult.rawText,
     });
   }
-  logger.info("garmin trainer job conversion response parsed", { durationMs: Date.now() - parseStartedAt });
+  logStepStatus(logger, "conversion.parse", "ok", { durationMs: Date.now() - parseStartedAt });
 
   const parsedJson = parsedResult.parsed;
   const sourceJson = parsedResult.source;
@@ -990,6 +1025,7 @@ const convertPlanMarkdownForUser = async (
 
   const sanitized = sanitizeWorkoutValue(parsedJson) as Record<string, unknown>;
   const normalized = enforceWorkoutPostProcessing(sanitized);
+  logStepStatus(logger, "conversion.normalize", "ok");
 
   const validationStartedAt = Date.now();
   const validation = workoutSchema.safeParse(normalized);
@@ -998,16 +1034,17 @@ const convertPlanMarkdownForUser = async (
       issues: validation.error.issues,
       durationMs: Date.now() - validationStartedAt,
     });
+    logStepStatus(logger, "conversion.validation", "ko", { issues: validation.error.issues });
     throw new GarminConversionError("L’entraînement généré ne respecte pas le schéma attendu.", {
       rawResponse: sourceJson,
       debugPayload: normalized,
       issues: validation.error.issues,
     });
   }
-  logger.info("garmin trainer job conversion workout validated", { durationMs: Date.now() - validationStartedAt });
+  logStepStatus(logger, "conversion.validation", "ok", { durationMs: Date.now() - validationStartedAt });
 
   await saveGarminWorkoutForUser(userId, validation.data as Record<string, unknown>);
-  logger.info("garmin trainer job workout saved");
+  logStepStatus(logger, "conversion.persist_artifact", "ok");
 
   return {
     workout: validation.data as GarminTrainerWorkout,
@@ -1021,12 +1058,18 @@ const pushWorkoutForUser = async (userId: number, workout: GarminTrainerWorkout,
   const startedAt = Date.now();
   const garminConnection = await fetchGarminConnectionByUserId(userId);
   if (!garminConnection) {
+    logStepStatus(logger, "push.connection", "ko", { reason: "missing_garmin_connection" });
     throw new Error("Aucune connexion Garmin trouvée pour cet utilisateur. Connecte ton compte Garmin puis réessaie.");
   }
+  logStepStatus(logger, "push.connection", "ok", {
+    garminConnectionId: garminConnection.id ?? null,
+    garminUserId: garminConnection.garminUserId ?? null,
+  });
 
   logger.info("garmin trainer job push started");
   const { accessToken, connection } = await ensureGarminAccessToken(garminConnection);
   const garminUserId = connection.garminUserId;
+  logStepStatus(logger, "push.token", "ok", { garminUserId });
   logger.info("garmin trainer job push token resolved", { garminUserId });
 
   const normalizeSourceField = (value: unknown, fallback: string): string => {
@@ -1060,6 +1103,7 @@ const pushWorkoutForUser = async (userId: number, workout: GarminTrainerWorkout,
       signal: controller.signal,
     });
   } catch (error) {
+    logStepStatus(logger, "push.create_workout", "ko", { error: error instanceof Error ? error.message : String(error) });
     logger.error("garmin trainer job push create request failed", { error });
     throw error;
   } finally {
@@ -1090,6 +1134,7 @@ const pushWorkoutForUser = async (userId: number, workout: GarminTrainerWorkout,
           : "Garmin a refusé la création de l’entraînement.";
     throw new Error(errorMessage);
   }
+  logStepStatus(logger, "push.create_workout", "ok", { status: createResponse.status });
 
   const workoutIdRaw =
     createJson?.workoutId ??
@@ -1129,6 +1174,7 @@ const pushWorkoutForUser = async (userId: number, workout: GarminTrainerWorkout,
       signal: scheduleController.signal,
     });
   } catch (error) {
+    logStepStatus(logger, "push.schedule", "ko", { error: error instanceof Error ? error.message : String(error) });
     logger.error("garmin trainer job push schedule request failed", { error });
     throw error;
   } finally {
@@ -1159,6 +1205,7 @@ const pushWorkoutForUser = async (userId: number, workout: GarminTrainerWorkout,
           : "Garmin a refusé la planification de l’entraînement.";
     throw new Error(errorMessage);
   }
+  logStepStatus(logger, "push.schedule", "ok", { status: scheduleResponse.status });
 
   const result = {
     workoutId,
@@ -1170,6 +1217,7 @@ const pushWorkoutForUser = async (userId: number, workout: GarminTrainerWorkout,
   };
   const durationMs = Date.now() - startedAt;
   logger.info("garmin trainer job push completed", { garminUserId, workoutId, durationMs });
+  logStepStatus(logger, "push.completed", "ok", { garminUserId, workoutId, durationMs });
   return result;
 };
 
