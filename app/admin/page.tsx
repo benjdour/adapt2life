@@ -47,6 +47,7 @@ export default async function AdminPage() {
         createdAt: garminTrainerJobs.createdAt,
         updatedAt: garminTrainerJobs.updatedAt,
         userEmail: users.email,
+        error: garminTrainerJobs.error,
       })
       .from(garminTrainerJobs)
       .leftJoin(users, eq(garminTrainerJobs.userId, users.id))

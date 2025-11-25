@@ -8,6 +8,7 @@ type AdminGarminJob = {
   aiModelId: string | null;
   createdAt: string | null;
   updatedAt: string | null;
+  error: string | null;
 };
 
 type AdminGarminJobsTableProps = {
@@ -45,7 +46,18 @@ export function AdminGarminJobsTable({ jobs }: AdminGarminJobsTableProps) {
               <td className="py-2 pr-4 font-mono text-xs text-muted-foreground">#{job.id}</td>
               <td className="py-2 pr-4 font-mono text-xs">{job.userEmail ?? "—"}</td>
               <td className="py-2 pr-4">{job.phase ?? "—"}</td>
-              <td className="py-2 pr-4">{job.status}</td>
+              <td className="py-2 pr-4">
+                <span className="font-medium capitalize">{job.status}</span>
+                {job.error ? (
+                  <span
+                    className="hidden cursor-help pl-2 text-xs text-muted-foreground sm:inline"
+                    title={job.error}
+                    aria-label={job.error}
+                  >
+                    ⓘ
+                  </span>
+                ) : null}
+              </td>
               <td className="py-2 pr-4 font-mono text-xs text-muted-foreground">{job.aiModelId ?? "—"}</td>
               <td className="py-2 pr-4 text-muted-foreground">{formatDate(job.updatedAt ?? job.createdAt)}</td>
             </tr>
@@ -56,4 +68,3 @@ export function AdminGarminJobsTable({ jobs }: AdminGarminJobsTableProps) {
     </div>
   );
 }
-
