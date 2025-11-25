@@ -607,6 +607,13 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
       step.targetType = rawTargetType;
       const requiresPercentRange = rawTargetType === "POWER" || rawTargetType === "HEART_RATE";
       if (!requiresPercentRange) {
+        if ((rawTargetType === "PACE" || rawTargetType === "SPEED") && (step.targetValueLow == null || step.targetValueHigh == null)) {
+          step.targetType = "OPEN";
+          step.targetValue = null;
+          step.targetValueLow = null;
+          step.targetValueHigh = null;
+          step.targetValueType = null;
+        }
         return;
       }
 
