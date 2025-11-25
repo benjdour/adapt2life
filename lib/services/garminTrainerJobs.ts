@@ -173,6 +173,20 @@ const SWIM_INTENSITY_TO_INSTRUCTION: Record<string, number> = {
 const toNumberOrNull = (value: unknown): number | null =>
   typeof value === "number" && Number.isFinite(value) ? value : null;
 
+const ENDURANCE_SPORTS = new Set([
+  "RUNNING",
+  "TRAIL_RUNNING",
+  "TREADMILL_RUNNING",
+  "TRACK_RUNNING",
+  "CYCLING",
+  "INDOOR_CYCLING",
+  "MOUNTAIN_BIKING",
+  "FAT_BIKING",
+  "VIRTUAL_CYCLING",
+  "LAP_SWIMMING",
+  "OPEN_WATER_SWIMMING",
+]);
+
 class TimeoutError extends Error {
   label: string;
   timeoutMs: number;
@@ -904,7 +918,11 @@ const convertPlanMarkdownForUser = async (
     sports: sportsForPrompt,
     primarySport: primaryMarkdownSport ?? null,
   });
-  const hasToolSport = sportsForPrompt.some((sport) => shouldUseExerciseTool(sport));
+  const isFallbackSportList = isFallbackExerciseSportsList(sportsForPrompt);
+  const isEndurancePrimary = primaryMarkdownSport
+    ? ENDURANCE_SPORTS.has(primaryMarkdownSport.toUpperCase())
+    : false;
+  const hasToolSport = !isEndurancePrimary && !isFallbackSportList && sportsForPrompt.some((sport) => shouldUseExerciseTool(sport));
   const canUseExerciseTool = EXERCISE_TOOL_FEATURE_ENABLED && hasToolSport;
   const needsExerciseCatalog = hasToolSport && !canUseExerciseTool;
 
@@ -920,58 +938,82 @@ const convertPlanMarkdownForUser = async (
   let aiResult: GarminAiResult | null = null;
   let usedExerciseTool = false;
 
+  const runClassicClient = async () => {
+    const catalogMaxChars = Number(process.env.GARMIN_EXERCISE_PROMPT_MAX_CHARS ?? "60000") || 60_000;
+    const promptChunks = [basePrompt];
+    if (needsExerciseCatalog && catalogMaxChars > 0) {
+      const exerciseCatalogSnippet = buildGarminExerciseCatalogSnippet({
+        sports: sportsForPrompt,
+        maxChars: catalogMaxChars,
+      });
+      promptChunks.push(exerciseCatalogSnippet);
+    }
+    const userPrompt = promptChunks.join("\n\n");
+
+    const classicStartedAt = Date.now();
+    logger.info("garmin trainer job conversion invoking classic client", { candidateModels, promptLength: userPrompt.length });
+    const result = await classicClient.generate({
+      basePrompt: userPrompt,
+      systemPrompt,
+      modelIds: candidateModels,
+      referer,
+    });
+    logger.info("garmin trainer job conversion classic client response received", {
+      durationMs: Date.now() - classicStartedAt,
+    });
+    logStepStatus(logger, "conversion.ai.classic", "ok", {
+      durationMs: Date.now() - classicStartedAt,
+      promptLength: userPrompt.length,
+      candidateCount: candidateModels.length,
+    });
+    return result;
+  };
+
+  const runStrictClient = async () => {
+    const strictStartedAt = Date.now();
+    logger.info("garmin trainer job conversion invoking strict client", { candidateModels });
+    const result = await strictClient.generate({
+      basePrompt,
+      systemPrompt,
+      modelIds: candidateModels,
+      referer,
+    });
+    logger.info("garmin trainer job conversion strict client response received", {
+      durationMs: Date.now() - strictStartedAt,
+    });
+    logStepStatus(logger, "conversion.ai.strict", "ok", {
+      durationMs: Date.now() - strictStartedAt,
+      candidateCount: candidateModels.length,
+    });
+    return result;
+  };
+
+  const persistAiResponse = async (result: GarminAiResult | null) => {
+    if (!options?.jobId || !result) {
+      return;
+    }
+    try {
+      await updateJob(options.jobId, {
+        aiRawResponse: result.rawText,
+        aiModelId: result.modelId ?? null,
+      });
+    } catch (error) {
+      logger.warn("garmin trainer job conversion raw persist failed", { error });
+    }
+  };
+
   try {
     if (canUseExerciseTool) {
-      const strictStartedAt = Date.now();
-      logger.info("garmin trainer job conversion invoking strict client", { candidateModels });
-      aiResult = await strictClient.generate({
-        basePrompt,
-        systemPrompt,
-        modelIds: candidateModels,
-        referer,
-      });
-      logger.info("garmin trainer job conversion strict client response received", {
-        durationMs: Date.now() - strictStartedAt,
-      });
-      logStepStatus(logger, "conversion.ai.strict", "ok", {
-        durationMs: Date.now() - strictStartedAt,
-        candidateCount: candidateModels.length,
-      });
+      aiResult = await runStrictClient();
       usedExerciseTool = true;
     }
 
     if (!aiResult) {
-      const catalogMaxChars = Number(process.env.GARMIN_EXERCISE_PROMPT_MAX_CHARS ?? "60000") || 60_000;
-      const promptChunks = [basePrompt];
-      if (needsExerciseCatalog && catalogMaxChars > 0) {
-        const exerciseCatalogSnippet = buildGarminExerciseCatalogSnippet({
-          sports: sportsForPrompt,
-          maxChars: catalogMaxChars,
-        });
-        promptChunks.push(exerciseCatalogSnippet);
-      }
-      const userPrompt = promptChunks.join("\n\n");
-
-      const classicStartedAt = Date.now();
-      logger.info("garmin trainer job conversion invoking classic client", { candidateModels, promptLength: userPrompt.length });
-      aiResult = await classicClient.generate({
-        basePrompt: userPrompt,
-        systemPrompt,
-        modelIds: candidateModels,
-        referer,
-      });
-      logger.info("garmin trainer job conversion classic client response received", {
-        durationMs: Date.now() - classicStartedAt,
-      });
-      logStepStatus(logger, "conversion.ai.classic", "ok", {
-        durationMs: Date.now() - classicStartedAt,
-        promptLength: userPrompt.length,
-        candidateCount: candidateModels.length,
-      });
+      aiResult = await runClassicClient();
       usedExerciseTool = false;
     }
   } catch (error) {
-    logStepStatus(logger, canUseExerciseTool ? "conversion.ai.strict" : "conversion.ai.classic", "ko", {
+    logStepStatus(logger, usedExerciseTool ? "conversion.ai.strict" : "conversion.ai.classic", "ko", {
       error: error instanceof Error ? error.message : String(error),
     });
     logger.error("garmin trainer job conversion request failed", { error, durationMs: Date.now() - startedAt });
@@ -982,23 +1024,23 @@ const convertPlanMarkdownForUser = async (
     throw new Error("Réponse IA vide.");
   }
 
+  await persistAiResponse(aiResult);
+
   logger.info("garmin trainer job conversion completed", {
     useExerciseTool: usedExerciseTool,
     durationMs: Date.now() - startedAt,
   });
-  if (options?.jobId) {
-    try {
-      await updateJob(options.jobId, {
-        aiRawResponse: aiResult.rawText,
-        aiModelId: aiResult.modelId ?? null,
-      });
-    } catch (error) {
-      logger.warn("garmin trainer job conversion raw persist failed", { error });
-    }
-  }
 
   const parseStartedAt = Date.now();
-  const parsedResult = parseJsonWithCodeFence(aiResult.rawText);
+  let parsedResult = parseJsonWithCodeFence(aiResult.rawText);
+  if (!parsedResult && usedExerciseTool) {
+    logger.warn("garmin trainer job conversion strict response invalid, falling back to classic client");
+    logStepStatus(logger, "conversion.ai.strict", "ko", { reason: "invalid_json_strict_response" });
+    aiResult = await runClassicClient();
+    usedExerciseTool = false;
+    await persistAiResponse(aiResult);
+    parsedResult = parseJsonWithCodeFence(aiResult.rawText);
+  }
   if (!parsedResult) {
     throw new GarminConversionError("JSON invalide renvoyé par l’IA : impossible de parser la réponse.", {
       rawResponse: aiResult.rawText,
