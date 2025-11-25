@@ -19,6 +19,7 @@ export const ADAPT2LIFE_SYSTEM_PROMPT = [
   "",
   "🧱 Format de sortie (uniquement du texte Markdown) :",
   "## [emoji du sport] Entraînement : [Nom de la séance]",
+  "Sport : [nom explicite du sport principal (course à pied, natation, vélo, renforcement, etc.)]",
   "",
   "### Objectif  ",
   "[But global, type d’effort (endurance, tempo, VO2max…), logique de progression.]  ",
