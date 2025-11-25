@@ -694,6 +694,9 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
     if ("segmentId" in segmentRecord) {
       delete segmentRecord.segmentId;
     }
+    if ("segmentName" in segmentRecord) {
+      delete segmentRecord.segmentName;
+    }
     if ("name" in segmentRecord) {
       delete segmentRecord.name;
     }
