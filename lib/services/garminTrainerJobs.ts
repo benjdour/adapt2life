@@ -160,6 +160,7 @@ const pickFallbackExerciseName = (
 const GARMIN_SWIM_STROKES = new Set(["BACKSTROKE", "BREASTSTROKE", "BUTTERFLY", "FREESTYLE", "MIXED", "IM", "RIMO", "CHOICE"]);
 const SECONDARY_TARGET_RANGE_TYPES = new Set(["CADENCE", "HEART_RATE", "POWER", "SPEED", "PACE"]);
 const SECONDARY_TARGET_SPORTS = new Set(["CYCLING", "LAP_SWIMMING"]);
+const PERCENT_RANGE_SPORTS = new Set(["RUNNING", "CYCLING", "CARDIO_TRAINING"]);
 const SWIM_INTENSITY_TO_INSTRUCTION: Record<string, number> = {
   REST: 2,
   RECOVERY: 3,
@@ -417,6 +418,48 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
       if (step.type === "WorkoutRepeatStep") {
         return;
       }
+      const applyCadenceRange = (low: number | null, high: number | null, single: number | null, promotePrimary: boolean) => {
+        if (low == null && high == null && single == null) {
+          return false;
+        }
+        const resolvedLow = low ?? high ?? single;
+        let resolvedHigh = high ?? low ?? single ?? resolvedLow;
+        if (resolvedLow == null && resolvedHigh == null) {
+          return false;
+        }
+        if (resolvedLow != null && resolvedHigh != null && resolvedLow >= resolvedHigh) {
+          resolvedHigh = resolvedLow + 1;
+        }
+        if (promotePrimary) {
+          step.targetType = "CADENCE";
+          step.targetValue = null;
+          step.targetValueType = null;
+          step.targetValueLow = resolvedLow ?? null;
+          step.targetValueHigh = resolvedHigh ?? resolvedLow ?? null;
+          step.secondaryTargetType = null;
+          step.secondaryTargetValue = null;
+          step.secondaryTargetValueLow = null;
+          step.secondaryTargetValueHigh = null;
+          step.secondaryTargetValueType = null;
+        } else {
+          step.secondaryTargetType = "CADENCE";
+          step.secondaryTargetValue = null;
+          step.secondaryTargetValueType = null;
+          step.secondaryTargetValueLow = resolvedLow ?? null;
+          step.secondaryTargetValueHigh = resolvedHigh ?? resolvedLow ?? null;
+        }
+        return true;
+      };
+
+      if (typeof step.targetType === "string" && step.targetType.toUpperCase() === "CADENCE") {
+        const low = toNumberOrNull(step.targetValueLow);
+        const high = toNumberOrNull(step.targetValueHigh);
+        const single = toNumberOrNull(step.targetValue);
+        if (applyCadenceRange(low, high, single, true)) {
+          return;
+        }
+      }
+
       const description = typeof step.description === "string" ? step.description : "";
       if (!description || !/cadence/i.test(description)) {
         return;
@@ -445,25 +488,12 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
       };
 
       if (!hasPrimary || step.targetType === "CADENCE") {
-        step.targetType = "CADENCE";
-        step.targetValue = null;
-        step.targetValueType = null;
-        step.targetValueLow = cadenceRange.low ?? null;
-        step.targetValueHigh = cadenceRange.high ?? cadenceRange.low ?? null;
-        step.secondaryTargetType = null;
-        step.secondaryTargetValue = null;
-        step.secondaryTargetValueLow = null;
-        step.secondaryTargetValueHigh = null;
-        step.secondaryTargetValueType = null;
+        applyCadenceRange(cadenceRange.low ?? null, cadenceRange.high ?? cadenceRange.low ?? null, null, true);
         return;
       }
 
       if (step.secondaryTargetType == null || step.secondaryTargetType === "CADENCE") {
-        step.secondaryTargetType = "CADENCE";
-        step.secondaryTargetValue = null;
-        step.secondaryTargetValueType = null;
-        step.secondaryTargetValueLow = cadenceRange.low ?? null;
-        step.secondaryTargetValueHigh = cadenceRange.high ?? cadenceRange.low ?? null;
+        applyCadenceRange(cadenceRange.low ?? null, cadenceRange.high ?? cadenceRange.low ?? null, null, false);
       }
     };
 
@@ -613,7 +643,9 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
         return;
       }
       step.targetType = rawTargetType;
-      const requiresPercentRange = rawTargetType === "POWER" || rawTargetType === "HEART_RATE";
+      const normalizedSegmentSport = normalizedSport ?? null;
+      const shouldForcePercent = normalizedSegmentSport ? PERCENT_RANGE_SPORTS.has(normalizedSegmentSport) : true;
+      const requiresPercentRange = shouldForcePercent && (rawTargetType === "POWER" || rawTargetType === "HEART_RATE");
       if (!requiresPercentRange) {
         if ((rawTargetType === "PACE" || rawTargetType === "SPEED") && (step.targetValueLow == null || step.targetValueHigh == null)) {
           step.targetType = "OPEN";
@@ -627,12 +659,16 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
 
       const low = toNumberOrNull(step.targetValueLow);
       const high = toNumberOrNull(step.targetValueHigh);
-      if (low == null && high == null) {
+      const single = toNumberOrNull(step.targetValue);
+      if (low == null && high == null && single == null) {
         return;
       }
 
-      const resolvedLow = low ?? high;
-      const resolvedHigh = high ?? low;
+      const resolvedLow = low ?? high ?? single;
+      let resolvedHigh = high ?? low ?? single ?? resolvedLow;
+      if (resolvedLow != null && resolvedHigh != null && resolvedLow >= resolvedHigh) {
+        resolvedHigh = resolvedLow + 0.1;
+      }
       step.targetValue = null;
       step.targetValueLow = resolvedLow ?? null;
       step.targetValueHigh = resolvedHigh ?? resolvedLow ?? null;
@@ -663,7 +699,10 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
         return;
       }
       const resolvedLow = low ?? single ?? high;
-      const resolvedHigh = high ?? single ?? low ?? resolvedLow;
+      let resolvedHigh = high ?? single ?? low ?? resolvedLow;
+      if (resolvedLow != null && resolvedHigh != null && resolvedLow >= resolvedHigh) {
+        resolvedHigh = resolvedLow + 1;
+      }
       step.secondaryTargetValueLow = resolvedLow ?? null;
       step.secondaryTargetValueHigh = resolvedHigh ?? resolvedLow ?? null;
       step.secondaryTargetValue = null;

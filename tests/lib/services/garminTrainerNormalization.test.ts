@@ -78,6 +78,63 @@ describe("garmin trainer normalization", () => {
     expect(step?.secondaryTargetType).toBeNull();
   });
 
+  it("fills HR percent range for running when only a single value is provided", () => {
+    const runSingleValueWorkout = {
+      ...baseWorkout,
+      sport: "RUNNING",
+      segments: [
+        {
+          segmentOrder: 1,
+          sport: "RUNNING" as const,
+          estimatedDurationInSecs: 300,
+          estimatedDistanceInMeters: null,
+          poolLength: null,
+          poolLengthUnit: null,
+          steps: [
+            {
+              type: "WorkoutStep" as const,
+              stepId: null,
+              stepOrder: 1,
+              repeatType: null,
+              repeatValue: null,
+              skipLastRestStep: false,
+              steps: null,
+              intensity: "ACTIVE" as const,
+              description: "Tempo",
+              durationType: "TIME" as const,
+              durationValue: 180,
+              durationValueType: null,
+              equipmentType: null,
+              exerciseCategory: null,
+              exerciseName: null,
+              weightValue: null,
+              weightDisplayUnit: null,
+              targetType: "HEART_RATE" as const,
+              targetValue: 3,
+              targetValueLow: null,
+              targetValueHigh: null,
+              targetValueType: null,
+              secondaryTargetType: null,
+              secondaryTargetValue: null,
+              secondaryTargetValueLow: null,
+              secondaryTargetValueHigh: null,
+              secondaryTargetValueType: null,
+              strokeType: null,
+              drillType: null,
+            },
+          ],
+        },
+      ],
+    };
+
+    const normalized = normalizeWorkout(runSingleValueWorkout);
+    const validation = workoutSchema.parse(normalized);
+    const step = validation.segments[0]?.steps?.[0];
+    expect(step?.targetValueLow).toBe(3);
+    expect(step?.targetValueHigh).toBeCloseTo(3.1, 2);
+    expect(step?.targetValueType).toBe("PERCENT");
+  });
+
   it("keeps cadence targets for cycling workouts", () => {
     const cyclingWorkout = {
       ...baseWorkout,
@@ -134,6 +191,63 @@ describe("garmin trainer normalization", () => {
     expect(step?.secondaryTargetType).toBe("CADENCE");
     expect(step?.secondaryTargetValueLow).toBe(90);
     expect(step?.secondaryTargetValueHigh).toBe(95);
+  });
+
+  it("fills cadence range when cadence is the primary target", () => {
+    const cadencePrimaryWorkout = {
+      ...baseWorkout,
+      sport: "CYCLING",
+      segments: [
+        {
+          segmentOrder: 1,
+          sport: "CYCLING" as const,
+          estimatedDurationInSecs: 300,
+          estimatedDistanceInMeters: null,
+          poolLength: null,
+          poolLengthUnit: null,
+          steps: [
+            {
+              type: "WorkoutStep" as const,
+              stepId: null,
+              stepOrder: 1,
+              repeatType: null,
+              repeatValue: null,
+              skipLastRestStep: false,
+              steps: null,
+              intensity: "ACTIVE" as const,
+              description: "Cadence focus",
+              durationType: "TIME" as const,
+              durationValue: 120,
+              durationValueType: null,
+              equipmentType: null,
+              exerciseCategory: null,
+              exerciseName: null,
+              weightValue: null,
+              weightDisplayUnit: null,
+              targetType: "CADENCE" as const,
+              targetValue: 92,
+              targetValueLow: null,
+              targetValueHigh: null,
+              targetValueType: null,
+              secondaryTargetType: null,
+              secondaryTargetValue: null,
+              secondaryTargetValueLow: null,
+              secondaryTargetValueHigh: null,
+              secondaryTargetValueType: null,
+              strokeType: null,
+              drillType: null,
+            },
+          ],
+        },
+      ],
+    };
+
+    const normalized = normalizeWorkout(cadencePrimaryWorkout);
+    const validation = workoutSchema.parse(normalized);
+    const step = validation.segments[0]?.steps?.[0];
+    expect(step?.targetType).toBe("CADENCE");
+    expect(step?.targetValueLow).toBe(92);
+    expect(step?.targetValueHigh).toBe(93);
   });
 
   it("forces swim targets into allowed secondary types", () => {
@@ -251,4 +365,3 @@ describe("garmin trainer normalization", () => {
     expect(step?.secondaryTargetType).toBeNull();
   });
 });
-
