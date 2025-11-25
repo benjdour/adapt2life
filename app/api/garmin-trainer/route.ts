@@ -587,6 +587,8 @@ export async function POST(request: NextRequest) {
     !isFallbackExerciseSportsList(sportsForPrompt) &&
     sportsForPrompt.every((sport) => shouldUseExerciseTool(sport)) &&
     primarySportSupportsTool;
+  const needsExerciseCatalog =
+    sportsForPrompt.some((sport) => shouldUseExerciseTool(sport)) && !useExerciseTool;
 
   const { strict: strictClient, classic: classicClient } = getGarminAiClients();
   let rawContent: string | null = null;
@@ -601,11 +603,15 @@ export async function POST(request: NextRequest) {
       });
     } else {
       const catalogMaxChars = toPositiveInt(process.env.GARMIN_EXERCISE_PROMPT_MAX_CHARS, 60_000);
-      const exerciseCatalogSnippet = buildGarminExerciseCatalogSnippet({
-        sports: sportsForPrompt,
-        maxChars: catalogMaxChars,
-      });
-      const userPrompt = [defaultPrompt, exerciseCatalogSnippet].join("\n\n");
+      const snippets: string[] = [defaultPrompt];
+      if (needsExerciseCatalog) {
+        const exerciseCatalogSnippet = buildGarminExerciseCatalogSnippet({
+          sports: sportsForPrompt,
+          maxChars: catalogMaxChars,
+        });
+        snippets.push(exerciseCatalogSnippet);
+      }
+      const userPrompt = snippets.join("\n\n");
       aiResult = await classicClient.generate({
         basePrompt: userPrompt,
         systemPrompt,

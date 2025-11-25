@@ -907,8 +907,10 @@ const convertPlanMarkdownForUser = async (
     sportsForPrompt.length > 0 &&
     !isFallbackExerciseSportsList(sportsForPrompt) &&
     sportsForPrompt.every((sport) => shouldUseExerciseTool(sport)) &&
-    primarySportSupportsTool;
+        primarySportSupportsTool;
   const canUseExerciseTool = initialExerciseToolEligibility;
+  const needsExerciseCatalog =
+    sportsForPrompt.some((sport) => shouldUseExerciseTool(sport)) && !canUseExerciseTool;
 
   const candidateModels = await getAiModelCandidates("garmin-trainer");
   logStepStatus(logger, "conversion.model_candidates", "ok", { candidates: candidateModels });
@@ -944,11 +946,15 @@ const convertPlanMarkdownForUser = async (
 
     if (!aiResult) {
       const catalogMaxChars = Number(process.env.GARMIN_EXERCISE_PROMPT_MAX_CHARS ?? "60000") || 60_000;
-      const exerciseCatalogSnippet = buildGarminExerciseCatalogSnippet({
-        sports: sportsForPrompt,
-        maxChars: catalogMaxChars,
-      });
-      const userPrompt = [basePrompt, exerciseCatalogSnippet].join("\n\n");
+      const promptChunks = [basePrompt];
+      if (needsExerciseCatalog && catalogMaxChars > 0) {
+        const exerciseCatalogSnippet = buildGarminExerciseCatalogSnippet({
+          sports: sportsForPrompt,
+          maxChars: catalogMaxChars,
+        });
+        promptChunks.push(exerciseCatalogSnippet);
+      }
+      const userPrompt = promptChunks.join("\n\n");
 
       const classicStartedAt = Date.now();
       logger.info("garmin trainer job conversion invoking classic client", { candidateModels, promptLength: userPrompt.length });
