@@ -565,6 +565,12 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
         step.targetValueLow = null;
         step.targetValueHigh = null;
         step.targetValueType = null;
+      } else {
+        step.targetType = null;
+        step.targetValue = null;
+        step.targetValueLow = null;
+        step.targetValueHigh = null;
+        step.targetValueType = null;
       }
 
       const secondaryType =
