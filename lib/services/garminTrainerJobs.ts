@@ -161,6 +161,13 @@ const GARMIN_SWIM_STROKES = new Set(["BACKSTROKE", "BREASTSTROKE", "BUTTERFLY", 
 const SECONDARY_TARGET_RANGE_TYPES = new Set(["CADENCE", "HEART_RATE", "POWER", "SPEED", "PACE"]);
 const SECONDARY_TARGET_SPORTS = new Set(["CYCLING", "LAP_SWIMMING"]);
 const PERCENT_RANGE_SPORTS = new Set(["RUNNING", "CYCLING", "CARDIO_TRAINING"]);
+const HR_ZONE_TO_PERCENT: Record<number, { low: number; high: number }> = {
+  1: { low: 55, high: 65 },
+  2: { low: 65, high: 75 },
+  3: { low: 75, high: 85 },
+  4: { low: 85, high: 95 },
+  5: { low: 95, high: 100 },
+};
 const SWIM_INTENSITY_TO_INSTRUCTION: Record<string, number> = {
   REST: 2,
   RECOVERY: 3,
@@ -634,6 +641,25 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
       applySwimInstruction(intensity);
     };
 
+    const convertZonesToPercentRange = (
+      lowZone: number | null,
+      highZone: number | null,
+      singleZone: number | null,
+    ): { low: number | null; high: number | null } | null => {
+      const zones = [lowZone, highZone, singleZone]
+        .filter((value): value is number => typeof value === "number" && Number.isFinite(value))
+        .map((value) => Math.round(value))
+        .filter((value) => value >= 1 && value <= 5);
+      if (zones.length === 0) {
+        return null;
+      }
+      const minZone = Math.min(...zones);
+      const maxZone = Math.max(...zones);
+      const minPercent = HR_ZONE_TO_PERCENT[minZone]?.low ?? null;
+      const maxPercent = HR_ZONE_TO_PERCENT[maxZone]?.high ?? HR_ZONE_TO_PERCENT[minZone]?.high ?? null;
+      return { low: minPercent, high: maxPercent };
+    };
+
     const ensurePrimaryTargetRanges = (step: Record<string, unknown>) => {
       if (step.type === "WorkoutRepeatStep") {
         return;
@@ -660,12 +686,13 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
       const low = toNumberOrNull(step.targetValueLow);
       const high = toNumberOrNull(step.targetValueHigh);
       const single = toNumberOrNull(step.targetValue);
-      if (low == null && high == null && single == null) {
+      const zoneRange = convertZonesToPercentRange(low, high, single);
+      if (low == null && high == null && single == null && !zoneRange) {
         return;
       }
 
-      const resolvedLow = low ?? high ?? single;
-      let resolvedHigh = high ?? low ?? single ?? resolvedLow;
+      const resolvedLow = zoneRange?.low ?? low ?? high ?? single;
+      let resolvedHigh = zoneRange?.high ?? high ?? low ?? single ?? resolvedLow;
       if (resolvedLow != null && resolvedHigh != null && resolvedLow >= resolvedHigh) {
         resolvedHigh = resolvedLow + 0.1;
       }

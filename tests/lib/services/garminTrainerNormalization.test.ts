@@ -130,8 +130,8 @@ describe("garmin trainer normalization", () => {
     const normalized = normalizeWorkout(runSingleValueWorkout);
     const validation = workoutSchema.parse(normalized);
     const step = validation.segments[0]?.steps?.[0];
-    expect(step?.targetValueLow).toBe(3);
-    expect(step?.targetValueHigh).toBeCloseTo(3.1, 2);
+    expect(step?.targetValueLow).toBe(75);
+    expect(step?.targetValueHigh).toBe(85);
     expect(step?.targetValueType).toBe("PERCENT");
   });
 
@@ -365,3 +365,59 @@ describe("garmin trainer normalization", () => {
     expect(step?.secondaryTargetType).toBeNull();
   });
 });
+  it("converts HR zones to percentage ranges for running workouts", () => {
+    const runningZoneWorkout = {
+      ...baseWorkout,
+      sport: "RUNNING",
+      segments: [
+        {
+          segmentOrder: 1,
+          sport: "RUNNING" as const,
+          estimatedDurationInSecs: 400,
+          estimatedDistanceInMeters: null,
+          poolLength: null,
+          poolLengthUnit: null,
+          steps: [
+            {
+              type: "WorkoutStep" as const,
+              stepId: null,
+              stepOrder: 1,
+              repeatType: null,
+              repeatValue: null,
+              skipLastRestStep: false,
+              steps: null,
+              intensity: "ACTIVE" as const,
+              description: "Zone 1-2",
+              durationType: "TIME" as const,
+              durationValue: 240,
+              durationValueType: null,
+              equipmentType: null,
+              exerciseCategory: null,
+              exerciseName: null,
+              weightValue: null,
+              weightDisplayUnit: null,
+              targetType: "HEART_RATE" as const,
+              targetValue: null,
+              targetValueLow: 1,
+              targetValueHigh: 2,
+              targetValueType: null,
+              secondaryTargetType: null,
+              secondaryTargetValue: null,
+              secondaryTargetValueLow: null,
+              secondaryTargetValueHigh: null,
+              secondaryTargetValueType: null,
+              strokeType: null,
+              drillType: null,
+            },
+          ],
+        },
+      ],
+    };
+
+    const normalized = normalizeWorkout(runningZoneWorkout);
+    const validation = workoutSchema.parse(normalized);
+    const step = validation.segments[0]?.steps?.[0];
+    expect(step?.targetValueLow).toBe(55);
+    expect(step?.targetValueHigh).toBe(75);
+    expect(step?.targetValueType).toBe("PERCENT");
+  });
