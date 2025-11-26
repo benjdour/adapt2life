@@ -271,7 +271,7 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = 
               />
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading} isLoading={isLoading}>
+            <Button type="submit" className="w-full" disabled={isLoading} isLoading={isLoading} data-gtm="generate-workout">
               {isLoading ? loadingMessage : "Générer le plan"}
             </Button>
           </form>
