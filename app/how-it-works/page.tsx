@@ -5,8 +5,9 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
-  title: "Comment ça marche — Adapt2Life",
-  description: "Suivez toutes les étapes pour connecter votre montre, générer un entraînement et le synchroniser.",
+  title: "Comment ça marche — Entraînement personnalisé avec Garmin et IA",
+  description:
+    "Connectez votre montre Garmin, décrivez votre forme du jour et laissez l’IA Adapt2Life générer des entraînements personnalisés envoyés automatiquement sur votre montre.",
 };
 
 const steps = [
@@ -43,7 +44,7 @@ export default function HowItWorksPage() {
         <p className="text-sm uppercase tracking-[0.3em] text-primary/80">Comment ça marche</p>
         <h1 className="text-4xl font-heading">Ton plan en 4 étapes simples</h1>
         <p className="text-base text-muted-foreground">
-          Nous combinons ton ressenti, tes données Garmin et notre IA pour construire des séances ultra pertinentes.
+          Nous combinons ton ressenti, tes données Garmin (Body Battery, VFC, charge) et notre IA pour construire des séances ultra pertinentes.
         </p>
       </header>
 

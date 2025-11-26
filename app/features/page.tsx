@@ -6,8 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
-  title: "Fonctionnalités — Adapt2Life",
-  description: "Découvrez les fonctionnalités clés d’Adapt2Life : coaching IA, synchronisation Garmin et suivi en temps réel.",
+  title: "Fonctionnalités — Coach IA Garmin & entraînements personnalisés",
+  description:
+    "AI Ultra Coach, synchronisation Garmin Connect, IA adaptative : explorez toutes les fonctionnalités d’Adapt2Life pour des entraînements personnalisés basés sur vos données.",
 };
 
 const features = [

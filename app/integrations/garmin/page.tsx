@@ -12,7 +12,9 @@ import { DashboardGrid } from "@/components/ui/dashboard-grid";
 import { GarminIntegrationActions } from "./garmin-integration-actions";
 
 export const metadata: Metadata = {
-  title: "Adapt2Life — Garmin",
+  title: "Intégration Garmin Connect — Adapt2Life",
+  description:
+    "Connectez Adapt2Life à Garmin pour envoyer automatiquement vos entraînements personnalisés, analyser Body Battery et éviter le surentraînement.",
 };
 
 export const dynamic = "force-dynamic";

@@ -195,20 +195,20 @@ export default async function Home(props: HomePageProps) {
 
   const quickActions = [
     {
-      title: "Générateur d’entraînements",
-      description: "Crée ta séance personnalisée en quelques secondes.",
+      title: "Générateur d’entraînements personnalisés",
+      description: "Crée ta séance sur mesure (course, vélo, triathlon, renfo) en 10 secondes.",
       href: "/generateur-entrainement",
       buttonLabel: "Lancer",
     },
     {
-      title: "Guide Coach IA Garmin",
-      description: "Comprends comment l’IA + Garmin personnalise tes séances.",
+      title: "Coach IA Garmin",
+      description: "Comprends comment l’IA lit tes données Garmin, Body Battery et VFC.",
       href: "/features/coach-ia-garmin",
       buttonLabel: "Lire",
     },
     {
-      title: "Données Garmin",
-      description: "Visualise tes métriques synchronisées.",
+      title: "Plans basés sur ta récupération",
+      description: "Analyse ton stress, ta récupération et évite le surentraînement.",
       href: "/secure/garmin-data",
       buttonLabel: "Voir les données",
     },
