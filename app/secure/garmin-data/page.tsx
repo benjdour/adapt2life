@@ -58,7 +58,7 @@ async function GarminDataPanel({ localUserId, gender }: GarminDataPanelProps) {
 }
 
 export default async function GarminDataPage() {
-  if (!hasStackSessionCookie()) {
+  if (!(await hasStackSessionCookie())) {
     redirect("/handler/sign-in?redirect=/secure/garmin-data");
   }
 

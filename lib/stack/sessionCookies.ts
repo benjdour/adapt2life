@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 
-export const hasStackSessionCookie = () => {
-  const store = cookies();
+export const hasStackSessionCookie = async () => {
+  const store = await cookies();
   if (store.has("stack-access")) {
     return true;
   }

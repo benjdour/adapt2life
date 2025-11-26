@@ -22,7 +22,7 @@ function TrainingGeneratorSkeleton() {
 }
 
 export default async function TrainingGeneratorPage() {
-  if (!hasStackSessionCookie()) {
+  if (!(await hasStackSessionCookie())) {
     redirect("/handler/sign-in?redirect=/generateur-entrainement");
   }
 
