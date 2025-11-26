@@ -293,6 +293,7 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = 
               onClick={handleSendToGarmin}
               disabled={isSending || hasSentSuccessfully}
               isLoading={isSending}
+              data-gtm="send-garmin"
             >
               {hasSentSuccessfully ? "Entraînement envoyé" : isSending ? sendLoadingMessage : "Envoyer à Garmin Connect"}
             </Button>
