@@ -41,9 +41,9 @@ export const metadata: Metadata = {
   description: "Your AI-powered training companion",
   metadataBase: new URL(siteUrl),
   icons: {
-    icon: "/favicon.png",
-    shortcut: "/favicon.png",
-    apple: "/favicon.png",
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
+    apple: "/apple-touch-icon.png",
   },
   openGraph: {
     type: "website",
