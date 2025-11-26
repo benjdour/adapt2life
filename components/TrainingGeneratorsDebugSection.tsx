@@ -28,7 +28,7 @@ export function TrainingGeneratorsDebugSection() {
         <CardHeader className="text-center md:text-left">
           <CardTitle>Générateur d’entraînements Garmin</CardTitle>
           <CardDescription>
-            Transforme le plan généré ci-dessus en JSON conforme à la Training API V2, prêt à être validé puis envoyé automatiquement.
+            Transforme le plan généré ci-dessus en format Garmin officiel, prêt à être vérifié puis envoyé automatiquement.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -38,7 +38,7 @@ export function TrainingGeneratorsDebugSection() {
             <p className="font-semibold text-foreground">Bon à savoir</p>
             <ul className="mt-2 space-y-1 list-disc pl-4">
               <li>Génère d’abord un plan d’entraînement ci-dessus pour alimenter la conversion Garmin.</li>
-              <li>Tu peux ensuite pousser le JSON validé vers Garmin directement depuis cette section.</li>
+              <li>Tu peux ensuite envoyer la version validée vers Garmin directement depuis cette section.</li>
               <li>Assure-toi d’être connecté à ton compte Garmin dans Adapt2Life pour l’envoi automatique.</li>
               <li>La longueur de piscine est définie par défaut à 25 m si le brief ne la précise pas.</li>
             </ul>

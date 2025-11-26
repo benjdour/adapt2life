@@ -37,7 +37,7 @@ export default function FeaturesPage() {
     {
       question: "Peut-on générer un plan d’entraînement Garmin automatiquement ?",
       answer:
-        "Oui. Adapt2Life compose une séance personnalisée, la convertit en JSON valide et l’envoie directement dans ton calendrier Garmin Connect.",
+        "Oui. Adapt2Life compose une séance personnalisée, la met au format exigé par Garmin et l’envoie directement dans ton calendrier Garmin Connect.",
     },
     {
       question: "L’IA adapte-t-elle l’entraînement selon la récupération Body Battery ?",

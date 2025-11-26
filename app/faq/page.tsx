@@ -16,7 +16,7 @@ const faqItems = [
   {
     question: "Puis-je envoyer mes séances sur ma montre Garmin ?",
     answer:
-      "Oui. Après génération, Adapt2Life convertit automatiquement la séance en JSON compatible Garmin et l’envoie dans ton calendrier Garmin Connect.",
+      "Oui. Après génération, Adapt2Life met automatiquement la séance au format attendu par Garmin et l’envoie dans ton calendrier Garmin Connect.",
   },
   {
     question: "Quels sports sont pris en charge aujourd’hui ?",
@@ -81,17 +81,17 @@ const faqItems = [
   {
     question: "Comment garantir que les séances respectent les standards Garmin ?",
     answer:
-      "Chaque séance est validée par un schéma strict (Garmin Training API V2) puis nettoyée automatiquement (cibles, durées, segments) avant l’envoi.",
+      "Chaque séance est vérifiée par nos contrôles internes pour respecter toutes les règles Garmin, puis nettoyée automatiquement (cibles, durées, segments) avant l’envoi.",
   },
   {
     question: "Puis-je partager mes séances avec mon coach humain ?",
     answer:
-      "Oui. Tu peux exporter le plan en Markdown, en JSON Garmin ou simplement partager le lien généré vers Garmin Connect.",
+      "Oui. Tu peux exporter le plan en version texte, le récupérer dans le format Garmin ou simplement partager le lien généré vers Garmin Connect.",
   },
   {
     question: "Que se passe-t-il si la conversion Garmin échoue ?",
     answer:
-      "Tu es informé immédiatement. Nous loguons la raison (JSON invalide, API Garmin indisponible) et tu peux regénérer ou envoyer le plan plus tard.",
+      "Tu es informé immédiatement. Nous indiquons la raison (données incomplètes, services Garmin indisponibles…) et tu peux regénérer ou envoyer le plan plus tard.",
   },
   {
     question: "Adapt2Life fonctionne-t-il hors connexion ?",

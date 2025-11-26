@@ -71,7 +71,7 @@ const steps = [
   {
     title: "3. Génération & validation",
     description:
-      "Adapt2Life compose la séance (échauffement, blocs principaux, récupérations), vérifie la cohérence des zones, puis la convertit en JSON Garmin.",
+      "Adapt2Life compose la séance (échauffement, blocs principaux, récupérations), vérifie la cohérence des zones, puis la convertit dans le format officiel Garmin.",
   },
   {
     title: "4. Envoi & suivi",

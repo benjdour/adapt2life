@@ -128,7 +128,7 @@ export function GarminTrainerGenerator({ sourcePlan }: GarminTrainerGeneratorPro
       }
 
       toast.success("Conversion terminée", {
-        description: "Le JSON brut est prêt à être revu avant envoi à Garmin.",
+        description: "La version technique du plan est prête à être vérifiée avant envoi à Garmin.",
       });
     } catch (generationError) {
       const descriptor = describeAppError(generationError, "garmin-trainer/request-failed");
@@ -229,7 +229,7 @@ export function GarminTrainerGenerator({ sourcePlan }: GarminTrainerGeneratorPro
             className="w-full"
             isLoading={isLoading}
           >
-            {isLoading ? loadingMessage : "Convertir en JSON Garmin"}
+            {isLoading ? loadingMessage : "Préparer le format Garmin"}
           </Button>
 
           {rawResult ? (

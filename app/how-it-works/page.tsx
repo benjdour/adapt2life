@@ -52,7 +52,7 @@ export default function HowItWorksPage() {
     {
       question: "Que se passe-t-il si ma montre ou Garmin n’est pas disponible ?",
       answer:
-        "Tu peux conserver la séance en Markdown ou JSON et l’envoyer plus tard. L’IA gardera ton brief pour proposer une alternative.",
+        "Tu peux conserver la séance en version texte, la reprendre plus tard et l’envoyer quand tu es prêt. L’IA gardera ton brief pour proposer une alternative.",
     },
   ];
 
