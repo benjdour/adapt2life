@@ -179,7 +179,7 @@ export default async function Home(props: HomePageProps) {
       hasTextValue(localUser.trainingGoal),
   );
 
-  let garminData: Awaited<ReturnType<typeof fetchGarminData>> | null = null;
+  let garminData: Awaited<ReturnType<typeof getCachedGarminData>> | null = null;
   let heroScore: number | null = null;
   let heroTrend: "up" | "down" | "stable" | null = null;
   if (user && localUser) {
