@@ -35,6 +35,33 @@ const orbitron = Orbitron({
 });
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://adapt2life.app";
+const organizationSchema = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "Adapt2Life",
+  url: siteUrl,
+  description: "Coach IA connecté à Garmin pour générer des entraînements personnalisés.",
+  logo: `${siteUrl}/brand/logo-main.png`,
+  sameAs: ["https://www.linkedin.com/company/adapt2life"],
+  founder: {
+    "@type": "Person",
+    name: "Benjamin Dour",
+  },
+  contactPoint: [
+    {
+      "@type": "ContactPoint",
+      contactType: "customer support",
+      email: "contact@adapt2life.app",
+      availableLanguage: ["fr", "en"],
+    },
+  ],
+  brand: {
+    "@type": "Brand",
+    name: "Adapt2Life",
+    logo: `${siteUrl}/brand/logo-main.png`,
+    slogan: "Ton coach IA connecté à Garmin.",
+  },
+};
 
 export const metadata: Metadata = {
   title: "Adapt2Life",
@@ -117,14 +144,7 @@ export default async function RootLayout({
               type="application/ld+json"
               suppressHydrationWarning
               dangerouslySetInnerHTML={{
-                __html: JSON.stringify({
-                  "@context": "https://schema.org",
-                  "@type": "Organization",
-                  name: "Adapt2Life",
-                  url: siteUrl,
-                  logo: `${siteUrl}/brand/logo-main.png`,
-                  sameAs: ["https://www.linkedin.com/company/adapt2life"],
-                }),
+                __html: JSON.stringify(organizationSchema),
               }}
             />
           </StackTheme>
