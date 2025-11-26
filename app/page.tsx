@@ -201,12 +201,6 @@ export default async function Home(props: HomePageProps) {
       buttonLabel: "Lancer",
     },
     {
-      title: "Coach IA Garmin",
-      description: "Comprends comment l’IA lit tes données Garmin, Body Battery et VFC.",
-      href: "/features/coach-ia-garmin",
-      buttonLabel: "Lire",
-    },
-    {
       title: "Plans basés sur ta récupération",
       description: "Analyse ton stress, ta récupération et évite le surentraînement.",
       href: "/secure/garmin-data",
