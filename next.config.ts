@@ -40,6 +40,8 @@ const buildCsp = () => {
     "https://api.stack-auth.com",
     "https://app.stack-auth.com",
     "https://1.1.1.1",
+    "https://www.google-analytics.com",
+    "https://www.googletagmanager.com",
     sanitize(process.env.APP_URL),
     sanitize(process.env.NEXT_PUBLIC_SITE_URL),
   ]
@@ -48,7 +50,7 @@ const buildCsp = () => {
 
   return [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com",
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: https:",
     "font-src 'self' data: https:",
