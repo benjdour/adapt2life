@@ -6,7 +6,7 @@ import { eq } from "drizzle-orm";
 import { stackServerApp } from "@/stack/server";
 import { db } from "@/db";
 import { userGeneratedArtifacts, users } from "@/db/schema";
-import { fetchGarminData } from "@/lib/garminData";
+import { getCachedGarminData } from "@/lib/cachedGarminData";
 import { computeTrainingScore, mockGarminData } from "@/lib/trainingScore";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -183,7 +183,7 @@ export default async function Home(props: HomePageProps) {
   let heroScore: number | null = null;
   let heroTrend: "up" | "down" | "stable" | null = null;
   if (user && localUser) {
-    garminData = await fetchGarminData(localUser.id, { gender: localUser.gender });
+    garminData = await getCachedGarminData(localUser.id, { gender: localUser.gender });
     const trainingGaugeData = garminData?.trainingGaugeData ?? mockGarminData();
     heroScore = Math.min(100, Math.max(0, computeTrainingScore(trainingGaugeData)));
     heroTrend = heroScore >= 80 ? "up" : heroScore >= 60 ? "stable" : "down";

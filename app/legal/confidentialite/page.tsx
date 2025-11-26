@@ -5,6 +5,9 @@ export const metadata: Metadata = {
   description: "Politique complète sur la collecte, l’utilisation et la protection des données personnelles sur Adapt2Life.",
 };
 
+export const dynamic = "force-static";
+export const revalidate = false;
+
 const sections = [
   {
     title: "1. Introduction",

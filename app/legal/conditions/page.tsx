@@ -5,6 +5,9 @@ export const metadata: Metadata = {
   description: "Conditions générales d’utilisation du service Adapt2Life.",
 };
 
+export const dynamic = "force-static";
+export const revalidate = false;
+
 const sections = [
   {
     title: "1. Acceptation des conditions",
