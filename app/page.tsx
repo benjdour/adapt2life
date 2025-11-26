@@ -201,6 +201,12 @@ export default async function Home(props: HomePageProps) {
       buttonLabel: "Lancer",
     },
     {
+      title: "Guide Coach IA Garmin",
+      description: "Comprends comment l’IA + Garmin personnalise tes séances.",
+      href: "/features/coach-ia-garmin",
+      buttonLabel: "Lire",
+    },
+    {
       title: "Données Garmin",
       description: "Visualise tes métriques synchronisées.",
       href: "/secure/garmin-data",

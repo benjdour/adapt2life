@@ -62,6 +62,21 @@ export default function FeaturesPage() {
         ))}
       </section>
 
+      <section className="rounded-3xl border border-white/10 bg-card/80 p-8 text-center md:text-left">
+        <p className="text-sm uppercase tracking-[0.3em] text-primary/80">Guide approfondi</p>
+        <div className="mt-4 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+          <div className="space-y-3">
+            <h2 className="text-3xl font-heading text-foreground">Coach IA Garmin : tout comprendre en 5 minutes</h2>
+            <p className="text-base text-muted-foreground">
+              Découvre comment Adapt2Life lit tes données Garmin, génère tes séances et les envoie automatiquement sur ta montre.
+            </p>
+          </div>
+          <Button asChild size="lg" className="px-8 text-base font-semibold">
+            <Link href="/features/coach-ia-garmin">Lire le guide complet</Link>
+          </Button>
+        </div>
+      </section>
+
       <section className="rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/20 via-background to-background p-8 text-center md:text-left">
         <p className="text-sm uppercase tracking-[0.35em] text-primary/80">Passe à l’action</p>
         <div className="mt-4 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
