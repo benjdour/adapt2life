@@ -33,6 +33,24 @@ const features = [
 ];
 
 export default function FeaturesPage() {
+  const faqItems = [
+    {
+      question: "Peut-on générer un plan d’entraînement Garmin automatiquement ?",
+      answer:
+        "Oui. Adapt2Life compose une séance personnalisée, la convertit en JSON valide et l’envoie directement dans ton calendrier Garmin Connect.",
+    },
+    {
+      question: "L’IA adapte-t-elle l’entraînement selon la récupération Body Battery ?",
+      answer:
+        "Tout à fait. Nous lisons Body Battery, VFC et charge d’entraînement pour ajuster l’intensité recommandée et éviter le surmenage.",
+    },
+    {
+      question: "Quels sports sont compatibles avec l’IA ?",
+      answer:
+        "Course sur route, trail, vélo, triathlon et renforcement fonctionnel à domicile. Tu peux préciser ton matériel ou tes contraintes.",
+    },
+  ];
+
   return (
     <main className="mx-auto flex max-w-6xl flex-col gap-8 px-6 py-12 text-foreground">
       <header className="space-y-3 text-center md:text-left">
@@ -61,6 +79,42 @@ export default function FeaturesPage() {
             </CardContent>
           </Card>
         ))}
+      </section>
+
+      <section className="space-y-4">
+        <header>
+          <p className="text-sm uppercase tracking-[0.35em] text-primary/80">Questions fréquentes</p>
+          <h2 className="text-3xl font-heading text-foreground">Tout savoir sur nos fonctionnalités IA</h2>
+        </header>
+        <div className="space-y-3">
+          {faqItems.map((item) => (
+            <details key={item.question} className="rounded-2xl border border-white/10 bg-card/80 p-5">
+              <summary className="cursor-pointer list-none text-lg font-heading text-foreground">
+                {item.question}
+                <span className="ml-3 inline-block text-primary transition group-open:rotate-45">+</span>
+              </summary>
+              <p className="mt-3 text-sm text-muted-foreground">{item.answer}</p>
+            </details>
+          ))}
+        </div>
+        <script
+          type="application/ld+json"
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "FAQPage",
+              mainEntity: faqItems.map((item) => ({
+                "@type": "Question",
+                name: item.question,
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: item.answer,
+                },
+              })),
+            }),
+          }}
+        />
       </section>
 
       <section className="rounded-3xl border border-white/10 bg-card/80 p-8 text-center md:text-left">

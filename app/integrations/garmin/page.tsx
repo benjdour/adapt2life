@@ -96,6 +96,24 @@ export default async function GarminIntegrationPage({ searchParams }: PageProps)
   const reason = normalizeSearchParam(searchParams?.reason);
   const isConnected = Boolean(connection);
 
+  const faqItems = [
+    {
+      question: "Puis-je envoyer un entraînement Adapt2Life directement dans Garmin ?",
+      answer:
+        "Oui. Chaque séance générée est convertie au format Garmin Training API et synchronisée dans ton calendrier en un clic.",
+    },
+    {
+      question: "Comment Adapt2Life utilise Body Battery ou la VFC ?",
+      answer:
+        "Nous lisons Body Battery, VFC et la charge récente pour recommander des intensités cohérentes et éviter le surentraînement.",
+    },
+    {
+      question: "Que faire si la connexion Garmin expire ?",
+      answer:
+        "Tu peux relancer l’autorisation depuis cette page. Nous t’avertissons aussi par email quand le token arrive à expiration.",
+    },
+  ];
+
   return (
     <div className="mx-auto flex h-full w-full max-w-5xl flex-col gap-8 px-6 py-12 text-foreground">
       <Card>
@@ -160,6 +178,41 @@ export default async function GarminIntegrationPage({ searchParams }: PageProps)
         </Card>
       </DashboardGrid>
 
+      <section className="space-y-4 rounded-3xl border border-white/10 bg-card/80 p-6">
+        <header>
+          <p className="text-xs uppercase tracking-[0.35em] text-primary/80">Questions fréquentes</p>
+          <h2 className="text-3xl font-heading text-foreground">Tout savoir sur l’intégration Garmin</h2>
+        </header>
+        <div className="space-y-3">
+          {faqItems.map((faq) => (
+            <details key={faq.question} className="rounded-2xl border border-white/10 bg-black/20 p-5">
+              <summary className="cursor-pointer list-none text-lg font-heading text-foreground">
+                {faq.question}
+                <span className="ml-3 inline-block text-primary transition group-open:rotate-45">+</span>
+              </summary>
+              <p className="mt-3 text-sm text-muted-foreground">{faq.answer}</p>
+            </details>
+          ))}
+        </div>
+        <script
+          type="application/ld+json"
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "FAQPage",
+              mainEntity: faqItems.map((faq) => ({
+                "@type": "Question",
+                name: faq.question,
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: faq.answer,
+                },
+              })),
+            }),
+          }}
+        />
+      </section>
     </div>
   );
 }

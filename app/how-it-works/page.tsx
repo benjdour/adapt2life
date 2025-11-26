@@ -38,6 +38,24 @@ const steps = [
 ];
 
 export default function HowItWorksPage() {
+  const faqItems = [
+    {
+      question: "Combien de temps prend la génération d’un entraînement ?",
+      answer:
+        "Quelques secondes pour un plan standard. Les conversions Garmin plus complexes peuvent atteindre 1 à 2 minutes selon la charge.",
+    },
+    {
+      question: "Puis-je regénérer ou modifier la séance avant envoi ?",
+      answer:
+        "Oui. Tu peux regénérer autant que nécessaire, ajuster les blocs ou les intensités avant d’envoyer la version finale dans Garmin Connect.",
+    },
+    {
+      question: "Que se passe-t-il si ma montre ou Garmin n’est pas disponible ?",
+      answer:
+        "Tu peux conserver la séance en Markdown ou JSON et l’envoyer plus tard. L’IA gardera ton brief pour proposer une alternative.",
+    },
+  ];
+
   return (
     <main className="mx-auto flex max-w-5xl flex-col gap-6 px-6 py-12 text-foreground">
       <header className="space-y-3 text-center md:text-left">
@@ -87,6 +105,42 @@ export default function HowItWorksPage() {
             </Button>
           </div>
         </div>
+      </section>
+
+      <section className="space-y-4">
+        <header>
+          <p className="text-sm uppercase tracking-[0.35em] text-primary/80">Questions fréquentes</p>
+          <h2 className="text-3xl font-heading">Avant de lancer ta première séance</h2>
+        </header>
+        <div className="space-y-3">
+          {faqItems.map((item) => (
+            <details key={item.question} className="rounded-2xl border border-white/10 bg-card/80 p-5">
+              <summary className="cursor-pointer list-none text-lg font-heading">
+                {item.question}
+                <span className="ml-3 inline-block text-primary transition group-open:rotate-45">+</span>
+              </summary>
+              <p className="mt-3 text-sm text-muted-foreground">{item.answer}</p>
+            </details>
+          ))}
+        </div>
+        <script
+          type="application/ld+json"
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "FAQPage",
+              mainEntity: faqItems.map((item) => ({
+                "@type": "Question",
+                name: item.question,
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: item.answer,
+                },
+              })),
+            }),
+          }}
+        />
       </section>
     </main>
   );

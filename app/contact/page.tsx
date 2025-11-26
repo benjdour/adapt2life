@@ -177,6 +177,76 @@ export default function ContactPage() {
           </form>
         </CardContent>
       </Card>
+
+      <section className="rounded-3xl border border-white/10 bg-card/80 p-6">
+        <header className="space-y-2">
+          <p className="text-sm uppercase tracking-[0.3em] text-primary/80">Questions fréquentes</p>
+          <h2 className="text-3xl font-heading text-foreground">Tu te poses encore des questions ?</h2>
+        </header>
+        <div className="space-y-3">
+          {[
+            {
+              question: "Puis-je planifier une démo personnalisée ?",
+              answer:
+                "Oui. Indique tes créneaux dans le formulaire ou écris-nous directement, nous organisons une démo adaptée à tes besoins.",
+            },
+            {
+              question: "Proposez-vous des partenariats clubs ou coachs ?",
+              answer:
+                "Nous travaillons déjà avec des clubs et des coaches. Explique ton contexte et nous te recontactons rapidement.",
+            },
+            {
+              question: "Comment contacter le support si j’ai un souci d’intégration Garmin ?",
+              answer:
+                "Utilise ce formulaire ou envoie un email à support@adapt2life.app, en précisant ton ID Garmin et le message d’erreur.",
+            },
+          ].map((faq) => (
+            <details key={faq.question} className="rounded-2xl border border-white/10 bg-black/20 p-5">
+              <summary className="cursor-pointer list-none text-lg font-heading text-foreground">
+                {faq.question}
+                <span className="ml-3 inline-block text-primary transition group-open:rotate-45">+</span>
+              </summary>
+              <p className="mt-3 text-sm text-muted-foreground">{faq.answer}</p>
+            </details>
+          ))}
+        </div>
+        <script
+          type="application/ld+json"
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "FAQPage",
+              mainEntity: [
+                {
+                  "@type": "Question",
+                  name: "Puis-je planifier une démo personnalisée ?",
+                  acceptedAnswer: {
+                    "@type": "Answer",
+                    text: "Oui. Indique tes créneaux dans le formulaire ou écris-nous directement, nous organisons une démo adaptée à tes besoins.",
+                  },
+                },
+                {
+                  "@type": "Question",
+                  name: "Proposez-vous des partenariats clubs ou coachs ?",
+                  acceptedAnswer: {
+                    "@type": "Answer",
+                    text: "Nous travaillons déjà avec des clubs et des coaches. Explique ton contexte et nous te recontactons rapidement.",
+                  },
+                },
+                {
+                  "@type": "Question",
+                  name: "Comment contacter le support si j’ai un souci d’intégration Garmin ?",
+                  acceptedAnswer: {
+                    "@type": "Answer",
+                    text: "Utilise ce formulaire ou envoie un email à support@adapt2life.app, en précisant ton ID Garmin et le message d’erreur.",
+                  },
+                },
+              ],
+            }),
+          }}
+        />
+      </section>
     </main>
   );
 }
