@@ -22,6 +22,11 @@ const APP_ERROR_REGISTRY = {
     description: "Le serveur n’a pas renvoyé de séance exploitable. Merci de réessayer.",
     severity: "error",
   },
+  "training-plan/quota-exhausted": {
+    title: "Quota de génération atteint",
+    description: "Tu as utilisé les 10 séances offertes. Contacte l’équipe pour débloquer davantage de générations.",
+    severity: "warning",
+  },
   "garmin-trainer/no-source-plan": {
     title: "Plan requis",
     description: "Génère ou colle un plan d’entraînement avant de lancer la conversion Garmin.",
@@ -45,6 +50,16 @@ const APP_ERROR_REGISTRY = {
   "garmin-trainer/push-unavailable": {
     title: "Connexion Garmin requise",
     description: "Connecte ton compte Garmin avant de tenter l’envoi automatique.",
+    severity: "warning",
+  },
+  "garmin-trainer/quota-exhausted": {
+    title: "Conversions offertes épuisées",
+    description: "Tu as utilisé les 5 conversions offertes. Contacte l’équipe pour prolonger ton accès.",
+    severity: "warning",
+  },
+  "garmin-trainer/auth-required": {
+    title: "Authentification requise",
+    description: "Connecte-toi pour lancer une conversion Garmin.",
     severity: "warning",
   },
   "app/unexpected": {

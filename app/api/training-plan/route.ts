@@ -9,6 +9,7 @@ import { requestChatCompletion, AiConfigurationError, AiRequestError } from "@/l
 import { createLogger } from "@/lib/logger";
 import { ADAPT2LIFE_SYSTEM_PROMPT } from "@/lib/prompts/adapt2lifeSystemPrompt";
 import { saveTrainingPlanForUser } from "@/lib/services/userGeneratedArtifacts";
+import { reserveTrainingGenerationCredit, refundTrainingGenerationCredit } from "@/lib/services/userCredits";
 import { getAiModelCandidates } from "@/lib/services/aiModelConfig";
 
 const MAX_TEXT_LENGTH = 2000;
@@ -261,6 +262,8 @@ async function fetchLatestGarminWeightKg(userId: number): Promise<number | null>
 
 export async function POST(request: NextRequest) {
   const logger = createLogger("training-plan", { headers: request.headers });
+  let localUserId: number | null = null;
+  let trainingCreditLocked = false;
   try {
     const stackUser = await stackServerApp.getUser({ or: "return-null", tokenStore: request });
     if (!stackUser) {
@@ -280,6 +283,19 @@ export async function POST(request: NextRequest) {
     }
 
     const localUser = await ensureLocalUser(stackUser);
+    localUserId = localUser?.id ?? null;
+
+    const trainingCreditReservation = localUser?.id ? await reserveTrainingGenerationCredit(localUser.id) : null;
+    if (!trainingCreditReservation) {
+      return NextResponse.json(
+        {
+          error:
+            "Tu as utilisé tes 10 générations offertes. Contacte l’équipe pour débloquer davantage de séances personnalisées.",
+        },
+        { status: 402 },
+      );
+    }
+    trainingCreditLocked = true;
 
     let inferredWeightKg: number | null =
       localUser?.weightKg !== null && localUser?.weightKg !== undefined
@@ -652,6 +668,7 @@ const cleanTextPlan = (raw: string): string => {
     }
 
     const planText = finalPlan.trim();
+    trainingCreditLocked = false;
     return NextResponse.json({
       plan: planText,
       rawPlan: finalPlan,
@@ -659,5 +676,13 @@ const cleanTextPlan = (raw: string): string => {
   } catch (error) {
     logger.error("training-plan unexpected failure", { error });
     return NextResponse.json({ error: "Erreur interne lors de la génération du plan." }, { status: 500 });
+  } finally {
+    if (trainingCreditLocked && localUserId) {
+      try {
+        await refundTrainingGenerationCredit(localUserId);
+      } catch (refundError) {
+        logger.error("training-plan credit refund failed", { error: refundError, userId: localUserId });
+      }
+    }
   }
 }

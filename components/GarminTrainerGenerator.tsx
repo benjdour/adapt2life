@@ -118,7 +118,13 @@ export function GarminTrainerGenerator({ sourcePlan }: GarminTrainerGeneratorPro
           data?.error ?? "Impossible de générer l’entraînement pour le moment. Merci de réessayer plus tard.";
         const parseHint =
           data?.parseError && data.parseError.trim().length > 0 ? `\nDétail: ${data.parseError.trim()}` : "";
-        throw new AppError("garmin-trainer/request-failed", {
+        const errorCode =
+          response.status === 402
+            ? "garmin-trainer/quota-exhausted"
+            : response.status === 401
+            ? "garmin-trainer/auth-required"
+            : "garmin-trainer/request-failed";
+        throw new AppError(errorCode, {
           details: `${message}${parseHint}`.trim(),
         });
       }

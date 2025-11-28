@@ -1,4 +1,16 @@
-import { index, integer, jsonb, numeric, pgTable, primaryKey, serial, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  index,
+  integer,
+  jsonb,
+  numeric,
+  pgTable,
+  primaryKey,
+  serial,
+  text,
+  timestamp,
+  uniqueIndex,
+} from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -15,6 +27,8 @@ export const users = pgTable("users", {
   trainingGoal: text("training_goal"),
   email: text("email").notNull().unique(),
   createdAt: timestamp("created_at").defaultNow(),
+  trainingGenerationsRemaining: integer("training_generations_remaining").notNull().default(10),
+  garminConversionsRemaining: integer("garmin_conversions_remaining").notNull().default(5),
 });
 
 export const workouts = pgTable(
@@ -148,6 +162,7 @@ export const garminTrainerJobs = pgTable(
     aiDebugPayload: jsonb("ai_debug_payload"),
     phase: text("phase").notNull().default("pending"),
     aiModelId: text("ai_model_id"),
+    conversionCreditReserved: boolean("conversion_credit_reserved").notNull().default(false),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow().$onUpdate(() => new Date()),
     processedAt: timestamp("processed_at"),

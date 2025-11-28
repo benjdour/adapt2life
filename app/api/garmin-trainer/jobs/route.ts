@@ -5,6 +5,7 @@ import { fetchGarminConnectionByUserId } from "@/lib/services/garmin-connections
 import { stackServerApp } from "@/stack/server";
 import { createGarminTrainerJob, ensureLocalUser, triggerGarminTrainerJobProcessing } from "@/lib/services/garminTrainerJobs";
 import { createLogger } from "@/lib/logger";
+import { reserveGarminConversionCredit, refundGarminConversionCredit } from "@/lib/services/userCredits";
 
 const REQUEST_SCHEMA = z.object({
   planMarkdown: z.string().trim().min(1, "Merci de fournir un plan valide."),
@@ -40,14 +41,39 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const job = await createGarminTrainerJob(localUser.id, parsed.data.planMarkdown);
-  logger.info("garmin trainer job created", { jobId: job.id, userId: localUser.id });
-  triggerGarminTrainerJobProcessing(job.id);
+  let conversionCreditLocked = false;
+  try {
+    const creditReservation = await reserveGarminConversionCredit(localUser.id);
+    if (!creditReservation) {
+      return NextResponse.json(
+        {
+          error: "Tu as utilisé tes 5 conversions offertes. Contacte l’équipe pour débloquer davantage d’envois Garmin.",
+        },
+        { status: 402 },
+      );
+    }
+    conversionCreditLocked = true;
 
-  return NextResponse.json({
-    jobId: job.id,
-    status: job.status,
-    etaMinutes: 5,
-    message: "Ton entraînement sera disponible dans Garmin Connect d’ici 5 minutes.",
-  });
+    const job = await createGarminTrainerJob(localUser.id, parsed.data.planMarkdown, {
+      conversionCreditReserved: true,
+    });
+    logger.info("garmin trainer job created", { jobId: job.id, userId: localUser.id });
+    triggerGarminTrainerJobProcessing(job.id);
+    conversionCreditLocked = false;
+
+    return NextResponse.json({
+      jobId: job.id,
+      status: job.status,
+      etaMinutes: 5,
+      message: "Ton entraînement sera disponible dans Garmin Connect d’ici 5 minutes.",
+    });
+  } finally {
+    if (conversionCreditLocked) {
+      try {
+        await refundGarminConversionCredit(localUser.id);
+      } catch (refundError) {
+        logger.error("garmin trainer job credit refund failed", { error: refundError, userId: localUser.id });
+      }
+    }
+  }
 }

@@ -119,7 +119,8 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = 
 
       if (!response.ok) {
         const payload = (await response.json().catch(() => ({}))) as { error?: string };
-        throw new AppError("training-plan/request-failed", {
+        const errorCode = response.status === 402 ? "training-plan/quota-exhausted" : "training-plan/request-failed";
+        throw new AppError(errorCode, {
           details: payload.error ?? null,
         });
       }
@@ -173,7 +174,17 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = 
         | { jobId?: number; error?: string; message?: string; etaMinutes?: number }
         | null;
 
-      if (!response.ok || !payload?.jobId) {
+      if (!response.ok) {
+        const errorCode =
+          response.status === 402
+            ? "garmin-trainer/quota-exhausted"
+            : response.status === 401
+            ? "garmin-trainer/auth-required"
+            : "garmin-trainer/request-failed";
+        throw new AppError(errorCode, { details: payload?.error });
+      }
+
+      if (!payload?.jobId) {
         throw new AppError("garmin-trainer/request-failed", { details: payload?.error });
       }
 

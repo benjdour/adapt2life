@@ -25,6 +25,7 @@ import {
   hasGarminExerciseCategory,
   isKnownGarminExercise,
 } from "@/constants/garminExerciseData";
+import { refundGarminConversionCredit } from "@/lib/services/userCredits";
 
 const GARMIN_PROMPT_FILENAME = "docs/garmin_trainer_prompt.txt";
 
@@ -1346,15 +1347,26 @@ const pushWorkoutForUser = async (userId: number, workout: GarminTrainerWorkout,
   return result;
 };
 
-export const createGarminTrainerJob = async (userId: number, planMarkdown: string) => {
+export const createGarminTrainerJob = async (
+  userId: number,
+  planMarkdown: string,
+  options?: { conversionCreditReserved?: boolean },
+) => {
   const [job] = await db
     .insert(garminTrainerJobs)
-    .values({ userId, planMarkdown: planMarkdown.trim(), status: "pending", phase: "pending" })
+    .values({
+      userId,
+      planMarkdown: planMarkdown.trim(),
+      status: "pending",
+      phase: "pending",
+      conversionCreditReserved: Boolean(options?.conversionCreditReserved),
+    })
     .returning({
       id: garminTrainerJobs.id,
       status: garminTrainerJobs.status,
       createdAt: garminTrainerJobs.createdAt,
       phase: garminTrainerJobs.phase,
+      conversionCreditReserved: garminTrainerJobs.conversionCreditReserved,
     });
   return job;
 };
@@ -1427,7 +1439,12 @@ export const hasGarminTrainerJobTimedOut = (
   return hasTimedOut;
 };
 
-const processJob = async (job: { id: number; userId: number; planMarkdown: string }) => {
+const processJob = async (job: {
+  id: number;
+  userId: number;
+  planMarkdown: string;
+  conversionCreditReserved: boolean;
+}) => {
   const logger = baseLogger.child({ jobId: job.id, userId: job.userId });
   await updateJob(job.id, { status: "processing", phase: "conversion" });
   logger.info("garmin trainer job processing started");
@@ -1449,6 +1466,7 @@ const processJob = async (job: { id: number; userId: number; planMarkdown: strin
     }
   };
   startHeartbeat();
+  let conversionCreditLocked = job.conversionCreditReserved;
   try {
     const conversion = await runWithTimeout(
       () => convertPlanMarkdownForUser(job.userId, job.planMarkdown, logger, { jobId: job.id }),
@@ -1477,8 +1495,10 @@ const processJob = async (job: { id: number; userId: number; planMarkdown: strin
       error: null,
       aiRawResponse: conversion.raw,
       aiDebugPayload: null,
+      conversionCreditReserved: false,
     });
     logger.info("garmin trainer job completed", { workoutId: pushResult.workoutId });
+    conversionCreditLocked = false;
   } catch (error) {
     if (error instanceof TimeoutError) {
       logger.error("garmin trainer job stage timed out", {
@@ -1505,14 +1525,28 @@ const processJob = async (job: { id: number; userId: number; planMarkdown: strin
       processedAt: new Date(),
       aiRawResponse: error instanceof GarminConversionError ? error.rawResponse : null,
       aiDebugPayload: error instanceof GarminConversionError ? (error.debugPayload ?? null) : null,
+      conversionCreditReserved: false,
     });
+    if (conversionCreditLocked) {
+      try {
+        await refundGarminConversionCredit(job.userId);
+      } catch (refundError) {
+        logger.error("garmin trainer job conversion credit refund failed", { error: refundError });
+      }
+      conversionCreditLocked = false;
+    }
   }
   stopHeartbeat();
 };
 
 export const processPendingGarminTrainerJobs = async (limit = 5) => {
   const jobs = await db
-    .select({ id: garminTrainerJobs.id, userId: garminTrainerJobs.userId, planMarkdown: garminTrainerJobs.planMarkdown })
+    .select({
+      id: garminTrainerJobs.id,
+      userId: garminTrainerJobs.userId,
+      planMarkdown: garminTrainerJobs.planMarkdown,
+      conversionCreditReserved: garminTrainerJobs.conversionCreditReserved,
+    })
     .from(garminTrainerJobs)
     .where(eq(garminTrainerJobs.status, "pending"))
     .orderBy(garminTrainerJobs.createdAt)
@@ -1527,7 +1561,12 @@ export const processPendingGarminTrainerJobs = async (limit = 5) => {
 
 export const processGarminTrainerJobById = async (jobId: number) => {
   const [job] = await db
-    .select({ id: garminTrainerJobs.id, userId: garminTrainerJobs.userId, planMarkdown: garminTrainerJobs.planMarkdown })
+    .select({
+      id: garminTrainerJobs.id,
+      userId: garminTrainerJobs.userId,
+      planMarkdown: garminTrainerJobs.planMarkdown,
+      conversionCreditReserved: garminTrainerJobs.conversionCreditReserved,
+    })
     .from(garminTrainerJobs)
     .where(eq(garminTrainerJobs.id, jobId))
     .limit(1);

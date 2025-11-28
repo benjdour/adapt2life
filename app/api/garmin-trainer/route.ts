@@ -17,6 +17,7 @@ import { parseJsonWithCodeFence } from "@/lib/utils/jsonCleanup";
 import { buildGarminExerciseCatalogSnippet } from "@/lib/garminExercises";
 import { inferExerciseSportsFromMarkdown } from "@/lib/garmin/exerciseInference";
 import { getGarminAiClients, type GarminAiResult } from "@/lib/ai/garminAiClient";
+import { reserveGarminConversionCredit, refundGarminConversionCredit } from "@/lib/services/userCredits";
 
 const REQUEST_SCHEMA = z.object({
   exampleMarkdown: z
@@ -526,6 +527,14 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
 export async function POST(request: NextRequest) {
   const logger = createLogger("garmin-trainer", { headers: request.headers });
   const ownerContext = await resolveOwnerContext(request);
+  const localUserId = ownerContext.localUserId;
+
+  if (!localUserId) {
+    return NextResponse.json(
+      { error: "Connecte-toi pour utiliser la conversion Garmin." },
+      { status: 401 },
+    );
+  }
 
   let body: unknown;
   try {
@@ -553,167 +562,193 @@ export async function POST(request: NextRequest) {
     hasLocalUser: Boolean(ownerContext.localUserId),
   });
 
-  const promptTemplate = await loadPromptTemplate();
-  if (!promptTemplate) {
-    return NextResponse.json(
-      {
-        error:
-          "Prompt Garmin introuvable. Ajoute la variable d’environnement GARMIN_TRAINER_PROMPT ou place un fichier docs/garmin_trainer_prompt.txt sur le serveur.",
-      },
-      { status: 500 },
-    );
-  }
-
-  const modelCandidates = await getAiModelCandidates("garmin-trainer");
-  const systemPrompt = process.env.GARMIN_TRAINER_SYSTEM_PROMPT ?? FALLBACK_SYSTEM_PROMPT;
-
-  const inferredOrigin =
-    request.headers.get("origin") ??
-    request.headers.get("referer") ??
-    `${request.headers.get("x-forwarded-proto") ?? "https"}://${request.headers.get("host") ?? "localhost"}`;
-  const referer = process.env.APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? inferredOrigin ?? "http://localhost:3000";
-
-  const sportsForPrompt = inferExerciseSportsFromMarkdown(normalizedExample);
-  const defaultPrompt = [ownerContext.ownerInstruction, buildFinalPrompt(promptTemplate, normalizedExample)].join("\n\n");
-  const hasToolSport = sportsForPrompt.some((sport) => shouldUseExerciseTool(sport));
-  const useExerciseTool = EXERCISE_TOOL_FEATURE_ENABLED && hasToolSport;
-  const needsExerciseCatalog = hasToolSport && !useExerciseTool;
-
-  const { strict: strictClient, classic: classicClient } = getGarminAiClients();
-  let rawContent: string | null = null;
-  let aiResult: GarminAiResult | null = null;
+  let conversionCreditLocked = false;
   try {
-    if (useExerciseTool) {
-      aiResult = await strictClient.generate({
-        basePrompt: defaultPrompt,
-        systemPrompt,
-        modelIds: modelCandidates,
-        referer,
-      });
-    } else {
-      const catalogMaxChars = toPositiveInt(process.env.GARMIN_EXERCISE_PROMPT_MAX_CHARS, 60_000);
-      const snippets: string[] = [defaultPrompt];
-      if (needsExerciseCatalog) {
-        const exerciseCatalogSnippet = buildGarminExerciseCatalogSnippet({
-          sports: sportsForPrompt,
-          maxChars: catalogMaxChars,
+    const promptTemplate = await loadPromptTemplate();
+    if (!promptTemplate) {
+      return NextResponse.json(
+        {
+          error:
+            "Prompt Garmin introuvable. Ajoute la variable d’environnement GARMIN_TRAINER_PROMPT ou place un fichier docs/garmin_trainer_prompt.txt sur le serveur.",
+        },
+        { status: 500 },
+      );
+    }
+
+    const creditReservation = await reserveGarminConversionCredit(localUserId);
+    if (!creditReservation) {
+      return NextResponse.json(
+        {
+          error: "Tu as utilisé tes 5 conversions offertes. Contacte l’équipe pour débloquer davantage d’envois Garmin.",
+        },
+        { status: 402 },
+      );
+    }
+    conversionCreditLocked = true;
+
+    const modelCandidates = await getAiModelCandidates("garmin-trainer");
+    const systemPrompt = process.env.GARMIN_TRAINER_SYSTEM_PROMPT ?? FALLBACK_SYSTEM_PROMPT;
+
+    const inferredOrigin =
+      request.headers.get("origin") ??
+      request.headers.get("referer") ??
+      `${request.headers.get("x-forwarded-proto") ?? "https"}://${request.headers.get("host") ?? "localhost"}`;
+    const referer = process.env.APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? inferredOrigin ?? "http://localhost:3000";
+
+    const sportsForPrompt = inferExerciseSportsFromMarkdown(normalizedExample);
+    const defaultPrompt = [ownerContext.ownerInstruction, buildFinalPrompt(promptTemplate, normalizedExample)].join("\n\n");
+    const hasToolSport = sportsForPrompt.some((sport) => shouldUseExerciseTool(sport));
+    const useExerciseTool = EXERCISE_TOOL_FEATURE_ENABLED && hasToolSport;
+    const needsExerciseCatalog = hasToolSport && !useExerciseTool;
+
+    const { strict: strictClient, classic: classicClient } = getGarminAiClients();
+    let rawContent: string | null = null;
+    let aiResult: GarminAiResult | null = null;
+    try {
+      if (useExerciseTool) {
+        aiResult = await strictClient.generate({
+          basePrompt: defaultPrompt,
+          systemPrompt,
+          modelIds: modelCandidates,
+          referer,
         });
-        snippets.push(exerciseCatalogSnippet);
+      } else {
+        const catalogMaxChars = toPositiveInt(process.env.GARMIN_EXERCISE_PROMPT_MAX_CHARS, 60_000);
+        const snippets: string[] = [defaultPrompt];
+        if (needsExerciseCatalog) {
+          const exerciseCatalogSnippet = buildGarminExerciseCatalogSnippet({
+            sports: sportsForPrompt,
+            maxChars: catalogMaxChars,
+          });
+          snippets.push(exerciseCatalogSnippet);
+        }
+        const userPrompt = snippets.join("\n\n");
+        aiResult = await classicClient.generate({
+          basePrompt: userPrompt,
+          systemPrompt,
+          modelIds: modelCandidates,
+          referer,
+        });
       }
-      const userPrompt = snippets.join("\n\n");
-      aiResult = await classicClient.generate({
-        basePrompt: userPrompt,
-        systemPrompt,
-        modelIds: modelCandidates,
-        referer,
-      });
-    }
-  } catch (error) {
-    const aiError = error instanceof AiRequestError ? error : new AiRequestError("AI request failed", { cause: error });
-    if (!useExerciseTool && aiError.status === 429) {
+    } catch (error) {
+      const aiError = error instanceof AiRequestError ? error : new AiRequestError("AI request failed", { cause: error });
+      if (!useExerciseTool && aiError.status === 429) {
+        return NextResponse.json(
+          {
+            error: "Le service d’IA est momentanément saturé. Réessaie dans quelques instants ou ajuste la fréquence des requêtes.",
+            details: aiError.body ?? null,
+          },
+          { status: 429 },
+        );
+      }
+      const statusCode = aiError.status && aiError.status !== 0 ? aiError.status : 500;
       return NextResponse.json(
         {
-          error: "Le service d’IA est momentanément saturé. Réessaie dans quelques instants ou ajuste la fréquence des requêtes.",
-          details: aiError.body ?? null,
+          error: useExerciseTool
+            ? "La génération de l’entraînement a échoué via le moteur strict."
+            : "La génération de l’entraînement a échoué via OpenRouter.",
+          details: aiError.body ?? aiError.message ?? null,
         },
-        { status: 429 },
+        { status: statusCode },
       );
     }
-    const statusCode = aiError.status && aiError.status !== 0 ? aiError.status : 500;
-    return NextResponse.json(
-      {
-        error: useExerciseTool
-          ? "La génération de l’entraînement a échoué via le moteur strict."
-          : "La génération de l’entraînement a échoué via OpenRouter.",
-        details: aiError.body ?? aiError.message ?? null,
-      },
-      { status: statusCode },
-    );
-  }
 
-  if (!aiResult) {
-    return NextResponse.json({ error: "Réponse IA vide.", raw: null }, { status: 502 });
-  }
+    if (!aiResult) {
+      return NextResponse.json({ error: "Réponse IA vide.", raw: null }, { status: 502 });
+    }
 
-  logger.info("garmin trainer conversion response received", { useExerciseTool, modelIds: modelCandidates });
+    logger.info("garmin trainer conversion response received", { useExerciseTool, modelIds: modelCandidates });
 
-  rawContent = aiResult.rawText;
+    rawContent = aiResult.rawText;
 
-  if (!useExerciseTool && !aiResult.data && aiResult.parseError) {
-    logger.warn("garmin trainer conversion returned invalid JSON", { useExerciseTool, rawLength: rawContent.length });
-    return NextResponse.json(
-      {
-        raw: rawContent,
-        parseError: aiResult.parseError,
-      },
-      { status: 200 },
-    );
-  }
-
-  let parsedJson: unknown | undefined;
-  const parsedResult = parseJsonWithCodeFence(rawContent);
-  if (parsedResult) {
-    parsedJson = parsedResult.parsed;
-    rawContent = parsedResult.source;
-  }
-
-  if (parsedJson && typeof parsedJson === "object" && !Array.isArray(parsedJson)) {
-    if (useExerciseTool && (!("segments" in parsedJson) || !Array.isArray((parsedJson as Record<string, unknown>).segments))) {
-      const toolError = typeof (parsedJson as Record<string, unknown>).error === "string"
-        ? (parsedJson as Record<string, unknown>).error
-        : "Aucun exercice valide trouvé dans le catalogue Garmin.";
+    if (!useExerciseTool && !aiResult.data && aiResult.parseError) {
+      logger.warn("garmin trainer conversion returned invalid JSON", { useExerciseTool, rawLength: rawContent.length });
       return NextResponse.json(
         {
-          error: toolError,
           raw: rawContent,
+          parseError: aiResult.parseError,
         },
-        { status: 422 },
+        { status: 200 },
       );
     }
-    const workoutDraft = parsedJson as Record<string, unknown>;
-    const workout: Record<string, unknown> = {
-      ownerId: ownerContext.ownerId,
-      ...workoutDraft,
-    };
-    workout.ownerId = ownerContext.ownerId;
 
-    if (ownerContext.requireWarning) {
-      const description = typeof workout.description === "string" ? workout.description : "";
-      if (!description.includes("(ownerId non défini — utilisateur non identifié)")) {
-        workout.description = description
-          ? `${description.trim()} (ownerId non défini — utilisateur non identifié)`
-          : "(ownerId non défini — utilisateur non identifié)";
+    let parsedJson: unknown | undefined;
+    const parsedResult = parseJsonWithCodeFence(rawContent);
+    if (parsedResult) {
+      parsedJson = parsedResult.parsed;
+      rawContent = parsedResult.source;
+    }
+
+    if (parsedJson && typeof parsedJson === "object" && !Array.isArray(parsedJson)) {
+      if (
+        useExerciseTool &&
+        (!("segments" in parsedJson) || !Array.isArray((parsedJson as Record<string, unknown>).segments))
+      ) {
+        const toolError = typeof (parsedJson as Record<string, unknown>).error === "string"
+          ? (parsedJson as Record<string, unknown>).error
+          : "Aucun exercice valide trouvé dans le catalogue Garmin.";
+        return NextResponse.json(
+          {
+            error: toolError,
+            raw: rawContent,
+          },
+          { status: 422 },
+        );
+      }
+      const workoutDraft = parsedJson as Record<string, unknown>;
+      const workout: Record<string, unknown> = {
+        ownerId: ownerContext.ownerId,
+        ...workoutDraft,
+      };
+      workout.ownerId = ownerContext.ownerId;
+
+      if (ownerContext.requireWarning) {
+        const description = typeof workout.description === "string" ? workout.description : "";
+        if (!description.includes("(ownerId non défini — utilisateur non identifié)")) {
+          workout.description = description
+            ? `${description.trim()} (ownerId non défini — utilisateur non identifié)`
+            : "(ownerId non défini — utilisateur non identifié)";
+        }
+      }
+
+      const sanitizedWorkout = sanitizeWorkoutValue(workout) as Record<string, unknown>;
+      const normalizedWorkout = enforceWorkoutPostProcessing(sanitizedWorkout);
+
+      const validation = workoutSchema.safeParse(normalizedWorkout);
+      if (!validation.success) {
+        return NextResponse.json(
+          {
+            error: "L’entraînement généré ne respecte pas le schéma attendu.",
+            issues: validation.error.issues,
+            raw: JSON.stringify(normalizedWorkout, null, 2),
+          },
+          { status: 422 },
+        );
+      }
+
+      parsedJson = validation.data;
+      rawContent = JSON.stringify(validation.data, null, 2);
+
+      if (ownerContext.localUserId) {
+        try {
+          await saveGarminWorkoutForUser(ownerContext.localUserId, validation.data as Record<string, unknown>);
+        } catch (storageError) {
+          logger.error("garmin-trainer unable to persist generated workout", { error: storageError });
+        }
       }
     }
 
-    const sanitizedWorkout = sanitizeWorkoutValue(workout) as Record<string, unknown>;
-    const normalizedWorkout = enforceWorkoutPostProcessing(sanitizedWorkout);
-
-    const validation = workoutSchema.safeParse(normalizedWorkout);
-    if (!validation.success) {
-      return NextResponse.json(
-        {
-          error: "L’entraînement généré ne respecte pas le schéma attendu.",
-          issues: validation.error.issues,
-          raw: JSON.stringify(normalizedWorkout, null, 2),
-        },
-        { status: 422 },
-      );
-    }
-
-    parsedJson = validation.data;
-    rawContent = JSON.stringify(validation.data, null, 2);
-
-    if (ownerContext.localUserId) {
+    conversionCreditLocked = false;
+    return NextResponse.json(
+      parsedJson === undefined ? { raw: rawContent } : { trainingJson: parsedJson, raw: rawContent },
+    );
+  } finally {
+    if (conversionCreditLocked && localUserId) {
       try {
-        await saveGarminWorkoutForUser(ownerContext.localUserId, validation.data as Record<string, unknown>);
-      } catch (storageError) {
-        logger.error("garmin-trainer unable to persist generated workout", { error: storageError });
+        await refundGarminConversionCredit(localUserId);
+      } catch (refundError) {
+        logger.error("garmin trainer credit refund failed", { error: refundError, userId: localUserId });
       }
     }
   }
-
-  return NextResponse.json(
-    parsedJson === undefined ? { raw: rawContent } : { trainingJson: parsedJson, raw: rawContent },
-  );
 }
