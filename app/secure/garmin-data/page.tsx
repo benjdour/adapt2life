@@ -62,7 +62,9 @@ export default async function GarminDataPage() {
     redirect("/handler/sign-in?redirect=/secure/garmin-data");
   }
 
-  const stackUser = await stackServerApp.getUser({ or: "return-null", tokenStore: "nextjs-cookie" });
+  const stackUserPromise = stackServerApp.getUser({ or: "return-null", tokenStore: "nextjs-cookie" });
+
+  const stackUser = await stackUserPromise;
 
   if (!stackUser) {
     redirect("/handler/sign-in?redirect=/secure/garmin-data");

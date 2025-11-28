@@ -3,7 +3,6 @@ import { Suspense } from "react";
 import { redirect } from "next/navigation";
 
 import { TrainingGeneratorsSection } from "@/components/TrainingGeneratorsSection";
-import { stackServerApp } from "@/stack/server";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { hasStackSessionCookie } from "@/lib/stack/sessionCookies";
 
@@ -23,12 +22,6 @@ function TrainingGeneratorSkeleton() {
 
 export default async function TrainingGeneratorPage() {
   if (!(await hasStackSessionCookie())) {
-    redirect("/handler/sign-in?redirect=/generateur-entrainement");
-  }
-
-  const stackUser = await stackServerApp.getUser({ or: "return-null", tokenStore: "nextjs-cookie" });
-
-  if (!stackUser) {
     redirect("/handler/sign-in?redirect=/generateur-entrainement");
   }
 
