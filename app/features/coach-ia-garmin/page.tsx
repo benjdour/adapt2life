@@ -49,7 +49,7 @@ const benefits = [
   },
   {
     title: "Respect du format Garmin",
-    description: "Chaque séance est validée par notre pipeline (schema Garmin Training API V2) avant d’être envoyée dans ton agenda.",
+    description: "Chaque séance est vérifiée automatiquement avant d’être envoyée dans ton agenda Garmin.",
   },
   {
     title: "Boucle d’amélioration continue",
@@ -218,7 +218,7 @@ export default function CoachIAGarminPage() {
     <main className="mx-auto flex max-w-6xl flex-col gap-12 px-6 py-12 text-foreground">
       <section className="grid gap-10 rounded-3xl border border-white/10 bg-gradient-to-br from-primary/10 via-background to-background p-8 md:grid-cols-2">
         <div className="space-y-5">
-          <p className="text-xs uppercase tracking-[0.5em] text-primary/80">Page pilier</p>
+          <p className="text-xs uppercase tracking-[0.5em] text-primary/80">Présentation complète</p>
           <h1 className="text-4xl font-heading leading-tight md:text-5xl">
             Coach IA Garmin : la méthode Adapt2Life pour des entraînements toujours alignés sur ta réalité.
           </h1>
