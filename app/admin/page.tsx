@@ -29,6 +29,8 @@ export default async function AdminPage() {
         pseudo: users.pseudo,
         email: users.email,
         createdAt: users.createdAt,
+        trainingGenerationsRemaining: users.trainingGenerationsRemaining,
+        garminConversionsRemaining: users.garminConversionsRemaining,
       })
       .from(users)
       .orderBy(desc(users.createdAt))

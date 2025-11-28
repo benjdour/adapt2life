@@ -12,6 +12,8 @@ type AdminUser = {
   pseudo: string | null;
   email: string | null;
   createdAt: string | null;
+  trainingGenerationsRemaining: number | null;
+  garminConversionsRemaining: number | null;
 };
 
 type AdminUserTableProps = {
@@ -19,6 +21,9 @@ type AdminUserTableProps = {
 };
 
 export function AdminUserTable({ users }: AdminUserTableProps) {
+  const TRAINING_FREE_CREDITS = 10;
+  const CONVERSION_FREE_CREDITS = 5;
+
   const router = useRouter();
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -66,6 +71,7 @@ export function AdminUserTable({ users }: AdminUserTableProps) {
               <th className="py-2 pr-4">Nom</th>
               <th className="py-2 pr-4">Prénom</th>
               <th className="py-2 pr-4">Email</th>
+              <th className="py-2 pr-4 text-center">G / C</th>
               <th className="py-2 pr-4">Inscription</th>
               <th className="py-2 pr-4 text-right">Actions</th>
             </tr>
@@ -74,11 +80,25 @@ export function AdminUserTable({ users }: AdminUserTableProps) {
             {users.map((user) => {
               const lastName = user.lastName ?? "—";
               const firstName = user.firstName ?? user.pseudo ?? "—";
+              const trainingRemaining =
+                typeof user.trainingGenerationsRemaining === "number"
+                  ? user.trainingGenerationsRemaining
+                  : TRAINING_FREE_CREDITS;
+              const conversionRemaining =
+                typeof user.garminConversionsRemaining === "number"
+                  ? user.garminConversionsRemaining
+                  : CONVERSION_FREE_CREDITS;
+              const trainingUsed = Math.max(0, TRAINING_FREE_CREDITS - trainingRemaining);
+              const conversionsUsed = Math.max(0, CONVERSION_FREE_CREDITS - conversionRemaining);
               return (
                 <tr key={user.id} className="border-b border-white/5">
                   <td className="py-2 pr-4">{lastName}</td>
                   <td className="py-2 pr-4">{firstName}</td>
                   <td className="py-2 pr-4 font-mono text-xs">{user.email}</td>
+                  <td className="py-2 pr-4 text-center text-xs font-semibold">
+                    <div className="text-primary">G {trainingUsed}</div>
+                    <div className="text-secondary">C {conversionsUsed}</div>
+                  </td>
                   <td className="py-2 pr-4 text-muted-foreground">{formatDate(user.createdAt)}</td>
                   <td className="py-2 pr-0 text-right">
                     <Button variant="error" size="sm" disabled={deletingId === user.id} onClick={() => handleDelete(user.id)}>
