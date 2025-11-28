@@ -45,6 +45,7 @@ vi.mock("@/lib/adapters/garmin", () => ({
 vi.mock("server-only", () => ({}));
 
 const { GET } = await import("@/app/api/garmin/oauth/start/route");
+const { DEFAULT_USER_PLAN, getUserPlanConfig } = await import("@/lib/constants/userPlans");
 
 describe("GET /api/garmin/oauth/start", () => {
   beforeEach(() => {
@@ -105,10 +106,14 @@ describe("GET /api/garmin/oauth/start", () => {
     const response = await GET(new Request("http://localhost/api/garmin/oauth/start"));
 
     expect(response.status).toBe(307);
+    const defaultPlan = getUserPlanConfig(DEFAULT_USER_PLAN);
     expect(insertBuilder.values).toHaveBeenCalledWith({
       stackId: "stack-user-77",
       name: "Ada",
       email: "ada@example.com",
+      planType: DEFAULT_USER_PLAN,
+      trainingGenerationsRemaining: defaultPlan.trainingQuota ?? 0,
+      garminConversionsRemaining: defaultPlan.conversionQuota ?? 0,
     });
     expect(insertBuilder.onConflictDoNothing).toHaveBeenCalled();
     expect(response.headers.get("set-cookie")).toContain("garmin_oauth_state=");
