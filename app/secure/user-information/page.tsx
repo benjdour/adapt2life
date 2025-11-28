@@ -26,6 +26,8 @@ const userSelection = {
   weightKg: users.weightKg,
   trainingGoal: users.trainingGoal,
   createdAt: users.createdAt,
+  trainingGenerationsRemaining: users.trainingGenerationsRemaining,
+  garminConversionsRemaining: users.garminConversionsRemaining,
 };
 
 const GENDER_OPTIONS = [
@@ -64,6 +66,9 @@ const WEIGHT_GRAM_PATHS: string[][] = [
   ["bodyComposition", "weight"],
   ["weight"],
 ];
+
+const TRAINING_FREE_CREDITS = 10;
+const CONVERSION_FREE_CREDITS = 5;
 
 type PageProps = {
   searchParams?: Record<string, string | string[] | undefined>;
@@ -307,6 +312,13 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
 
   const localUser = maybeLocalUser ?? (await ensureLocalUser(stackUser));
 
+  const trainingRemaining = Number(localUser.trainingGenerationsRemaining ?? TRAINING_FREE_CREDITS);
+  const conversionRemaining = Number(localUser.garminConversionsRemaining ?? CONVERSION_FREE_CREDITS);
+  const trainingUsed = Math.max(0, TRAINING_FREE_CREDITS - trainingRemaining);
+  const conversionsUsed = Math.max(0, CONVERSION_FREE_CREDITS - conversionRemaining);
+  const trainingUsagePercent = Math.min(100, Math.round((trainingUsed / TRAINING_FREE_CREDITS) * 100));
+  const conversionUsagePercent = Math.min(100, Math.round((conversionsUsed / CONVERSION_FREE_CREDITS) * 100));
+
   const statusMessage = normalizeSearchParam(searchParams?.status) === "updated" ? "Profil mis à jour avec succès 🎉" : null;
   const computedAge = calculateAge(localUser.birthDate ?? null);
   const genderOptions = GENDER_OPTIONS;
@@ -342,6 +354,55 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
             Consulte les informations associées à ton profil Adapt2Life et mets-les à jour pour personnaliser tes recommandations.
           </CardDescription>
         </CardHeader>
+      </Card>
+
+      <Card className="border-primary/20 bg-gradient-to-br from-primary/5 via-card to-card">
+        <CardHeader>
+          <CardTitle>Crédits offerts</CardTitle>
+          <CardDescription>
+            Tu disposes de 10 générations IA et 5 conversions Garmin offertes lors de ton inscription.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-6 sm:grid-cols-2">
+            <div className="rounded-2xl border border-white/10 bg-background/50 p-4">
+              <p className="text-sm text-muted-foreground">Générations IA</p>
+              <p className="text-3xl font-semibold text-primary">
+                {trainingUsed}
+                <span className="text-base font-medium text-muted-foreground"> / {TRAINING_FREE_CREDITS}</span>
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {trainingRemaining > 0
+                  ? `${trainingRemaining} séance${trainingRemaining > 1 ? "s" : ""} offertes restantes`
+                  : "Quota utilisé — contacte-nous pour prolonger l’accès"}
+              </p>
+              <div className="mt-3 h-2 rounded-full bg-white/10">
+                <div
+                  className="h-2 rounded-full bg-primary"
+                  style={{ width: `${trainingUsagePercent}%` }}
+                />
+              </div>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-background/50 p-4">
+              <p className="text-sm text-muted-foreground">Conversions Garmin</p>
+              <p className="text-3xl font-semibold text-secondary">
+                {conversionsUsed}
+                <span className="text-base font-medium text-muted-foreground"> / {CONVERSION_FREE_CREDITS}</span>
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {conversionRemaining > 0
+                  ? `${conversionRemaining} conversion${conversionRemaining > 1 ? "s" : ""} gratuites restantes`
+                  : "Quota utilisé — contacte-nous pour prolonger l’accès"}
+              </p>
+              <div className="mt-3 h-2 rounded-full bg-white/10">
+                <div
+                  className="h-2 rounded-full bg-secondary"
+                  style={{ width: `${conversionUsagePercent}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        </CardContent>
       </Card>
 
       <section className="space-y-6">
