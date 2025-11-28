@@ -834,41 +834,50 @@ export const fetchGarminData = async (
     };
   }
 
-  const [connectionRow] = await db
-    .select({
-      garminUserId: garminConnections.garminUserId,
-      updatedAt: garminConnections.updatedAt,
-      accessTokenExpiresAt: garminConnections.accessTokenExpiresAt,
-      userId: garminConnections.userId,
-    })
-    .from(garminConnections)
-    .where(eq(garminConnections.userId, numericUserId))
-    .limit(1);
+  const buildFallback = (): GarminDataBundle => ({
+    connection: null,
+    sections: [],
+    trainingGaugeData: mockGarminData(),
+    usedRealtimeMetrics: false,
+    hasSyncedOnce: false,
+  });
 
-  const connection: GarminConnectionSummary | null = connectionRow
-    ? {
-        garminUserId: connectionRow.garminUserId ?? null,
-        updatedAt: connectionRow.updatedAt ? connectionRow.updatedAt.toISOString() : null,
-        accessTokenExpiresAt: connectionRow.accessTokenExpiresAt ? connectionRow.accessTokenExpiresAt.toISOString() : null,
-      }
-    : null;
+  try {
+    const [connectionRow] = await db
+      .select({
+        garminUserId: garminConnections.garminUserId,
+        updatedAt: garminConnections.updatedAt,
+        accessTokenExpiresAt: garminConnections.accessTokenExpiresAt,
+        userId: garminConnections.userId,
+      })
+      .from(garminConnections)
+      .where(eq(garminConnections.userId, numericUserId))
+      .limit(1);
 
-  const dailySummaries = await db
-    .select({
-      id: garminDailySummaries.id,
-      calendarDate: garminDailySummaries.calendarDate,
-      steps: garminDailySummaries.steps,
-      distanceMeters: garminDailySummaries.distanceMeters,
-      calories: garminDailySummaries.calories,
-      stressLevel: garminDailySummaries.stressLevel,
-      sleepSeconds: garminDailySummaries.sleepSeconds,
-      createdAt: garminDailySummaries.createdAt,
-      raw: garminDailySummaries.raw,
-    })
-    .from(garminDailySummaries)
-    .where(eq(garminDailySummaries.userId, numericUserId))
-    .orderBy(desc(garminDailySummaries.createdAt))
-    .limit(30);
+    const connection: GarminConnectionSummary | null = connectionRow
+      ? {
+          garminUserId: connectionRow.garminUserId ?? null,
+          updatedAt: connectionRow.updatedAt ? connectionRow.updatedAt.toISOString() : null,
+          accessTokenExpiresAt: connectionRow.accessTokenExpiresAt ? connectionRow.accessTokenExpiresAt.toISOString() : null,
+        }
+      : null;
+
+    const dailySummaries = await db
+      .select({
+        id: garminDailySummaries.id,
+        calendarDate: garminDailySummaries.calendarDate,
+        steps: garminDailySummaries.steps,
+        distanceMeters: garminDailySummaries.distanceMeters,
+        calories: garminDailySummaries.calories,
+        stressLevel: garminDailySummaries.stressLevel,
+        sleepSeconds: garminDailySummaries.sleepSeconds,
+        createdAt: garminDailySummaries.createdAt,
+        raw: garminDailySummaries.raw,
+      })
+      .from(garminDailySummaries)
+      .where(eq(garminDailySummaries.userId, numericUserId))
+      .orderBy(desc(garminDailySummaries.createdAt))
+      .limit(30);
 
   const latestSummary = dailySummaries[0] ?? null;
   const latestDailyRaw = (latestSummary?.raw as Record<string, unknown> | undefined) ?? undefined;
@@ -901,7 +910,7 @@ export const fetchGarminData = async (
   let activityHistory: GarminWebhookEventRow[] = [];
   let activityDetailHistory: GarminWebhookEventRow[] = [];
 
-  if (connectionRow) {
+    if (connectionRow) {
     const fetchLatestEvents = async (type: string, limit = 1): Promise<GarminWebhookEventRow[]> => {
       return db
         .select({
@@ -954,7 +963,7 @@ export const fetchGarminData = async (
     latestActivityDetails = activityDetailHistory[0] ?? latestActivityDetails;
   }
 
-  const stressPayload = (latestStress?.payload as Record<string, unknown>) ?? undefined;
+    const stressPayload = (latestStress?.payload as Record<string, unknown>) ?? undefined;
 
   const bodyBatteryTimeSeriesSource = getPathValue(stressPayload, "timeOffsetBodyBatteryValues");
   const bodyBatteryTimeSeries: Array<{ offset: number; value: number }> = [];
@@ -1907,11 +1916,18 @@ export const fetchGarminData = async (
     activityDetailHistory.length > 0;
   const hasDailyData = Boolean(latestDailyRaw);
 
-  return {
-    connection,
-    sections,
-    trainingGaugeData,
-    usedRealtimeMetrics: hasTrainingInputs,
-    hasSyncedOnce: hasWebhookData || hasDailyData,
-  };
+    return {
+      connection,
+      sections,
+      trainingGaugeData,
+      usedRealtimeMetrics: hasTrainingInputs,
+      hasSyncedOnce: hasWebhookData || hasDailyData,
+    };
+  } catch (error) {
+    console.error("Failed to fetch Garmin data", {
+      userId: numericUserId,
+      error,
+    });
+    return buildFallback();
+  }
 };
