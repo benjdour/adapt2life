@@ -4,6 +4,7 @@ import { z } from "zod";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { stackServerApp } from "@/stack/server";
+import { DEFAULT_USER_PLAN, getUserPlanConfig } from "@/lib/constants/userPlans";
 
 const registerSchema = z.object({
   name: z.string().min(1, "Le nom est requis."),
@@ -33,7 +34,14 @@ export async function POST(request: Request) {
   try {
     await db
       .insert(users)
-      .values({ stackId: stackUser.id, name: resolvedName, email: resolvedEmail })
+      .values({
+        stackId: stackUser.id,
+        name: resolvedName,
+        email: resolvedEmail,
+        planType: DEFAULT_USER_PLAN,
+        trainingGenerationsRemaining: getUserPlanConfig(DEFAULT_USER_PLAN).trainingQuota ?? 0,
+        garminConversionsRemaining: getUserPlanConfig(DEFAULT_USER_PLAN).conversionQuota ?? 0,
+      })
       .onConflictDoNothing({ target: users.stackId });
 
     return NextResponse.json({ success: true });

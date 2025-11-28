@@ -26,6 +26,7 @@ import {
   isKnownGarminExercise,
 } from "@/constants/garminExerciseData";
 import { refundGarminConversionCredit } from "@/lib/services/userCredits";
+import { DEFAULT_USER_PLAN, getUserPlanConfig } from "@/lib/constants/userPlans";
 
 const GARMIN_PROMPT_FILENAME = "docs/garmin_trainer_prompt.txt";
 
@@ -1590,9 +1591,9 @@ export const ensureLocalUser = async (
   stackUserId: string,
   stackUserEmail?: string | null,
   stackUserName?: string | null,
-): Promise<{ id: number; stackId: string }> => {
+): Promise<{ id: number; stackId: string; planType: string | null }> => {
   const [existing] = await db
-    .select({ id: users.id, stackId: users.stackId })
+    .select({ id: users.id, stackId: users.stackId, planType: users.planType })
     .from(users)
     .where(eq(users.stackId, stackUserId))
     .limit(1);
@@ -1609,8 +1610,11 @@ export const ensureLocalUser = async (
       stackId: stackUserId,
       email: fallbackEmail,
       name: stackUserName ?? null,
+      planType: DEFAULT_USER_PLAN,
+      trainingGenerationsRemaining: getUserPlanConfig(DEFAULT_USER_PLAN).trainingQuota ?? 0,
+      garminConversionsRemaining: getUserPlanConfig(DEFAULT_USER_PLAN).conversionQuota ?? 0,
     })
-    .returning({ id: users.id, stackId: users.stackId });
+    .returning({ id: users.id, stackId: users.stackId, planType: users.planType });
 
   if (!inserted) {
     throw new Error("Impossible de créer l’utilisateur local Adapt2Life.");

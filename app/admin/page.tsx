@@ -31,6 +31,7 @@ export default async function AdminPage() {
         createdAt: users.createdAt,
         trainingGenerationsRemaining: users.trainingGenerationsRemaining,
         garminConversionsRemaining: users.garminConversionsRemaining,
+        planType: users.planType,
       })
       .from(users)
       .orderBy(desc(users.createdAt))

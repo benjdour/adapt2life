@@ -11,6 +11,7 @@ import { ADAPT2LIFE_SYSTEM_PROMPT } from "@/lib/prompts/adapt2lifeSystemPrompt";
 import { saveTrainingPlanForUser } from "@/lib/services/userGeneratedArtifacts";
 import { reserveTrainingGenerationCredit, refundTrainingGenerationCredit } from "@/lib/services/userCredits";
 import { getAiModelCandidates } from "@/lib/services/aiModelConfig";
+import { DEFAULT_USER_PLAN, getUserPlanConfig } from "@/lib/constants/userPlans";
 
 const MAX_TEXT_LENGTH = 2000;
 
@@ -176,6 +177,9 @@ async function ensureLocalUser(stackUser: NonNullable<Awaited<ReturnType<typeof 
       heightCm: users.heightCm,
       weightKg: users.weightKg,
       trainingGoal: users.trainingGoal,
+      planType: users.planType,
+      trainingGenerationsRemaining: users.trainingGenerationsRemaining,
+      garminConversionsRemaining: users.garminConversionsRemaining,
     })
     .from(users)
     .where(eq(users.stackId, stackUser.id))
@@ -197,6 +201,9 @@ async function ensureLocalUser(stackUser: NonNullable<Awaited<ReturnType<typeof 
       heightCm: null,
       weightKg: null,
       trainingGoal: null,
+      planType: DEFAULT_USER_PLAN,
+      trainingGenerationsRemaining: getUserPlanConfig(DEFAULT_USER_PLAN).trainingQuota ?? 0,
+      garminConversionsRemaining: getUserPlanConfig(DEFAULT_USER_PLAN).conversionQuota ?? 0,
     })
     .returning({
       id: users.id,
@@ -208,6 +215,9 @@ async function ensureLocalUser(stackUser: NonNullable<Awaited<ReturnType<typeof 
       heightCm: users.heightCm,
       weightKg: users.weightKg,
       trainingGoal: users.trainingGoal,
+      planType: users.planType,
+      trainingGenerationsRemaining: users.trainingGenerationsRemaining,
+      garminConversionsRemaining: users.garminConversionsRemaining,
     });
 
   if (inserted) {
@@ -225,6 +235,9 @@ async function ensureLocalUser(stackUser: NonNullable<Awaited<ReturnType<typeof 
       heightCm: users.heightCm,
       weightKg: users.weightKg,
       trainingGoal: users.trainingGoal,
+      planType: users.planType,
+      trainingGenerationsRemaining: users.trainingGenerationsRemaining,
+      garminConversionsRemaining: users.garminConversionsRemaining,
     })
     .from(users)
     .where(eq(users.stackId, stackUser.id))
@@ -284,13 +297,16 @@ export async function POST(request: NextRequest) {
 
     const localUser = await ensureLocalUser(stackUser);
     localUserId = localUser?.id ?? null;
+    const planConfig = getUserPlanConfig(localUser?.planType);
 
     const trainingCreditReservation = localUser?.id ? await reserveTrainingGenerationCredit(localUser.id) : null;
     if (!trainingCreditReservation) {
       return NextResponse.json(
         {
           error:
-            "Tu as utilisé tes 10 générations offertes. Contacte l’équipe pour débloquer davantage de séances personnalisées.",
+            planConfig.trainingQuota === null
+              ? "Ton plan permet des générations illimitées, contacte le support pour diagnostiquer ton accès."
+              : `Tu as utilisé les ${planConfig.trainingQuota} générations incluses dans ton plan ${planConfig.label}. Contacte l’équipe pour débloquer davantage de séances personnalisées.`,
         },
         { status: 402 },
       );

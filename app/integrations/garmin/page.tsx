@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { DashboardGrid } from "@/components/ui/dashboard-grid";
 
 import { GarminIntegrationActions } from "./garmin-integration-actions";
+import { DEFAULT_USER_PLAN, getUserPlanConfig } from "@/lib/constants/userPlans";
 
 export const metadata: Metadata = {
   title: "Intégration Garmin Connect — Adapt2Life",
@@ -59,6 +60,9 @@ export default async function GarminIntegrationPage({ searchParams }: PageProps)
         stackId: stackUser.id,
         name: stackUser.displayName ?? "Utilisateur Stack",
         email: stackUser.primaryEmail ?? `user-${stackUser.id}@example.com`,
+        planType: DEFAULT_USER_PLAN,
+        trainingGenerationsRemaining: getUserPlanConfig(DEFAULT_USER_PLAN).trainingQuota ?? 0,
+        garminConversionsRemaining: getUserPlanConfig(DEFAULT_USER_PLAN).conversionQuota ?? 0,
       })
       .onConflictDoNothing({ target: users.stackId })
       .returning({

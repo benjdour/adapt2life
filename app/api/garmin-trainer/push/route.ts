@@ -7,6 +7,7 @@ import { users } from "@/db/schema";
 import { ensureGarminAccessToken, fetchGarminConnectionByUserId } from "@/lib/services/garmin-connections";
 import { workoutSchema } from "@/schemas/garminTrainer.schema";
 import { stackServerApp } from "@/stack/server";
+import { DEFAULT_USER_PLAN, getUserPlanConfig } from "@/lib/constants/userPlans";
 
 const GARMIN_WORKOUT_CREATE_URL = "https://apis.garmin.com/workoutportal/workout/v2";
 const GARMIN_WORKOUT_SCHEDULE_URL = "https://apis.garmin.com/training-api/schedule/";
@@ -39,6 +40,9 @@ const ensureLocalUser = async (
       stackId: stackUserId,
       email: fallbackEmail,
       name: stackUserName ?? null,
+      planType: DEFAULT_USER_PLAN,
+      trainingGenerationsRemaining: getUserPlanConfig(DEFAULT_USER_PLAN).trainingQuota ?? 0,
+      garminConversionsRemaining: getUserPlanConfig(DEFAULT_USER_PLAN).conversionQuota ?? 0,
     })
     .returning({ id: users.id, stackId: users.stackId });
 

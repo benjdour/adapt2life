@@ -2,6 +2,7 @@ import { and, eq, gt, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { users } from "@/db/schema";
+import { getUserPlanConfig, DEFAULT_USER_PLAN, type UserPlanId, isUserPlanId } from "@/lib/constants/userPlans";
 
 export type CreditReservationResult = {
   remaining: number;
@@ -25,7 +26,26 @@ const incrementGarminConversions = async (userId: number, delta: number) => {
     .where(eq(users.id, userId));
 };
 
+const fetchUserPlan = async (userId: number) => {
+  const [record] = await db
+    .select({ planType: users.planType })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  const storedPlan = record?.planType;
+  if (isUserPlanId(storedPlan)) {
+    return storedPlan;
+  }
+  return DEFAULT_USER_PLAN;
+};
+
 export const reserveTrainingGenerationCredit = async (userId: number): Promise<CreditReservationResult | null> => {
+  const planType = await fetchUserPlan(userId);
+  const plan = getUserPlanConfig(planType);
+  if (plan.trainingQuota === null) {
+    return { remaining: Number.MAX_SAFE_INTEGER };
+  }
+
   const [result] = await db
     .update(users)
     .set({
@@ -42,6 +62,12 @@ export const refundTrainingGenerationCredit = async (userId: number) => {
 };
 
 export const reserveGarminConversionCredit = async (userId: number): Promise<CreditReservationResult | null> => {
+  const planType = await fetchUserPlan(userId);
+  const plan = getUserPlanConfig(planType);
+  if (plan.conversionQuota === null) {
+    return { remaining: Number.MAX_SAFE_INTEGER };
+  }
+
   const [result] = await db
     .update(users)
     .set({
@@ -62,10 +88,25 @@ export const getUserCreditSnapshot = async (userId: number) => {
     .select({
       trainingGenerationsRemaining: users.trainingGenerationsRemaining,
       garminConversionsRemaining: users.garminConversionsRemaining,
+      planType: users.planType,
     })
     .from(users)
     .where(eq(users.id, userId))
     .limit(1);
 
   return record ?? null;
+};
+
+export const applyUserPlan = async (userId: number, planId: UserPlanId) => {
+  const plan = getUserPlanConfig(planId);
+  const updateValues: Partial<typeof users.$inferInsert> = {
+    planType: plan.id,
+  };
+  if (plan.trainingQuota !== null) {
+    updateValues.trainingGenerationsRemaining = plan.trainingQuota;
+  }
+  if (plan.conversionQuota !== null) {
+    updateValues.garminConversionsRemaining = plan.conversionQuota;
+  }
+  await db.update(users).set(updateValues).where(eq(users.id, userId));
 };

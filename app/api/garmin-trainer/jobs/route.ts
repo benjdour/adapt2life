@@ -6,6 +6,7 @@ import { stackServerApp } from "@/stack/server";
 import { createGarminTrainerJob, ensureLocalUser, triggerGarminTrainerJobProcessing } from "@/lib/services/garminTrainerJobs";
 import { createLogger } from "@/lib/logger";
 import { reserveGarminConversionCredit, refundGarminConversionCredit } from "@/lib/services/userCredits";
+import { getUserPlanConfig } from "@/lib/constants/userPlans";
 
 const REQUEST_SCHEMA = z.object({
   planMarkdown: z.string().trim().min(1, "Merci de fournir un plan valide."),
@@ -45,9 +46,14 @@ export async function POST(request: NextRequest) {
   try {
     const creditReservation = await reserveGarminConversionCredit(localUser.id);
     if (!creditReservation) {
+      const planConfig = getUserPlanConfig(localUser.planType);
+      const conversionQuota = planConfig.conversionQuota ?? 0;
       return NextResponse.json(
         {
-          error: "Tu as utilisé tes 5 conversions offertes. Contacte l’équipe pour débloquer davantage d’envois Garmin.",
+          error:
+            planConfig.conversionQuota === null
+              ? "Ton plan permet des conversions illimitées, contacte le support pour diagnostiquer ton accès."
+              : `Tu as utilisé les ${conversionQuota} conversions incluses dans ton plan ${planConfig.label}. Contacte l’équipe pour débloquer davantage d’envois Garmin.`,
         },
         { status: 402 },
       );

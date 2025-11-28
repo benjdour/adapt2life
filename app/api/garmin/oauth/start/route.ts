@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { garminConnections, users } from "@/db/schema";
 import { buildAuthorizationUrl, generatePkcePair, generateState } from "@/lib/adapters/garmin";
 import { stackServerApp } from "@/stack/server";
+import { DEFAULT_USER_PLAN, getUserPlanConfig } from "@/lib/constants/userPlans";
 
 const OAUTH_COOKIE = "garmin_oauth_state";
 const COOKIE_MAX_AGE_SECONDS = 10 * 60;
@@ -42,6 +43,9 @@ export async function GET(request: Request) {
           stackId: stackUser.id,
           name: stackUser.displayName ?? "Utilisateur Stack",
           email: stackUser.primaryEmail ?? `user-${stackUser.id}@example.com`,
+          planType: DEFAULT_USER_PLAN,
+          trainingGenerationsRemaining: getUserPlanConfig(DEFAULT_USER_PLAN).trainingQuota ?? 0,
+          garminConversionsRemaining: getUserPlanConfig(DEFAULT_USER_PLAN).conversionQuota ?? 0,
         })
         .onConflictDoNothing({ target: users.stackId });
 

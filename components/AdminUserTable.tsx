@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
+import { DEFAULT_USER_PLAN, USER_PLAN_OPTIONS, getUserPlanConfig } from "@/lib/constants/userPlans";
 
 type AdminUser = {
   id: number;
@@ -14,6 +15,7 @@ type AdminUser = {
   createdAt: string | null;
   trainingGenerationsRemaining: number | null;
   garminConversionsRemaining: number | null;
+  planType: string | null;
 };
 
 type AdminUserTableProps = {
@@ -21,12 +23,10 @@ type AdminUserTableProps = {
 };
 
 export function AdminUserTable({ users }: AdminUserTableProps) {
-  const TRAINING_FREE_CREDITS = 10;
-  const CONVERSION_FREE_CREDITS = 5;
-
   const router = useRouter();
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [planUpdatingId, setPlanUpdatingId] = useState<number | null>(null);
 
   const handleDelete = async (userId: number) => {
     if (!window.confirm("Supprimer définitivement cet utilisateur et toutes ses données ?")) {
@@ -61,6 +61,31 @@ export function AdminUserTable({ users }: AdminUserTableProps) {
     }
   };
 
+  const handlePlanChange = async (userId: number, planType: string) => {
+    setError(null);
+    setPlanUpdatingId(userId);
+    try {
+      const response = await fetch(`/api/admin/users/${userId}/plan`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ planType }),
+      });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        const message = typeof payload?.error === "string" ? payload.error : "Impossible de mettre à jour le plan.";
+        setError(message);
+        return;
+      }
+      router.refresh();
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Erreur réseau.");
+    } finally {
+      setPlanUpdatingId(null);
+    }
+  };
+
   return (
     <div className="space-y-3">
       {error ? <p className="text-sm text-red-400">{error}</p> : null}
@@ -71,6 +96,7 @@ export function AdminUserTable({ users }: AdminUserTableProps) {
               <th className="py-2 pr-4">Nom</th>
               <th className="py-2 pr-4">Prénom</th>
               <th className="py-2 pr-4">Email</th>
+              <th className="py-2 pr-4">Plan</th>
               <th className="py-2 pr-4 text-center">G / C</th>
               <th className="py-2 pr-4">Inscription</th>
               <th className="py-2 pr-4 text-right">Actions</th>
@@ -80,24 +106,56 @@ export function AdminUserTable({ users }: AdminUserTableProps) {
             {users.map((user) => {
               const lastName = user.lastName ?? "—";
               const firstName = user.firstName ?? user.pseudo ?? "—";
+              const planConfig = getUserPlanConfig(user.planType ?? DEFAULT_USER_PLAN);
+              const trainingCap = planConfig.trainingQuota;
+              const conversionCap = planConfig.conversionQuota;
               const trainingRemaining =
-                typeof user.trainingGenerationsRemaining === "number"
-                  ? user.trainingGenerationsRemaining
-                  : TRAINING_FREE_CREDITS;
+                trainingCap === null || typeof user.trainingGenerationsRemaining !== "number"
+                  ? null
+                  : user.trainingGenerationsRemaining;
               const conversionRemaining =
-                typeof user.garminConversionsRemaining === "number"
-                  ? user.garminConversionsRemaining
-                  : CONVERSION_FREE_CREDITS;
-              const trainingUsed = Math.max(0, TRAINING_FREE_CREDITS - trainingRemaining);
-              const conversionsUsed = Math.max(0, CONVERSION_FREE_CREDITS - conversionRemaining);
+                conversionCap === null || typeof user.garminConversionsRemaining !== "number"
+                  ? null
+                  : user.garminConversionsRemaining;
+              const trainingUsed =
+                trainingCap === null || trainingRemaining === null ? null : Math.max(0, trainingCap - trainingRemaining);
+              const conversionsUsed =
+                conversionCap === null || conversionRemaining === null
+                  ? null
+                  : Math.max(0, conversionCap - conversionRemaining);
               return (
                 <tr key={user.id} className="border-b border-white/5">
                   <td className="py-2 pr-4">{lastName}</td>
                   <td className="py-2 pr-4">{firstName}</td>
                   <td className="py-2 pr-4 font-mono text-xs">{user.email}</td>
+                  <td className="py-2 pr-4">
+                    <p className="text-xs font-semibold text-primary">{planConfig.label}</p>
+                    <select
+                      className="w-full rounded-lg border border-white/10 bg-black/20 px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-primary/40"
+                      value={user.planType ?? DEFAULT_USER_PLAN}
+                      disabled={planUpdatingId === user.id}
+                      onChange={(event) => {
+                        const nextPlan = event.target.value;
+                        if (nextPlan === (user.planType ?? DEFAULT_USER_PLAN)) {
+                          return;
+                        }
+                        handlePlanChange(user.id, nextPlan);
+                      }}
+                    >
+                      {USER_PLAN_OPTIONS.map((option) => (
+                        <option key={option.id} value={option.id}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
                   <td className="py-2 pr-4 text-center text-xs font-semibold">
-                    <div className="text-primary">G {trainingUsed}</div>
-                    <div className="text-secondary">C {conversionsUsed}</div>
+                    <div className="text-primary">
+                      G {trainingCap === null || trainingUsed === null ? "∞" : `${trainingUsed}/${trainingCap}`}
+                    </div>
+                    <div className="text-secondary">
+                      C {conversionCap === null || conversionsUsed === null ? "∞" : `${conversionsUsed}/${conversionCap}`}
+                    </div>
                   </td>
                   <td className="py-2 pr-4 text-muted-foreground">{formatDate(user.createdAt)}</td>
                   <td className="py-2 pr-0 text-right">

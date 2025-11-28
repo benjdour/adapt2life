@@ -29,6 +29,7 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow(),
   trainingGenerationsRemaining: integer("training_generations_remaining").notNull().default(10),
   garminConversionsRemaining: integer("garmin_conversions_remaining").notNull().default(5),
+  planType: text("plan_type").notNull().default("free"),
 });
 
 export const workouts = pgTable(

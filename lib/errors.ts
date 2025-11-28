@@ -24,7 +24,7 @@ const APP_ERROR_REGISTRY = {
   },
   "training-plan/quota-exhausted": {
     title: "Quota de génération atteint",
-    description: "Tu as utilisé les 10 séances offertes. Contacte l’équipe pour débloquer davantage de générations.",
+    description: "Tu as utilisé les séances incluses dans ton plan actuel. Contacte l’équipe pour prolonger l’accès.",
     severity: "warning",
   },
   "garmin-trainer/no-source-plan": {
@@ -54,7 +54,7 @@ const APP_ERROR_REGISTRY = {
   },
   "garmin-trainer/quota-exhausted": {
     title: "Conversions offertes épuisées",
-    description: "Tu as utilisé les 5 conversions offertes. Contacte l’équipe pour prolonger ton accès.",
+    description: "Tu as utilisé les conversions incluses dans ton plan actuel. Contacte l’équipe pour prolonger ton accès.",
     severity: "warning",
   },
   "garmin-trainer/auth-required": {

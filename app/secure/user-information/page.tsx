@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { DEFAULT_USER_PLAN, getUserPlanConfig } from "@/lib/constants/userPlans";
 
 const userSelection = {
   id: users.id,
@@ -28,6 +29,7 @@ const userSelection = {
   createdAt: users.createdAt,
   trainingGenerationsRemaining: users.trainingGenerationsRemaining,
   garminConversionsRemaining: users.garminConversionsRemaining,
+  planType: users.planType,
 };
 
 const GENDER_OPTIONS = [
@@ -66,9 +68,6 @@ const WEIGHT_GRAM_PATHS: string[][] = [
   ["bodyComposition", "weight"],
   ["weight"],
 ];
-
-const TRAINING_FREE_CREDITS = 10;
-const CONVERSION_FREE_CREDITS = 5;
 
 type PageProps = {
   searchParams?: Record<string, string | string[] | undefined>;
@@ -220,6 +219,9 @@ async function ensureLocalUser(stackUser: NonNullable<Awaited<ReturnType<typeof 
       heightCm: null,
       weightKg: null,
       trainingGoal: null,
+      planType: DEFAULT_USER_PLAN,
+      trainingGenerationsRemaining: getUserPlanConfig(DEFAULT_USER_PLAN).trainingQuota ?? 0,
+      garminConversionsRemaining: getUserPlanConfig(DEFAULT_USER_PLAN).conversionQuota ?? 0,
     })
     .returning(userSelection);
 
@@ -312,12 +314,23 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
 
   const localUser = maybeLocalUser ?? (await ensureLocalUser(stackUser));
 
-  const trainingRemaining = Number(localUser.trainingGenerationsRemaining ?? TRAINING_FREE_CREDITS);
-  const conversionRemaining = Number(localUser.garminConversionsRemaining ?? CONVERSION_FREE_CREDITS);
-  const trainingUsed = Math.max(0, TRAINING_FREE_CREDITS - trainingRemaining);
-  const conversionsUsed = Math.max(0, CONVERSION_FREE_CREDITS - conversionRemaining);
-  const trainingUsagePercent = Math.min(100, Math.round((trainingUsed / TRAINING_FREE_CREDITS) * 100));
-  const conversionUsagePercent = Math.min(100, Math.round((conversionsUsed / CONVERSION_FREE_CREDITS) * 100));
+  const planConfig = getUserPlanConfig(localUser.planType);
+  const trainingCap = planConfig.trainingQuota;
+  const conversionCap = planConfig.conversionQuota;
+  const trainingRemaining =
+    trainingCap === null ? null : Number(localUser.trainingGenerationsRemaining ?? trainingCap);
+  const conversionRemaining =
+    conversionCap === null ? null : Number(localUser.garminConversionsRemaining ?? conversionCap);
+  const trainingUsed =
+    trainingCap === null || trainingRemaining === null ? null : Math.max(0, trainingCap - trainingRemaining);
+  const conversionsUsed =
+    conversionCap === null || conversionRemaining === null ? null : Math.max(0, conversionCap - conversionRemaining);
+  const trainingUsagePercent =
+    trainingCap && trainingCap > 0 && trainingUsed !== null ? Math.min(100, Math.round((trainingUsed / trainingCap) * 100)) : 0;
+  const conversionUsagePercent =
+    conversionCap && conversionCap > 0 && conversionsUsed !== null
+      ? Math.min(100, Math.round((conversionsUsed / conversionCap) * 100))
+      : 0;
 
   const statusMessage = normalizeSearchParam(searchParams?.status) === "updated" ? "Profil mis à jour avec succès 🎉" : null;
   const computedAge = calculateAge(localUser.birthDate ?? null);
@@ -358,48 +371,63 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
 
       <Card className="border-primary/20 bg-gradient-to-br from-primary/5 via-card to-card">
         <CardHeader>
-          <CardTitle>Crédits offerts</CardTitle>
-          <CardDescription>
-            Tu disposes de 10 générations IA et 5 conversions Garmin offertes lors de ton inscription.
+          <CardTitle>Abonnement & crédits</CardTitle>
+          <CardDescription className="flex flex-wrap items-center gap-2 text-sm">
+            <span className="rounded-full border border-primary/40 bg-primary/10 px-3 py-0.5 text-xs font-semibold uppercase tracking-wide text-primary">
+              {planConfig.label}
+            </span>
+            <span className="text-foreground/80">{planConfig.description}</span>
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid gap-6 sm:grid-cols-2">
             <div className="rounded-2xl border border-white/10 bg-background/50 p-4">
               <p className="text-sm text-muted-foreground">Générations IA</p>
-              <p className="text-3xl font-semibold text-primary">
-                {trainingUsed}
-                <span className="text-base font-medium text-muted-foreground"> / {TRAINING_FREE_CREDITS}</span>
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {trainingRemaining > 0
-                  ? `${trainingRemaining} séance${trainingRemaining > 1 ? "s" : ""} offertes restantes`
-                  : "Quota utilisé — contacte-nous pour prolonger l’accès"}
-              </p>
-              <div className="mt-3 h-2 rounded-full bg-white/10">
-                <div
-                  className="h-2 rounded-full bg-primary"
-                  style={{ width: `${trainingUsagePercent}%` }}
-                />
-              </div>
+              {trainingCap === null || trainingUsed === null ? (
+                <p className="text-3xl font-semibold text-primary">Illimité</p>
+              ) : (
+                <>
+                  <p className="text-3xl font-semibold text-primary">
+                    {trainingUsed}
+                    <span className="text-base font-medium text-muted-foreground"> / {trainingCap}</span>
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {trainingRemaining !== null && trainingRemaining > 0
+                      ? `${trainingRemaining} séance${trainingRemaining > 1 ? "s" : ""} restantes`
+                      : "Quota utilisé — contacte-nous pour prolonger l’accès"}
+                  </p>
+                  <div className="mt-3 h-2 rounded-full bg-white/10">
+                    <div
+                      className="h-2 rounded-full bg-primary"
+                      style={{ width: `${trainingUsagePercent}%` }}
+                    />
+                  </div>
+                </>
+              )}
             </div>
             <div className="rounded-2xl border border-white/10 bg-background/50 p-4">
               <p className="text-sm text-muted-foreground">Conversions Garmin</p>
-              <p className="text-3xl font-semibold text-secondary">
-                {conversionsUsed}
-                <span className="text-base font-medium text-muted-foreground"> / {CONVERSION_FREE_CREDITS}</span>
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {conversionRemaining > 0
-                  ? `${conversionRemaining} conversion${conversionRemaining > 1 ? "s" : ""} gratuites restantes`
-                  : "Quota utilisé — contacte-nous pour prolonger l’accès"}
-              </p>
-              <div className="mt-3 h-2 rounded-full bg-white/10">
-                <div
-                  className="h-2 rounded-full bg-secondary"
-                  style={{ width: `${conversionUsagePercent}%` }}
-                />
-              </div>
+              {conversionCap === null || conversionsUsed === null ? (
+                <p className="text-3xl font-semibold text-secondary">Illimité</p>
+              ) : (
+                <>
+                  <p className="text-3xl font-semibold text-secondary">
+                    {conversionsUsed}
+                    <span className="text-base font-medium text-muted-foreground"> / {conversionCap}</span>
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {conversionRemaining !== null && conversionRemaining > 0
+                      ? `${conversionRemaining} conversion${conversionRemaining > 1 ? "s" : ""} restantes`
+                      : "Quota utilisé — contacte-nous pour prolonger l’accès"}
+                  </p>
+                  <div className="mt-3 h-2 rounded-full bg-white/10">
+                    <div
+                      className="h-2 rounded-full bg-secondary"
+                      style={{ width: `${conversionUsagePercent}%` }}
+                    />
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </CardContent>

@@ -17,6 +17,7 @@ import { parseJsonWithCodeFence } from "@/lib/utils/jsonCleanup";
 import { buildGarminExerciseCatalogSnippet } from "@/lib/garminExercises";
 import { inferExerciseSportsFromMarkdown } from "@/lib/garmin/exerciseInference";
 import { getGarminAiClients, type GarminAiResult } from "@/lib/ai/garminAiClient";
+import { DEFAULT_USER_PLAN, getUserPlanConfig } from "@/lib/constants/userPlans";
 import { reserveGarminConversionCredit, refundGarminConversionCredit } from "@/lib/services/userCredits";
 
 const REQUEST_SCHEMA = z.object({
@@ -89,9 +90,9 @@ const ensureLocalUser = async (
   stackUserId: string,
   stackUserEmail?: string | null,
   stackUserName?: string | null,
-): Promise<{ id: number; stackId: string }> => {
+): Promise<{ id: number; stackId: string; planType: string | null }> => {
   const [existing] = await db
-    .select({ id: users.id, stackId: users.stackId })
+    .select({ id: users.id, stackId: users.stackId, planType: users.planType })
     .from(users)
     .where(eq(users.stackId, stackUserId))
     .limit(1);
@@ -108,8 +109,11 @@ const ensureLocalUser = async (
       stackId: stackUserId,
       email: fallbackEmail,
       name: stackUserName ?? null,
+      planType: DEFAULT_USER_PLAN,
+      trainingGenerationsRemaining: getUserPlanConfig(DEFAULT_USER_PLAN).trainingQuota ?? 0,
+      garminConversionsRemaining: getUserPlanConfig(DEFAULT_USER_PLAN).conversionQuota ?? 0,
     })
-    .returning({ id: users.id, stackId: users.stackId });
+    .returning({ id: users.id, stackId: users.stackId, planType: users.planType });
 
   if (!inserted) {
     throw new Error("Impossible de créer l’utilisateur local Adapt2Life.");
@@ -120,7 +124,13 @@ const ensureLocalUser = async (
 
 const resolveOwnerContext = async (
   request: NextRequest,
-): Promise<{ ownerId: string | null; ownerInstruction: string; requireWarning: boolean; localUserId: number | null }> => {
+): Promise<{
+  ownerId: string | null;
+  ownerInstruction: string;
+  requireWarning: boolean;
+  localUserId: number | null;
+  planType: string | null;
+}> => {
   try {
     const stackUser = await stackServerApp.getUser({ or: "return-null", tokenStore: request });
     if (!stackUser) {
@@ -130,6 +140,7 @@ const resolveOwnerContext = async (
           "Aucun utilisateur identifié : renseigne \"ownerId\": null et ajoute dans la description la mention \"(ownerId non défini — utilisateur non identifié)\".",
         requireWarning: true,
         localUserId: null,
+        planType: null,
       };
     }
 
@@ -149,6 +160,7 @@ const resolveOwnerContext = async (
         ownerInstruction: `Utilise strictement \"ownerId\": \"${garminUserId}\" (premier champ du JSON) et ne modifie jamais cette valeur.`,
         requireWarning: false,
         localUserId: localUser.id,
+        planType: localUser.planType ?? DEFAULT_USER_PLAN,
       };
     }
 
@@ -158,6 +170,7 @@ const resolveOwnerContext = async (
         "Identifiant Garmin introuvable : renseigne \"ownerId\": null et ajoute dans la description la mention \"(ownerId non défini — utilisateur non identifié)\".",
       requireWarning: true,
       localUserId: localUser.id,
+      planType: localUser.planType ?? DEFAULT_USER_PLAN,
     };
   } catch {
     return {
@@ -166,6 +179,7 @@ const resolveOwnerContext = async (
         "Erreur d’identification : renseigne \"ownerId\": null et ajoute dans la description la mention \"(ownerId non défini — utilisateur non identifié)\".",
       requireWarning: true,
       localUserId: null,
+      planType: null,
     };
   }
 };
@@ -528,6 +542,7 @@ export async function POST(request: NextRequest) {
   const logger = createLogger("garmin-trainer", { headers: request.headers });
   const ownerContext = await resolveOwnerContext(request);
   const localUserId = ownerContext.localUserId;
+  const planConfig = getUserPlanConfig(ownerContext.planType ?? DEFAULT_USER_PLAN);
 
   if (!localUserId) {
     return NextResponse.json(
@@ -579,7 +594,10 @@ export async function POST(request: NextRequest) {
     if (!creditReservation) {
       return NextResponse.json(
         {
-          error: "Tu as utilisé tes 5 conversions offertes. Contacte l’équipe pour débloquer davantage d’envois Garmin.",
+          error:
+            planConfig.conversionQuota === null
+              ? "Ton plan permet des conversions illimitées, contacte le support pour diagnostiquer ton accès."
+              : `Tu as utilisé les ${planConfig.conversionQuota} conversions incluses dans ton plan ${planConfig.label}. Contacte l’équipe pour débloquer davantage d’envois Garmin.`,
         },
         { status: 402 },
       );
