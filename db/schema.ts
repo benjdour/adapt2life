@@ -30,6 +30,7 @@ export const users = pgTable("users", {
   trainingGenerationsRemaining: integer("training_generations_remaining").notNull().default(10),
   garminConversionsRemaining: integer("garmin_conversions_remaining").notNull().default(5),
   planType: text("plan_type").notNull().default("free"),
+  lastQuotaResetAt: timestamp("last_quota_reset_at", { withTimezone: true }),
 });
 
 export const workouts = pgTable(

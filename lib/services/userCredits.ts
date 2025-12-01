@@ -1,4 +1,4 @@
-import { and, eq, gt, sql } from "drizzle-orm";
+import { and, eq, gt, isNull, lt, or, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { users } from "@/db/schema";
@@ -109,4 +109,35 @@ export const applyUserPlan = async (userId: number, planId: UserPlanId) => {
     updateValues.garminConversionsRemaining = plan.conversionQuota;
   }
   await db.update(users).set(updateValues).where(eq(users.id, userId));
+};
+
+export const resetMonthlyQuotas = async () => {
+  const now = new Date();
+  const currentMonthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+
+  const targets = await db
+    .select({ id: users.id, planType: users.planType })
+    .from(users)
+    .where(or(isNull(users.lastQuotaResetAt), lt(users.lastQuotaResetAt, currentMonthStart)));
+
+  let updated = 0;
+
+  for (const target of targets) {
+    const planType = isUserPlanId(target.planType) ? target.planType : DEFAULT_USER_PLAN;
+    const plan = getUserPlanConfig(planType);
+    const updateValues: Partial<typeof users.$inferInsert> = {
+      lastQuotaResetAt: now,
+    };
+    if (plan.trainingQuota !== null) {
+      updateValues.trainingGenerationsRemaining = plan.trainingQuota;
+    }
+    if (plan.conversionQuota !== null) {
+      updateValues.garminConversionsRemaining = plan.conversionQuota;
+    }
+
+    await db.update(users).set(updateValues).where(eq(users.id, target.id));
+    updated += 1;
+  }
+
+  return { processed: targets.length, updated };
 };

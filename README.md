@@ -83,7 +83,7 @@ GARMIN_TRAINER_JOB_HEARTBEAT_MS=30000            # optionnel (heartbeat pour les
 ADMIN_MENU_USER_IDS=user-id-1,user-id-2
 ```
 
-`CRON_SECRET` alimente l’en-tête `x-cron-secret` attendu par `/api/cron/garmin/women-health/pull` (par exemple depuis un job Vercel Cron toutes les 12 h).
+`CRON_SECRET` alimente l’en-tête `x-cron-secret` attendu par `/api/cron/garmin/women-health/pull` (par exemple depuis un job Vercel Cron toutes les 12 h) et par `/api/cron/quotas/reset` (à planifier le 1er de chaque mois à 00:00 pour réinitialiser les quotas d’abonnement).
 
 > Pour générer une clé de chiffrement : `openssl rand -base64 32`
 >
