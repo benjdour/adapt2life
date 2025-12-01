@@ -34,31 +34,39 @@ const sections = [
     ],
   },
   {
-    title: "5. Liens vers d’autres sites",
+    title: "5. Paiements & abonnements",
+    content: [
+      "Les paiements des plans Starter, Momentum, Peak et Elite sont traités via Stripe. En souscrivant, vous autorisez Adapt2Life et Stripe à débiter le moyen de paiement enregistré selon la périodicité choisie (mensuelle ou annuelle).",
+      "Les abonnements sont reconduits automatiquement jusqu’à annulation. Vous pouvez gérer ou annuler votre abonnement depuis la page Profil ou en contactant le support (contact@adapt2life.app). L’annulation prend effet à la fin de la période en cours. Aucune pénalité de résiliation anticipée n’est appliquée.",
+      "Adapt2Life se réserve le droit de suspendre ou résilier l’accès en cas de fraude, de non-respect des conditions ou d’échec répété de paiement.",
+    ],
+  },
+  {
+    title: "6. Liens vers d’autres sites",
     content: [
       "Le Service peut contenir des liens vers des sites web ou services tiers qui ne sont pas détenus ou contrôlés par Adapt2Life. Nous n’avons aucun contrôle sur le contenu ni sur les politiques de confidentialité de ces sites tiers.",
     ],
   },
   {
-    title: "6. Exclusion de garanties",
+    title: "7. Exclusion de garanties",
     content: [
       "Le Service est fourni « tel quel » et « selon disponibilité ». Adapt2Life n’émet aucune garantie, expresse ou implicite, relative au Service. Nous ne garantissons pas que le Service sera ininterrompu, sécurisé ou exempt d’erreurs.",
     ],
   },
   {
-    title: "7. Limitation de responsabilité",
+    title: "8. Limitation de responsabilité",
     content: [
       "Adapt2Life, ses dirigeants, employés ou partenaires ne pourront en aucun cas être tenus responsables des dommages indirects, accidentels, spéciaux ou consécutifs, y compris notamment les pertes de profits, de données, d’usage, de clientèle ou autres pertes intangibles résultant de votre accès ou utilisation du Service.",
     ],
   },
   {
-    title: "8. Loi applicable",
+    title: "9. Loi applicable",
     content: [
       "Les présentes Conditions sont régies et interprétées conformément aux lois du Québec, Canada, sans égard aux principes de conflits de lois.",
     ],
   },
   {
-    title: "9. Modifications des Conditions",
+    title: "10. Modifications des Conditions",
     content: [
       "Nous nous réservons le droit, à notre seule discrétion, de modifier ou de remplacer ces Conditions à tout moment.",
     ],

@@ -49,14 +49,21 @@ const sections = [
     ],
   },
   {
-    title: "5. Transferts internationaux",
+    title: "5. Paiements & gestion d’abonnement",
+    content: [
+      "- Paiements : nous utilisons Stripe pour traiter les paiements (carte bancaire, Apple Pay, etc.). Stripe agit en tant que sous-traitant et collecte certaines données de paiement (numéro de carte, adresse, code postal) conformément à sa politique de confidentialité. Adapt2Life ne stocke jamais les informations complètes de carte.",
+      "- Gestion d’abonnement : les changements de plan (upgrade/downgrade) sont gérés via l’espace client ou sur demande auprès du support. Les annulations prennent effet à la fin de la période de facturation.",
+    ],
+  },
+  {
+    title: "6. Transferts internationaux",
     content: [
       "Vos données peuvent être stockées sur des serveurs hors de votre juridiction. Des garanties appropriées sont mises en place.",
       "Utilisateurs du Québec : Adapt2Life effectue une Évaluation des facteurs relatifs à la vie privée (PIA) pour les transferts hors province.",
     ],
   },
   {
-    title: "6. Vos droits",
+    title: "7. Vos droits",
     content: [
       "6.1 Droits pour tous : rectification des données inexactes.",
       "6.2 Droits EEE/UK (RGPD) : accès, portabilité, effacement, opposition.",
@@ -65,25 +72,25 @@ const sections = [
     ],
   },
   {
-    title: "7. Conservation des données",
+    title: "8. Conservation des données",
     content: [
       "Les données sont conservées tant que le compte est actif. En cas de suppression du compte, les données sont supprimées.",
     ],
   },
   {
-    title: "8. Cookies et technologies similaires",
+    title: "9. Cookies et technologies similaires",
     content: [
       "Nous utilisons des cookies pour assurer le bon fonctionnement du site et analyser l’usage de façon anonyme. Vous pouvez configurer votre navigateur pour refuser les cookies.",
     ],
   },
   {
-    title: "9. Confientialité des mineurs",
+    title: "10. Confidentialité des mineurs",
     content: [
       "Le Service s’adresse aux personnes de 16 ans et plus. Nous ne collectons pas sciemment de données concernant des mineurs de moins de 16 ans.",
     ],
   },
   {
-    title: "10. Nous contacter",
+    title: "11. Nous contacter",
     content: [
       "Responsable de la protection des données : Benjamin Dour.",
       "Contact : contact@adapt2life.app",
