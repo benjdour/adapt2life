@@ -1,11 +1,22 @@
 import type { Metadata } from "next";
 
 const values = ["Adaptation", "Bienveillance", "Simplicité", "Progression durable", "Humanité"];
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://adapt2life.app";
 
 export const metadata: Metadata = {
   title: "À propos — Adapt2Life",
   description:
     "Découvrez pourquoi Adapt2Life a été créé, la vision portée par Benjamin et la manière dont l’app adapte chaque séance à la vie réelle.",
+  alternates: {
+    canonical: `${siteUrl}/about`,
+  },
+  openGraph: {
+    url: `${siteUrl}/about`,
+    title: "À propos d’Adapt2Life",
+    description:
+      "L’histoire d’Adapt2Life, sa mission et ses valeurs pour aider les sportifs à concilier vie réelle et entraînement.",
+    type: "article",
+  },
 };
 
 export default function AboutPage() {

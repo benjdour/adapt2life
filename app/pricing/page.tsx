@@ -16,12 +16,13 @@ const PLAN_PRICING: Record<
   {
     monthly: string;
     annual: string;
+    monthlyValue: string;
   }
 > = {
-  free: { monthly: "Gratuit", annual: "Gratuit" },
-  paid_light: { monthly: "5,99 $/mois", annual: "59,99 $/an" },
-  paid: { monthly: "9,99 $/mois", annual: "99,99 $/an" },
-  paid_full: { monthly: "14,99 $/mois", annual: "149,99 $/an" },
+  free: { monthly: "Gratuit", annual: "Gratuit", monthlyValue: "0" },
+  paid_light: { monthly: "5,99 $/mois", annual: "59,99 $/an", monthlyValue: "5.99" },
+  paid: { monthly: "9,99 $/mois", annual: "99,99 $/an", monthlyValue: "9.99" },
+  paid_full: { monthly: "14,99 $/mois", annual: "149,99 $/an", monthlyValue: "14.99" },
 };
 
 const PLAN_CTA: Record<(typeof PUBLIC_PLAN_ORDER)[number], { label: string; href: string }> = {
@@ -31,9 +32,20 @@ const PLAN_CTA: Record<(typeof PUBLIC_PLAN_ORDER)[number], { label: string; href
   paid_full: { label: "Passer au plan Paid Full", href: "/contact" },
 };
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://adapt2life.app";
+
 export const metadata: Metadata = {
   title: "Tarifs Adapt2Life",
   description: "Compare les plans Adapt2Life et choisis le volume de générations et de conversions adapté à ta pratique.",
+  alternates: {
+    canonical: `${siteUrl}/pricing`,
+  },
+  openGraph: {
+    url: `${siteUrl}/pricing`,
+    title: "Tarifs Adapt2Life",
+    description: "Découvre les offres Free, Paid Light, Paid et Paid Full : quotas mensuels et annuels pour adapter ton entraînement.",
+    type: "website",
+  },
 };
 
 export default async function PricingPage() {
@@ -66,6 +78,32 @@ export default async function PricingPage() {
       </section>
 
       <section className="grid gap-6 md:grid-cols-2">
+        <script
+          type="application/ld+json"
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Service",
+              name: "Adapt2Life - Plans d'entraînement IA",
+              url: `${siteUrl}/pricing`,
+              provider: {
+                "@type": "Organization",
+                name: "Adapt2Life",
+                url: siteUrl,
+              },
+              offers: PUBLIC_PLAN_ORDER.map((planId) => ({
+                "@type": "Offer",
+                name: USER_PLAN_CATALOG[planId].label,
+                priceCurrency: "USD",
+                price: PLAN_PRICING[planId].monthlyValue,
+                url: `${siteUrl}/pricing`,
+                availability: "https://schema.org/InStock",
+                description: USER_PLAN_CATALOG[planId].description,
+              })),
+            }),
+          }}
+        />
         {PUBLIC_PLAN_ORDER.map((planId) => {
           const plan = USER_PLAN_CATALOG[planId];
           const price = PLAN_PRICING[planId];
