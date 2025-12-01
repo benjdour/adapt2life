@@ -109,7 +109,9 @@ export default async function PricingPage() {
           const price = PLAN_PRICING[planId];
           const cta = PLAN_CTA[planId];
           const isCurrentPlan = Boolean(stackUser && currentPlan === planId);
-          const targetHref = stackUser ? cta.href : "/handler/sign-in?redirect=/pricing";
+          const baseHref = stackUser ? cta.href : "/handler/sign-in?redirect=/pricing";
+          const monthlyHref = planId === "free" ? baseHref : `${baseHref}?billing=monthly`;
+          const annualHref = planId === "free" ? baseHref : `${baseHref}?billing=annual`;
 
           return (
             <Card
@@ -155,14 +157,26 @@ export default async function PricingPage() {
                   )}
                   <li>Accès complet aux workflows Adapt2Life et au support e-mail.</li>
                 </ul>
-                <Button
-                  asChild
-                  variant={planId === "free" ? "primary" : "outline"}
-                  disabled={isCurrentPlan}
-                  aria-disabled={isCurrentPlan}
-                >
-                  <Link href={targetHref}>{isCurrentPlan ? "Plan actuel" : cta.label}</Link>
-                </Button>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Button
+                    asChild
+                    variant="primary"
+                    disabled={isCurrentPlan}
+                    aria-disabled={isCurrentPlan}
+                  >
+                    <Link href={monthlyHref}>{planId === "free" ? cta.label : `Mensuel — ${price.monthly}`}</Link>
+                  </Button>
+                  {planId !== "free" ? (
+                    <Button
+                      asChild
+                      variant="outline"
+                      disabled={isCurrentPlan}
+                      aria-disabled={isCurrentPlan}
+                    >
+                      <Link href={annualHref}>Annuel — {price.annual}</Link>
+                    </Button>
+                  ) : null}
+                </div>
                 <p className="text-xs text-muted-foreground">
                   Quotas remis à zéro le 1<sup>er</sup> de chaque mois, quelle que soit la formule (mensuelle ou annuelle).
                 </p>
