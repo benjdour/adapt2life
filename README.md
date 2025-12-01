@@ -168,6 +168,9 @@ Les colonnes sensibles `access_token_encrypted` et `refresh_token_encrypted` son
   - `GARMIN_EXERCISE_TOOL_ENABLED=true|false`
   - `GARMIN_TRAINER_JOB_TIMEOUT_MS` (timeout global, 10 min par défaut)
   - `GARMIN_TRAINER_FETCH_TIMEOUT_MS` (timeout push Garmin)
+- Prompts de référence :
+  - `docs/training_plan_prompt.txt` (génération de séance Markdown, utilisé par `ADAPT2LIFE_SYSTEM_PROMPT`).
+  - `docs/garmin_trainer_prompt.txt` (conversion Markdown → Garmin Training API V2).
 - `lib/services/garminTrainerJobs.ts` gère :
   - Detect sport → choisit strict vs classic
   - Normalisation des steps (natation, course, vélo…) et validation `workoutSchema`
