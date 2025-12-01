@@ -112,12 +112,18 @@ export default async function PricingPage() {
           const targetHref = stackUser ? cta.href : "/handler/sign-in?redirect=/pricing";
 
           return (
-            <Card key={planId} className="flex flex-col justify-between border-white/10 bg-card/80">
+            <Card
+              key={planId}
+              className={`flex flex-col justify-between border-white/10 bg-card/80 ${planId === "paid_light" ? "border-primary/40 shadow-xl shadow-primary/20" : ""}`}
+            >
               <CardHeader>
                 <CardTitle className="flex flex-col gap-1 text-2xl">
                   <span>{plan.label}</span>
                   <span className="text-base font-semibold text-primary">{price.monthly}</span>
                 </CardTitle>
+                {planId === "paid_light" ? (
+                  <p className="text-xs font-semibold uppercase tracking-[0.4em] text-secondary">Plan le plus populaire</p>
+                ) : null}
                 <CardDescription>{plan.description}</CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col gap-6">
