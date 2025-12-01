@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
+import Stripe from "stripe";
 
 import { db } from "@/db";
 import { users } from "@/db/schema";
@@ -40,6 +41,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Stripe est indisponible." }, { status: 500 });
   }
 
+  const stripe = new Stripe(stripeSecret, { apiVersion: "2024-06-20" });
+
   const stackUser = await stackServerApp.getUser({ or: "return-null", tokenStore: request });
   if (!stackUser) {
     return NextResponse.json({ error: "Authentification requise." }, { status: 401 });
@@ -67,40 +70,28 @@ export async function POST(request: NextRequest) {
   const successUrl = `${origin}/pricing?status=success&session_id={CHECKOUT_SESSION_ID}`;
   const cancelUrl = `${origin}/pricing?status=cancel`;
 
-  const params = new URLSearchParams();
-  params.append("mode", "subscription");
-  params.append("success_url", successUrl);
-  params.append("cancel_url", cancelUrl);
-  params.append("line_items[0][price]", priceId);
-  params.append("line_items[0][quantity]", "1");
-  params.append("automatic_tax[enabled]", "true");
-  params.append("client_reference_id", localUser.id.toString());
-  params.append("metadata[userId]", localUser.id.toString());
-  params.append("metadata[planId]", body.planId);
-  params.append("metadata[billingCycle]", body.billingCycle);
-  params.append("metadata[planLabel]", USER_PLAN_CATALOG[body.planId].label);
-  if (stackUser.primaryEmail) {
-    params.append("customer_email", stackUser.primaryEmail);
-  }
+  try {
+    const session = await stripe.checkout.sessions.create({
+      mode: "subscription",
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+      line_items: [{ price: priceId, quantity: 1 }],
+      automatic_tax: { enabled: true },
+      client_reference_id: localUser.id.toString(),
+      metadata: {
+        userId: localUser.id.toString(),
+        planId: body.planId,
+        billingCycle: body.billingCycle,
+        planLabel: USER_PLAN_CATALOG[body.planId].label,
+      },
+      customer_email: stackUser.primaryEmail ?? undefined,
+    });
 
-  const stripeResponse = await fetch("https://api.stripe.com/v1/checkout/sessions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${stripeSecret}`,
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: params.toString(),
-  });
-
-  const payload = await stripeResponse.json().catch(() => null);
-
-  if (!stripeResponse.ok) {
-    const message =
-      (payload as { error?: { message?: string } } | null)?.error?.message ?? "Impossible de créer la session de paiement.";
+    return NextResponse.json({ url: session.url ?? null });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Impossible de créer la session de paiement.";
     return NextResponse.json({ error: message }, { status: 502 });
   }
-
-  return NextResponse.json({ url: (payload as { url?: string } | null)?.url ?? null });
 }
 
 const getStripePriceId = (planId: PlanKey, billingCycle: BillingCycle) => PLAN_PRICE_REFERENCE[planId][billingCycle];
