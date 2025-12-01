@@ -206,6 +206,12 @@ export default async function Home(props: HomePageProps) {
       href: "/secure/garmin-data",
       buttonLabel: "Voir les données",
     },
+    {
+      title: "Comparer les plans",
+      description: "Choisis le volume de générations et d’envois Garmin adapté à ta pratique.",
+      href: "/pricing",
+      buttonLabel: "Voir les tarifs",
+    },
   ];
 
   if (user) {
@@ -389,10 +395,13 @@ export default async function Home(props: HomePageProps) {
           <p className="text-base text-muted-foreground">
             Des séances personnalisées, générées en temps réel selon ta forme, tes objectifs et tes contraintes quotidiennes.
           </p>
-          <div className="flex justify-center md:justify-start">
+          <div className="flex flex-col gap-3 sm:flex-row sm:justify-center md:justify-start">
             <Button asChild className="px-8 py-6 text-base font-semibold">
-            <Link href="/handler/sign-in?redirect=/generateur-entrainement">Découvrir ton potentiel</Link>
-          </Button>
+              <Link href="/handler/sign-in?redirect=/generateur-entrainement">Découvrir ton potentiel</Link>
+            </Button>
+            <Button asChild variant="outline" className="px-8 py-6 text-base">
+              <Link href="/pricing">Voir les tarifs</Link>
+            </Button>
           </div>
         </div>
         <div className="md:w-1/2">

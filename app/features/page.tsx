@@ -148,6 +148,9 @@ export default function FeaturesPage() {
             <Button asChild variant="outline" size="lg" className="px-8 text-base">
               <Link href="/contact">Parler à l’équipe</Link>
             </Button>
+            <Button asChild variant="ghost" size="lg" className="px-8 text-base">
+              <Link href="/pricing">Voir les tarifs</Link>
+            </Button>
           </div>
         </div>
       </section>

@@ -6,6 +6,7 @@ const staticRoutes: string[] = [
   "/",
   "/features",
   "/features/coach-ia-garmin",
+  "/pricing",
   "/how-it-works",
   "/garmin-trainer",
   "/faq",

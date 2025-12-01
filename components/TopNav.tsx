@@ -32,7 +32,6 @@ const guestLinks = [
   { label: "Accueil", href: "/" },
   { label: "Fonctionnalités", href: "/features" },
   { label: "Coach IA Garmin", href: "/features/coach-ia-garmin" },
-  { label: "Tarifs", href: "/pricing" },
   { label: "Comment ça marche", href: "/how-it-works" },
   { label: "FAQ", href: "/faq" },
   { label: "Contact", href: "/contact" },

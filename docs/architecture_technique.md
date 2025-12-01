@@ -52,7 +52,7 @@ app/api/
 - **Push workouts** : `app/api/garmin-trainer/push/route.ts` (utilisé par jobs ou interface).
 
 ### Front / UI
-- `app/*` structure Next.js : pages marketing (`/`, `/features`, `/how-it-works`), pages sécurisées (`/secure/*`), intégrations.
+- `app/*` structure Next.js : pages marketing (`/`, `/features`, `/how-it-works`, `/pricing`), pages sécurisées (`/secure/*`), intégrations.
 - `components/TrainingPlanGeneratorForm.tsx` : formulaire principal (génération + envoi Garmin + toasts).
 - `components/GarminTrainerGenerator.tsx` & `components/GarminWorkoutPreview.tsx` : preview JSON généré.
 - Auth Stack gérée dans `app/layout.tsx` (`TopNav`, `Footer`).

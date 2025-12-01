@@ -179,6 +179,7 @@ En cas d’erreur (timeout modèle, validation, push), les logs `garmin trainer 
 
 - `/features` : présentation des fonctionnalités clés.
 - `/how-it-works` : processus en 4 étapes + CTA.
+- `/pricing` : comparatif des plans (free, paid light, paid, paid full) avec quotas détaillés.
 - `/faq` : 20 questions/réponses avec schema FAQ pour le SEO.
 - `/contact` : formulaire (prénom, nom, email, objet, message) + mailto fallback.
 
