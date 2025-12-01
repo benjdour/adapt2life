@@ -83,7 +83,7 @@ GARMIN_TRAINER_JOB_HEARTBEAT_MS=30000            # optionnel (heartbeat pour les
 ADMIN_MENU_USER_IDS=user-id-1,user-id-2
 ```
 
-`CRON_SECRET` alimente l’en-tête `x-cron-secret` attendu par `/api/cron/garmin/women-health/pull` (par exemple depuis un job Vercel Cron toutes les 12 h) et par `/api/cron/quotas/reset` (à planifier le 1er de chaque mois à 00:00 pour réinitialiser les quotas d’abonnement).
+`CRON_SECRET` alimente l’en-tête `x-cron-secret` attendu par `/api/cron/garmin/women-health/pull` (par exemple depuis un job Vercel Cron toutes les 12 h) et par `/api/cron/quotas/reset` (à planifier le 1er de chaque mois à 00:00 pour réinitialiser les quotas d’abonnement). `RESEND_API_KEY` est utilisé par `/api/contact` pour envoyer les messages via Resend ; renseigne aussi `CONTACT_INBOX_EMAIL`/`CONTACT_FROM_EMAIL` si tu veux personnaliser les adresses.
 
 > Pour générer une clé de chiffrement : `openssl rand -base64 32`
 >
@@ -204,3 +204,6 @@ Ce setup fournit un socle prêt pour construire le MVP Adapt2Life : helper `cn`,
 - Les composants UI de base (`Button`, `Input`, `Modal`, `Toast`, `DashboardGrid`, `AIScoreGraph`, `Sidebar`, `Card`…) sont alignés sur `docs/design_spec_v6.md`.
 - Les fonts Poppins/Inter/Orbitron et les toasts Sonner customisés sont chargés dans `app/layout.tsx`.
 - Pour générer de nouveaux écrans, se référer à `docs/design_spec_v6.md` ou lancer la commande `codex design "Generate Adapt2Life components and dashboard layout based on design_spec_v6.md"`.
+RESEND_API_KEY=re_xxxxxx
+CONTACT_INBOX_EMAIL=contact@adapt2life.app            # optionnel (destinataire du formulaire)
+CONTACT_FROM_EMAIL="Adapt2Life <contact@adapt2life.app>" # optionnel (expéditeur Resend)

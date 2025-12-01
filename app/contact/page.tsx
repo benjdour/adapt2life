@@ -55,14 +55,13 @@ export default function ContactPage() {
         body: JSON.stringify(formState),
       });
 
-      const data = (await response.json()) as { mailto?: string; error?: string };
+      const data = (await response.json()) as { success?: boolean; error?: string };
 
-      if (!response.ok || !data.mailto) {
+      if (!response.ok || !data?.success) {
         throw new Error(data.error ?? "Impossible d’envoyer le message.");
       }
 
-      window.location.href = data.mailto;
-      setStatus({ type: "success", message: "Votre logiciel de messagerie va s’ouvrir." });
+      setStatus({ type: "success", message: "Message envoyé. Nous te répondons sous 24 heures ouvrées." });
       setFormState({ firstName: "", lastName: "", email: "", subject: "", message: "" });
     } catch (error) {
       setStatus({
