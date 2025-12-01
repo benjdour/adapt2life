@@ -1,121 +1,125 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-
-import { Button } from "@/components/ui/button";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const metadata: Metadata = {
   title: "À propos — Adapt2Life",
   description:
-    "Pourquoi Adapt2Life existe, qui l’a créé et comment l’application adapte chaque séance à la vie réelle des sportifs connectés.",
+    "Découvrez la vision d’Adapt2Life, son fondateur Benjamin et la manière dont l’application adapte chaque séance à la vie réelle des sportifs.",
 };
-
-const values = ["Adaptation", "Bienveillance", "Simplicité", "Progression durable", "Humanité"];
 
 export default function AboutPage() {
   return (
-    <main className="mx-auto flex max-w-4xl flex-col gap-10 px-6 py-12 text-foreground">
-      <section className="space-y-6">
-        <p className="text-xs uppercase tracking-[0.35em] text-primary/80">À propos d’Adapt2Life</p>
-        <h1 className="text-4xl font-heading leading-tight md:text-5xl">&laquo; La vie ne respecte pas les plans &raquo;</h1>
-        <p className="text-base text-muted-foreground">
-          Bonjour, je suis Benjamin. Sportif passionné depuis plus de 20 ans, triathlète de compétition, marathonien, ultratrailer, chef de
-          projets numériques et papa quadragénaire. Adapt2Life est né d’une question qui m’a suivi toute ma vie adulte&nbsp;: comment continuer à
-          m’entraîner sérieusement, progresser et performer, tout en assumant pleinement ma vie familiale et mes responsabilités quotidiennes&nbsp;?
-        </p>
-        <p className="text-base text-muted-foreground">
-          Je n’ai jamais voulu choisir entre ma passion du sport et ma vie de famille. Pourtant, aucun plan d’entraînement classique ne me
-          donnait cette flexibilité. Les plans restaient figés. Moi, non. Mes journées non plus. C’est là qu’est née l’idée d’Adapt2Life :
-          <strong> ce n’est pas toi qui dois t’adapter à ton plan, c’est ton plan qui doit s’adapter à ta vie.</strong>
-        </p>
-      </section>
+    <main className="prose prose-invert mx-auto max-w-3xl px-6 py-12">
+      <h1>À propos d’Adapt2Life</h1>
 
-      <section className="space-y-4">
-        <h2 className="text-3xl font-heading">Pourquoi Adapt2Life existe</h2>
-        <p className="text-base text-muted-foreground">
-          En plus de 20 ans de pratique (triathlon, course à pied, marathons, ultra-trails), j’ai testé des plans rigides, des progressions
-          linéaires, des semaines structurées au millimètre. Résultat&nbsp;: la vie réelle gagnait toujours. Une nuit trop courte, un imprévu
-          avec les enfants, une journée de travail qui déborde… et le plan ne collait plus. Adapt2Life est la réponse à cette réalité.
-        </p>
-      </section>
+      <h2>👋 Bonjour, je suis Benjamin</h2>
+      <p>
+        <strong>
+          Sportif passionné depuis plus de 20 ans, adepte de triathlon, plusieurs fois finisher Ironman, marathonien régulier, ultratrailer,
+          gestionnaire de projets numériques et père de famille de plus de 40 ans.
+        </strong>
+      </p>
+      <p>
+        J’ai créé Adapt2Life pour répondre à un défi que connaissent énormément de sportifs amateurs&nbsp;: <strong>
+          comment continuer à s’entraîner sérieusement, progresser et viser des objectifs ambitieux… tout en assumant pleinement la vie familiale,
+          le travail et les responsabilités du quotidien&nbsp;?
+        </strong>
+      </p>
+      <p>
+        Le sport fait partie de ma vie depuis toujours, mais jamais au détriment de ma famille ou de mon équilibre. Et pourtant, aucun plan
+        d’entraînement traditionnel ne m’a permis de concilier ces deux mondes de manière réaliste.
+      </p>
 
-      <section className="space-y-4">
-        <h2 className="text-3xl font-heading">La vision Adapt2Life</h2>
-        <p className="text-base text-muted-foreground">
-          L’application lit ton énergie, ta récupération, ton sommeil, ton stress, ta charge physique, ton temps disponible et ton contexte
-          familial/professionnel pour générer, en temps réel, la meilleure séance possible pour toi, ce jour-là.
-        </p>
-        <p className="text-base text-muted-foreground">
-          Pas un programme figé. Un système intelligent, vivant, flexible. Ton entraînement évolue avec toi, pas contre toi.
-        </p>
-      </section>
+      <hr />
 
-      <section className="space-y-4">
-        <h2 className="text-3xl font-heading">Pourquoi me faire confiance&nbsp;?</h2>
-        <p className="text-base text-muted-foreground">
-          Parce que je vis exactement ce que vivent les utilisateurs d’Adapt2Life. Je prépare des compétitions exigeantes tout en jonglant avec
-          le travail, la famille, les imprévus et la fatigue. Adapt2Life n’est pas une idée née dans un bureau : c’est une solution créée sur
-          le terrain car elle manquait réellement.
-        </p>
-      </section>
+      <h2>🎯 Pourquoi Adapt2Life existe</h2>
+      <p>
+        Avec plus de 20 ans d’expérience en endurance — triathlons, plusieurs Ironman, marathons, courses longues distances et ultra-trails — j’ai
+        constaté une réalité simple&nbsp;: <strong>la vie ne suit pas un plan d’entraînement figé.</strong>
+      </p>
+      <p>Un jour, tout va parfaitement. Le lendemain, c’est :</p>
+      <ul>
+        <li>une nuit écourtée,</li>
+        <li>un enfant malade,</li>
+        <li>un horaire qui explose,</li>
+        <li>un niveau d’énergie en chute libre,</li>
+        <li>ou un imprévu de dernière minute.</li>
+      </ul>
+      <p>Et pourtant, les plans restent rigides. Ils ne s’adaptent pas à notre réalité… alors que c’est exactement ce dont on a besoin.</p>
+      <blockquote>
+        <em>Le problème n’est pas la discipline. Le problème, c’est que les plans ne s’adaptent pas à la vie réelle.</em>
+      </blockquote>
 
-      <section className="space-y-4">
-        <h2 className="text-3xl font-heading">Comment ça fonctionne&nbsp;?</h2>
-        <p className="text-base text-muted-foreground">
-          Adapt2Life combine tes données Garmin, ton état du moment, la science de la progression et l’intelligence artificielle pour générer
-          une séance réaliste, personnalisée et compatible avec ta journée. Tu ouvres l’app, tu demandes ta séance, tu t’entraînes… et tu
-          progresses, sans culpabilité et sans rigidité inutile.
-        </p>
-      </section>
+      <hr />
 
-      <section className="space-y-4">
-        <h2 className="text-3xl font-heading">Nos valeurs</h2>
-        <div className="grid gap-3 md:grid-cols-2">
-          {values.map((value) => (
-            <Card key={value} className="border-white/10 bg-card/80">
-              <CardHeader>
-                <CardTitle className="text-lg">{value}</CardTitle>
-                <CardDescription>
-                  {value === "Simplicité"
-                    ? "Le sport n’a pas besoin d’être compliqué pour être efficace."
-                    : value === "Adaptation"
-                      ? "Ta vie change : ton entraînement aussi."
-                      : value === "Progression durable"
-                        ? "On privilégie la constance plutôt que les pics éphémères."
-                        : value === "Humanité"
-                          ? "L’IA accompagne l’athlète, elle ne le remplace pas."
-                          : "Chaque recommandation est formulée avec respect et bienveillance."}
-                </CardDescription>
-              </CardHeader>
-            </Card>
-          ))}
-        </div>
-      </section>
+      <h2>🔥 La vision Adapt2Life</h2>
+      <p>Une idée guide toute l’application :</p>
+      <h3>👉 Ton entraînement doit s’adapter à toi — jamais l’inverse.</h3>
+      <p>Adapt2Life analyse :</p>
+      <ul>
+        <li>ton niveau d’énergie,</li>
+        <li>ta récupération,</li>
+        <li>ton sommeil,</li>
+        <li>ton stress,</li>
+        <li>ta charge physique récente,</li>
+        <li>ton temps disponible,</li>
+        <li>ton contexte familial et professionnel,</li>
+      </ul>
+      <p>
+        …et génère <strong>la meilleure séance possible pour toi</strong>, aujourd’hui, dans ta vraie vie. Pas de rigidité. Pas de culpabilité. Juste une
+        progression intelligente, durable et adaptée.
+      </p>
 
-      <section className="space-y-4">
-        <h2 className="text-3xl font-heading">Sécurité & confiance</h2>
-        <p className="text-base text-muted-foreground">
-          Tes données sont à toi. Adapt2Life respecte la confidentialité et n’utilise que les éléments nécessaires pour t’aider à
-          t’entraîner. Nous mettons en place des protections techniques et contractuelles fortes, et tu peux révoquer l’accès à tout moment.
-        </p>
-      </section>
+      <hr />
 
-      <section className="space-y-4">
-        <h2 className="text-3xl font-heading">Une vision qui va plus loin</h2>
-        <p className="text-base text-muted-foreground">
-          Adapt2Life est né d’un besoin personnel, mais répond à un besoin plus large : aider chacun à intégrer le sport de manière réaliste et
-          durable, quel que soit son âge ou son rythme de vie. On ne manque pas d’applications d’entraînement, on manque de solutions qui
-          respectent la personne derrière l’athlète. Adapt2Life est là pour ça. Et ce n’est que le début.
-        </p>
-        <div className="flex flex-wrap gap-3">
-          <Button asChild>
-            <Link href="/handler/sign-in?redirect=/generateur-entrainement">Tester Adapt2Life</Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link href="/contact">Parler à l’équipe</Link>
-          </Button>
-        </div>
-      </section>
+      <h2>🧠 Pourquoi me faire confiance&nbsp;?</h2>
+      <p>
+        Parce que je suis exactement dans la même réalité que les utilisateurs d’Adapt2Life. Je m’entraîne pour des défis exigeants — triathlons,
+        Ironman, marathons, ultratrails — mais je suis aussi un parent, un conjoint et un professionnel à temps plein.
+      </p>
+      <p>
+        Je connais les journées chargées, la fatigue accumulée, les séances qu’on doit adapter ou raccourcir. Adapt2Life n’est pas une théorie&nbsp;: c’est
+        un besoin personnel devenu une solution concrète.
+      </p>
+
+      <hr />
+
+      <h2>⚙️ Comment fonctionne Adapt2Life&nbsp;?</h2>
+      <p>Adapt2Life combine :</p>
+      <ul>
+        <li>tes données Garmin,</li>
+        <li>ton état du moment,</li>
+        <li>la science de la progression,</li>
+        <li>et la capacité d’adaptation de l’intelligence artificielle,</li>
+      </ul>
+      <p>
+        …pour créer une séance parfaitement ajustée à <strong>ton</strong> énergie, <strong>ton</strong> temps, <strong>ton</strong> contexte. Tu ouvres l’app. Tu demandes ta séance. Tu
+        t’entraînes. Et tu avances — à ton rythme, mais toujours dans la bonne direction.
+      </p>
+
+      <hr />
+
+      <h2>🤝 Nos valeurs</h2>
+      <ul>
+        <li><strong>Adaptation</strong></li>
+        <li><strong>Bienveillance</strong></li>
+        <li><strong>Simplicité</strong></li>
+        <li><strong>Progression durable</strong></li>
+        <li><strong>Humanité</strong></li>
+      </ul>
+      <p>Le sport doit s’intégrer dans la vie, jamais l’écraser.</p>
+
+      <hr />
+
+      <h2>🌱 Une vision qui va plus loin</h2>
+      <p>
+        Adapt2Life répond à un besoin personnel… mais il répond surtout à un besoin universel&nbsp;: <strong>
+          permettre à chacun de garder le sport dans sa vie de manière réaliste, équilibrée et motivante.
+        </strong>
+      </p>
+      <p>
+        On n’a pas besoin de plus de plans d’entraînement. On a besoin de plans qui respectent la personne derrière l’athlète. Et c’est exactement ce
+        qu’Adapt2Life veut offrir. Ce n’est que le début.
+      </p>
     </main>
   );
 }
