@@ -10,6 +10,10 @@ import { stackServerApp } from "@/stack/server";
 import { USER_PLAN_CATALOG, type UserPlanId, isUserPlanId } from "@/lib/constants/userPlans";
 import { PlanCheckoutButtons } from "@/components/pricing/PlanCheckoutButtons";
 
+type PageProps = {
+  searchParams?: Record<string, string | string[] | undefined>;
+};
+
 const PUBLIC_PLAN_ORDER = ["free", "paid_light", "paid", "paid_full"] as const;
 
 const PLAN_PRICING: Record<
@@ -42,7 +46,30 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function PricingPage() {
+const normalizeParam = (value: string | string[] | undefined) => {
+  if (Array.isArray(value)) {
+    return value[0];
+  }
+  return value ?? null;
+};
+
+const STATUS_BANNERS: Record<
+  "success" | "cancel",
+  { title: string; description: string; tone: "success" | "warning" }
+> = {
+  success: {
+    title: "Abonnement activé 🎉",
+    description: "Ton paiement Stripe est confirmé. Tu recevras un e-mail de confirmation et ton quota vient d’être mis à jour.",
+    tone: "success",
+  },
+  cancel: {
+    title: "Paiement annulé",
+    description: "Aucun prélèvement n’a été effectué. Tu peux réessayer à tout moment si tu souhaites changer de plan.",
+    tone: "warning",
+  },
+};
+
+export default async function PricingPage({ searchParams }: PageProps) {
   const stackUser = await stackServerApp.getUser({ or: "return-null", tokenStore: "nextjs-cookie" });
   let currentPlan: UserPlanId | null = null;
 
@@ -55,6 +82,9 @@ export default async function PricingPage() {
     currentPlan = isUserPlanId(record?.planType) ? record?.planType ?? null : null;
   }
 
+  const statusParam = normalizeParam(searchParams?.status);
+  const banner = statusParam === "success" || statusParam === "cancel" ? STATUS_BANNERS[statusParam] : null;
+
   return (
     <main className="mx-auto flex max-w-5xl flex-col gap-10 px-6 py-12 text-foreground">
       <section className="space-y-4 text-center">
@@ -64,6 +94,18 @@ export default async function PricingPage() {
           Chaque formule existe en version mensuelle ou annuelle (sans engagement), et les quotas se réinitialisent automatiquement le
           1er de chaque mois.
         </p>
+        {banner ? (
+          <div
+            className={`mx-auto max-w-2xl rounded-2xl border px-4 py-3 text-left ${
+              banner.tone === "success"
+                ? "border-emerald-300/60 bg-emerald-950/30 text-emerald-100"
+                : "border-amber-300/60 bg-amber-950/30 text-amber-100"
+            }`}
+          >
+            <p className="text-sm font-semibold tracking-wide">{banner.title}</p>
+            <p className="text-sm text-white/90">{banner.description}</p>
+          </div>
+        ) : null}
         <div className="flex justify-center">
           <Button asChild size="lg">
             <Link href="/handler/sign-in?redirect=/generateur-entrainement">Tester gratuitement</Link>
