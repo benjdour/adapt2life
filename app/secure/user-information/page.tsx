@@ -2,6 +2,7 @@ import { Metadata } from "next";
 import { revalidatePath, unstable_noStore as noStore } from "next/cache";
 import { and, desc, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 
 import { db } from "@/db";
 import { garminWebhookEvents, users } from "@/db/schema";
@@ -380,6 +381,14 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          <div className="mb-4 flex flex-wrap items-center gap-3">
+            <Button asChild variant="outline" size="sm">
+              <Link href="/pricing">Choisir un abonnement</Link>
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              Les quotas mensuels se remettent à zéro le 1<sup>er</sup> de chaque mois.
+            </p>
+          </div>
           <div className="grid gap-6 sm:grid-cols-2">
             <div className="rounded-2xl border border-white/10 bg-background/50 p-4">
               <p className="text-sm text-muted-foreground">Générations IA</p>
