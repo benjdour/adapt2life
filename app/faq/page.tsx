@@ -96,7 +96,7 @@ const faqItems = [
   {
     question: "Que se passe-t-il si la conversion Garmin échoue ?",
     answer:
-      "Tu es informé immédiatement. Nous indiquons la raison (données incomplètes, services Garmin indisponibles…) et tu peux regénérer ou envoyer le plan plus tard.",
+      "Tu es informé immédiatement, sans impact sur ton quota : nous rétablissons automatiquement ton crédit si la conversion échoue (données incomplètes, services Garmin indisponibles…). Tu peux regénérer ou envoyer le plan plus tard.",
   },
   {
     question: "Adapt2Life fonctionne-t-il hors connexion ?",
