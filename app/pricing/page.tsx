@@ -27,23 +27,23 @@ const PLAN_PRICING: Record<
 
 const PLAN_CTA: Record<(typeof PUBLIC_PLAN_ORDER)[number], { label: string; href: string }> = {
   free: { label: "Commencer maintenant", href: "/handler/sign-in?redirect=/generateur-entrainement" },
-  paid_light: { label: "Passer au plan Paid Light", href: "/contact" },
-  paid: { label: "Passer au plan Paid", href: "/contact" },
-  paid_full: { label: "Passer au plan Paid Full", href: "/contact" },
+  paid_light: { label: "Passer au plan Momentum", href: "/contact" },
+  paid: { label: "Passer au plan Peak", href: "/contact" },
+  paid_full: { label: "Passer au plan Elite", href: "/contact" },
 };
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://adapt2life.app";
 
 export const metadata: Metadata = {
   title: "Tarifs Adapt2Life",
-  description: "Compare les plans Adapt2Life et choisis le volume de générations et de conversions adapté à ta pratique.",
+  description: "Compare les plans Starter, Momentum, Peak et Elite pour choisir le volume de générations et conversions adapté à ta pratique.",
   alternates: {
     canonical: `${siteUrl}/pricing`,
   },
   openGraph: {
     url: `${siteUrl}/pricing`,
     title: "Tarifs Adapt2Life",
-    description: "Découvre les offres Free, Paid Light, Paid et Paid Full : quotas mensuels et annuels pour adapter ton entraînement.",
+    description: "Découvre les offres Starter, Momentum, Peak et Elite : quotas mensuels et annuels pour adapter ton entraînement.",
     type: "website",
   },
 };
