@@ -1,9 +1,13 @@
 import type { Metadata } from "next";
+import { eq } from "drizzle-orm";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { USER_PLAN_CATALOG } from "@/lib/constants/userPlans";
+import { db } from "@/db";
+import { users } from "@/db/schema";
+import { stackServerApp } from "@/stack/server";
+import { USER_PLAN_CATALOG, type UserPlanId, isUserPlanId } from "@/lib/constants/userPlans";
 
 const PUBLIC_PLAN_ORDER = ["free", "paid_light", "paid", "paid_full"] as const;
 
@@ -32,7 +36,19 @@ export const metadata: Metadata = {
   description: "Compare les plans Adapt2Life et choisis le volume de générations et de conversions adapté à ta pratique.",
 };
 
-export default function PricingPage() {
+export default async function PricingPage() {
+  const stackUser = await stackServerApp.getUser({ or: "return-null", tokenStore: "nextjs-cookie" });
+  let currentPlan: UserPlanId | null = null;
+
+  if (stackUser) {
+    const [record] = await db
+      .select({ planType: users.planType })
+      .from(users)
+      .where(eq(users.stackId, stackUser.id))
+      .limit(1);
+    currentPlan = isUserPlanId(record?.planType) ? record?.planType ?? null : null;
+  }
+
   return (
     <main className="mx-auto flex max-w-5xl flex-col gap-10 px-6 py-12 text-foreground">
       <section className="space-y-4 text-center">
@@ -54,6 +70,8 @@ export default function PricingPage() {
           const plan = USER_PLAN_CATALOG[planId];
           const price = PLAN_PRICING[planId];
           const cta = PLAN_CTA[planId];
+          const isCurrentPlan = Boolean(stackUser && currentPlan === planId);
+          const targetHref = stackUser ? cta.href : "/handler/sign-in?redirect=/pricing";
 
           return (
             <Card key={planId} className="flex flex-col justify-between border-white/10 bg-card/80">
@@ -89,12 +107,20 @@ export default function PricingPage() {
                   )}
                   <li>Accès complet aux workflows Adapt2Life et au support e-mail.</li>
                 </ul>
-                <Button asChild variant={planId === "free" ? "primary" : "outline"}>
-                  <Link href={cta.href}>{cta.label}</Link>
+                <Button
+                  asChild
+                  variant={planId === "free" ? "primary" : "outline"}
+                  disabled={isCurrentPlan}
+                  aria-disabled={isCurrentPlan}
+                >
+                  <Link href={targetHref}>{isCurrentPlan ? "Plan actuel" : cta.label}</Link>
                 </Button>
                 <p className="text-xs text-muted-foreground">
                   Quotas remis à zéro le 1<sup>er</sup> de chaque mois, quelle que soit la formule (mensuelle ou annuelle).
                 </p>
+                {isCurrentPlan ? (
+                  <p className="text-xs font-medium text-primary">Tu disposes déjà de cette formule.</p>
+                ) : null}
               </CardContent>
             </Card>
           );
