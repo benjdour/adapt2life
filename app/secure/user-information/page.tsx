@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { DEFAULT_USER_PLAN, getUserPlanConfig } from "@/lib/constants/userPlans";
+import { ManageSubscriptionButton } from "@/components/profile/ManageSubscriptionButton";
 
 const userSelection = {
   id: users.id,
@@ -31,6 +32,9 @@ const userSelection = {
   trainingGenerationsRemaining: users.trainingGenerationsRemaining,
   garminConversionsRemaining: users.garminConversionsRemaining,
   planType: users.planType,
+  stripeCustomerId: users.stripeCustomerId,
+  stripeSubscriptionId: users.stripeSubscriptionId,
+  stripePlanId: users.stripePlanId,
 };
 
 const GENDER_OPTIONS = [
@@ -316,6 +320,7 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
   const localUser = maybeLocalUser ?? (await ensureLocalUser(stackUser));
 
   const planConfig = getUserPlanConfig(localUser.planType);
+  const canManageSubscription = Boolean(localUser.stripeCustomerId);
   const trainingCap = planConfig.trainingQuota;
   const conversionCap = planConfig.conversionQuota;
   const trainingRemaining =
@@ -385,6 +390,7 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
             <Button asChild variant="outline" size="sm">
               <Link href="/pricing">Choisir un abonnement</Link>
             </Button>
+            <ManageSubscriptionButton canManage={canManageSubscription} />
             <p className="text-xs text-muted-foreground">
               Les quotas mensuels se remettent à zéro le 1<sup>er</sup> de chaque mois.
             </p>
