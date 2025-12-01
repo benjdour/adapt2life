@@ -33,7 +33,7 @@ export default function PricingPage() {
         <p className="text-xs uppercase tracking-[0.4em] text-primary/80">Tarifs Adapt2Life</p>
         <h1 className="text-4xl font-heading leading-tight md:text-5xl">Choisis le volume qui suit ton entraînement</h1>
         <p className="text-base text-muted-foreground md:text-lg">
-          Chaque plan inclut les mêmes fonctionnalités. Seuls les quotas de générations quotidiennes et d’envois Garmin varient.
+          Chaque formule est mensuelle, sans engagement, et les quotas se réinitialisent automatiquement le 1er de chaque mois.
         </p>
         <div className="flex justify-center">
           <Button asChild size="lg">
@@ -80,6 +80,9 @@ export default function PricingPage() {
                 <Button asChild variant={planId === "free" ? "primary" : "outline"}>
                   <Link href={cta.href}>{cta.label}</Link>
                 </Button>
+                <p className="text-xs text-muted-foreground">
+                  Abonnement mensuel, quotas remis à zéro le 1<sup>er</sup> de chaque mois.
+                </p>
               </CardContent>
             </Card>
           );

@@ -56,7 +56,12 @@ const faqItems = [
   {
     question: "Y a-t-il un engagement ou un abonnement long terme ?",
     answer:
-      "Non. Tu peux tester gratuitement et choisir l’offre mensuelle ou annuelle selon ton usage, sans engagement caché.",
+      "Non. Les formules sont mensuelles, résiliables à tout moment, et chaque plan commence avec son quota complet à la date d’abonnement.",
+  },
+  {
+    question: "Quand mes quotas se réinitialisent-ils ?",
+    answer:
+      "Les quotas de générations et de conversions se remettent automatiquement à zéro le 1er de chaque mois, quel que soit ton plan actif.",
   },
   {
     question: "Comment fonctionne la période d’essai ?",
