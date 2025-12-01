@@ -6,7 +6,8 @@ import { db } from "@/db";
 import { users } from "@/db/schema";
 import { stackServerApp } from "@/stack/server";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "", { apiVersion: "2024-06-20" });
+const STRIPE_API_VERSION: Stripe.LatestApiVersion = "2025-11-17.clover";
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "", { apiVersion: STRIPE_API_VERSION });
 
 const resolveOrigin = (request: NextRequest) => {
   const origin = request.headers.get("origin");

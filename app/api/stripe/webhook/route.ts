@@ -17,7 +17,8 @@ const priceToPlan: Record<string, UserPlanId> = {
   [STRIPE_PRICES.ELITE_YEARLY]: "paid_full",
 } as const;
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "", { apiVersion: "2024-06-20" });
+const STRIPE_API_VERSION: Stripe.LatestApiVersion = "2025-11-17.clover";
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "", { apiVersion: STRIPE_API_VERSION });
 
 export async function POST(request: NextRequest) {
   const signature = headers().get("stripe-signature");

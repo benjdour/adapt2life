@@ -14,6 +14,8 @@ const REQUEST_SCHEMA = z.object({
   billingCycle: z.enum(["monthly", "annual"]),
 });
 
+const STRIPE_API_VERSION: Stripe.LatestApiVersion = "2025-11-17.clover";
+
 const PLAN_PRICE_REFERENCE = {
   paid_light: {
     monthly: STRIPE_PRICES.MOMENTUM_MONTHLY,
@@ -41,7 +43,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Stripe est indisponible." }, { status: 500 });
   }
 
-  const stripe = new Stripe(stripeSecret, { apiVersion: "2024-06-20" });
+  const stripe = new Stripe(stripeSecret, { apiVersion: STRIPE_API_VERSION });
 
   const stackUser = await stackServerApp.getUser({ or: "return-null", tokenStore: request });
   if (!stackUser) {
