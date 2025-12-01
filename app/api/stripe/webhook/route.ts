@@ -21,7 +21,8 @@ const STRIPE_API_VERSION: Stripe.LatestApiVersion = "2025-11-17.clover";
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "", { apiVersion: STRIPE_API_VERSION });
 
 export async function POST(request: NextRequest) {
-  const signature = headers().get("stripe-signature");
+  const headerList = await headers();
+  const signature = headerList.get("stripe-signature");
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
   if (!signature || !webhookSecret) {
