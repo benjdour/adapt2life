@@ -22,9 +22,9 @@ const PLAN_PRICING: Record<
 
 const PLAN_CTA: Record<(typeof PUBLIC_PLAN_ORDER)[number], { label: string; href: string }> = {
   free: { label: "Commencer maintenant", href: "/handler/sign-in?redirect=/generateur-entrainement" },
-  paid_light: { label: "Passer au plan Light", href: "/contact" },
+  paid_light: { label: "Passer au plan Paid Light", href: "/contact" },
   paid: { label: "Passer au plan Paid", href: "/contact" },
-  paid_full: { label: "Parler à l’équipe", href: "/contact" },
+  paid_full: { label: "Passer au plan Paid Full", href: "/contact" },
 };
 
 export const metadata: Metadata = {
