@@ -8,6 +8,7 @@ import { db } from "@/db";
 import { users } from "@/db/schema";
 import { stackServerApp } from "@/stack/server";
 import { USER_PLAN_CATALOG, type UserPlanId, isUserPlanId } from "@/lib/constants/userPlans";
+import { PlanCheckoutButtons } from "@/components/pricing/PlanCheckoutButtons";
 
 const PUBLIC_PLAN_ORDER = ["free", "paid_light", "paid", "paid_full"] as const;
 
@@ -23,13 +24,6 @@ const PLAN_PRICING: Record<
   paid_light: { monthly: "5,99 $/mois", annual: "59,99 $/an", monthlyValue: "5.99" },
   paid: { monthly: "9,99 $/mois", annual: "99,99 $/an", monthlyValue: "9.99" },
   paid_full: { monthly: "14,99 $/mois", annual: "149,99 $/an", monthlyValue: "14.99" },
-};
-
-const PLAN_CTA: Record<(typeof PUBLIC_PLAN_ORDER)[number], { label: string; href: string }> = {
-  free: { label: "Commencer maintenant", href: "/handler/sign-in?redirect=/generateur-entrainement" },
-  paid_light: { label: "Passer au plan Momentum", href: "/contact" },
-  paid: { label: "Passer au plan Peak", href: "/contact" },
-  paid_full: { label: "Passer au plan Elite", href: "/contact" },
 };
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://adapt2life.app";
@@ -107,11 +101,7 @@ export default async function PricingPage() {
         {PUBLIC_PLAN_ORDER.map((planId) => {
           const plan = USER_PLAN_CATALOG[planId];
           const price = PLAN_PRICING[planId];
-          const cta = PLAN_CTA[planId];
           const isCurrentPlan = Boolean(stackUser && currentPlan === planId);
-          const baseHref = stackUser ? cta.href : "/handler/sign-in?redirect=/pricing";
-          const monthlyHref = planId === "free" ? baseHref : `${baseHref}?billing=monthly`;
-          const annualHref = planId === "free" ? baseHref : `${baseHref}?billing=annual`;
 
           return (
             <Card
@@ -157,26 +147,12 @@ export default async function PricingPage() {
                   )}
                   <li>Accès complet aux workflows Adapt2Life et au support e-mail.</li>
                 </ul>
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <Button
-                    asChild
-                    variant="primary"
-                    disabled={isCurrentPlan}
-                    aria-disabled={isCurrentPlan}
-                  >
-                    <Link href={monthlyHref}>{planId === "free" ? cta.label : `Mensuel — ${price.monthly}`}</Link>
-                  </Button>
-                  {planId !== "free" ? (
-                    <Button
-                      asChild
-                      variant="outline"
-                      disabled={isCurrentPlan}
-                      aria-disabled={isCurrentPlan}
-                    >
-                      <Link href={annualHref}>Annuel — {price.annual}</Link>
-                    </Button>
-                  ) : null}
-                </div>
+                <PlanCheckoutButtons
+                  planId={planId}
+                  price={price}
+                  disabled={isCurrentPlan}
+                  isAuthenticated={Boolean(stackUser)}
+                />
                 <p className="text-xs text-muted-foreground">
                   Quotas remis à zéro le 1<sup>er</sup> de chaque mois, quelle que soit la formule (mensuelle ou annuelle).
                 </p>
