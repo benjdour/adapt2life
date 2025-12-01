@@ -86,12 +86,6 @@ export default function PricingPage() {
         })}
       </section>
 
-      <section className="rounded-3xl border border-white/10 bg-background/70 px-6 py-5 text-sm text-muted-foreground">
-        <p>
-          Le plan <strong>Full</strong> (illimité) reste réservé à un groupe de sportifs accompagnés directement par le staff Adapt2Life.
-          Si tu souhaites y accéder, contacte-nous et nous étudierons ta demande.
-        </p>
-      </section>
     </main>
   );
 }
