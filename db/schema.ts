@@ -31,6 +31,9 @@ export const users = pgTable("users", {
   garminConversionsRemaining: integer("garmin_conversions_remaining").notNull().default(5),
   planType: text("plan_type").notNull().default("free"),
   lastQuotaResetAt: timestamp("last_quota_reset_at", { withTimezone: true }),
+  stripeCustomerId: text("stripe_customer_id"),
+  stripeSubscriptionId: text("stripe_subscription_id"),
+  stripePlanId: text("stripe_plan_id"),
 });
 
 export const workouts = pgTable(
