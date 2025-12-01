@@ -1,4 +1,4 @@
-const PLAN_IDS = ["free", "full", "paid", "paid_unlimited"] as const;
+const PLAN_IDS = ["free", "paid_light", "paid", "paid_full", "full"] as const;
 export type UserPlanId = (typeof PLAN_IDS)[number];
 
 export type UserPlanConfig = {
@@ -26,19 +26,26 @@ export const USER_PLAN_CATALOG: Record<UserPlanId, UserPlanConfig> = {
     trainingQuota: null,
     conversionQuota: null,
   },
+  paid_light: {
+    id: "paid_light",
+    label: "Paid Light",
+    description: "50 générations + 15 conversions.",
+    trainingQuota: 50,
+    conversionQuota: 15,
+  },
   paid: {
     id: "paid",
     label: "Paid",
-    description: "70 générations + 35 conversions.",
-    trainingQuota: 70,
+    description: "100 générations + 35 conversions.",
+    trainingQuota: 100,
     conversionQuota: 35,
   },
-  paid_unlimited: {
-    id: "paid_unlimited",
-    label: "Paid Unlimited",
-    description: "300 générations + 100 conversions.",
-    trainingQuota: 300,
-    conversionQuota: 100,
+  paid_full: {
+    id: "paid_full",
+    label: "Paid Full",
+    description: "200 générations + 70 conversions.",
+    trainingQuota: 200,
+    conversionQuota: 70,
   },
 };
 
