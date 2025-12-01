@@ -5,9 +5,8 @@ import { eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import { users } from "@/db/schema";
-import { USER_PLAN_CATALOG, type UserPlanId } from "@/lib/constants/userPlans";
+import { USER_PLAN_CATALOG, getUserPlanConfig, type UserPlanId } from "@/lib/constants/userPlans";
 import { STRIPE_PRICES } from "@/lib/constants/stripe";
-import { getUserPlanConfig } from "@/lib/services/userCredits";
 
 const priceToPlan: Record<string, UserPlanId> = {
   [STRIPE_PRICES.MOMENTUM_MONTHLY]: "paid_light",
