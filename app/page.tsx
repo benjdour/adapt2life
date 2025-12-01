@@ -206,12 +206,6 @@ export default async function Home(props: HomePageProps) {
       href: "/secure/garmin-data",
       buttonLabel: "Voir les données",
     },
-    {
-      title: "Comparer les plans",
-      description: "Choisis le volume de générations et d’envois Garmin adapté à ta pratique.",
-      href: "/pricing",
-      buttonLabel: "Voir les tarifs",
-    },
   ];
 
   if (user) {
