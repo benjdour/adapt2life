@@ -77,7 +77,7 @@ export default function PricingPage() {
                   )}
                   <li>Accès complet aux workflows Adapt2Life et au support e-mail.</li>
                 </ul>
-                <Button asChild variant={planId === "free" ? "default" : "outline"}>
+                <Button asChild variant={planId === "free" ? "primary" : "outline"}>
                   <Link href={cta.href}>{cta.label}</Link>
                 </Button>
               </CardContent>
