@@ -9,6 +9,34 @@ const GARMIN_SUPPORTED_SPORTS = new Set([
   "GENERIC",
 ]);
 
+const SPORT_NAME_MAP: Record<string, string> = {
+  "course a pied": "RUNNING",
+  course: "RUNNING",
+  running: "RUNNING",
+  "footing": "RUNNING",
+  "trail": "RUNNING",
+  velo: "CYCLING",
+  vélo: "CYCLING",
+  cyclisme: "CYCLING",
+  cycling: "CYCLING",
+  natation: "LAP_SWIMMING",
+  swim: "LAP_SWIMMING",
+  swimming: "LAP_SWIMMING",
+  "musculation": "STRENGTH_TRAINING",
+  "renforcement musculaire": "STRENGTH_TRAINING",
+  renforcement: "STRENGTH_TRAINING",
+  "strength": "STRENGTH_TRAINING",
+  "cardio training": "CARDIO_TRAINING",
+  cardio: "CARDIO_TRAINING",
+  hit: "CARDIO_TRAINING",
+  hiit: "CARDIO_TRAINING",
+  rameur: "CARDIO_TRAINING",
+  spinning: "CYCLING",
+  "velo elliptique": "CARDIO_TRAINING",
+  "vélo elliptique": "CARDIO_TRAINING",
+  "rower": "CARDIO_TRAINING",
+};
+
 const RAW_UNSUPPORTED_KEYWORDS = [
   { keyword: "yoga", label: "une séance de yoga" },
   { keyword: "pilates", label: "une séance de pilates" },
@@ -33,7 +61,28 @@ const UNSUPPORTED_KEYWORDS = RAW_UNSUPPORTED_KEYWORDS.map((entry) => ({
   normalized: removeDiacritics(entry.keyword).toLowerCase(),
 }));
 
-export const evaluatePlanCompatibility = (text: string | null | undefined) => {
+export const detectPlanSport = (plan: string | null | undefined) => {
+  if (!plan) {
+    return { label: null as string | null, garminSportId: null as string | null };
+  }
+  const match = plan.match(/^\s*Sport\s*:\s*(.+)$/im);
+  if (!match) {
+    return { label: null, garminSportId: null };
+  }
+  const label = match[1].trim();
+  const normalized = removeDiacritics(label).toLowerCase();
+  const garminSportId = SPORT_NAME_MAP[normalized] ?? null;
+  return { label, garminSportId };
+};
+
+export const evaluatePlanCompatibility = (text: string | null | undefined, detectedSportId?: string | null) => {
+  if (detectedSportId) {
+    if (GARMIN_SUPPORTED_SPORTS.has(detectedSportId.toUpperCase())) {
+      return { isCompatible: true, blocker: null as string | null };
+    }
+    return { isCompatible: false, blocker: "Le sport de cette séance n’est pas pris en charge par Garmin Training." };
+  }
+
   if (!text) {
     return { isCompatible: true, blocker: null as string | null };
   }
@@ -42,6 +91,7 @@ export const evaluatePlanCompatibility = (text: string | null | undefined) => {
   if (blocker) {
     return { isCompatible: false, blocker: blocker.label };
   }
+
   return { isCompatible: true, blocker: null };
 };
 
