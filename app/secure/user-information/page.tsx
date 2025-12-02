@@ -328,7 +328,9 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
       : localUser.planDowngradeAt
         ? new Date(localUser.planDowngradeAt)
         : null;
-  const hasScheduledDowngrade = Boolean(planDowngradeAtDate) && (planDowngradeAtDate?.getTime() ?? 0) > Date.now();
+  const nowIso = new Date().toISOString();
+  const hasScheduledDowngrade =
+    Boolean(planDowngradeAtDate) && planDowngradeAtDate && planDowngradeAtDate.toISOString() > nowIso;
   const planDowngradeLabel = planDowngradeAtDate
     ? new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric" }).format(planDowngradeAtDate)
     : null;
