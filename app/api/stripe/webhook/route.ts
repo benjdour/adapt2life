@@ -1,12 +1,17 @@
 import { headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
-import Stripe from "stripe";
 import { eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { USER_PLAN_CATALOG, getUserPlanConfig, type UserPlanId } from "@/lib/constants/userPlans";
 import { STRIPE_PRICES } from "@/lib/constants/stripe";
+
+const getStripeClient = async () => {
+  const Stripe = (await import("stripe")).default;
+  const STRIPE_API_VERSION: Stripe.LatestApiVersion = "2025-11-17.clover";
+  return new Stripe(process.env.STRIPE_SECRET_KEY ?? "", { apiVersion: STRIPE_API_VERSION });
+};
 
 const priceToPlan: Record<string, UserPlanId> = {
   [STRIPE_PRICES.MOMENTUM_MONTHLY]: "paid_light",
@@ -17,10 +22,8 @@ const priceToPlan: Record<string, UserPlanId> = {
   [STRIPE_PRICES.ELITE_YEARLY]: "paid_full",
 } as const;
 
-const STRIPE_API_VERSION: Stripe.LatestApiVersion = "2025-11-17.clover";
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "", { apiVersion: STRIPE_API_VERSION });
-
 export async function POST(request: NextRequest) {
+  const stripe = await getStripeClient();
   const headerList = await headers();
   const signature = headerList.get("stripe-signature");
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
