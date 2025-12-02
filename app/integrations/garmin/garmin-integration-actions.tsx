@@ -52,6 +52,20 @@ const statusMessages: Record<string, { title: string; description?: string }> = 
   },
 };
 
+const obfuscateGarminUserId = (value?: string | null): string | undefined => {
+  if (!value) {
+    return undefined;
+  }
+  const trimmed = value.trim();
+  if (trimmed.length <= 4) {
+    return "****";
+  }
+  const prefix = trimmed.slice(0, 4);
+  const suffix = trimmed.slice(-4);
+  const maskLength = Math.max(trimmed.length - 8, 3);
+  return `${prefix}${"*".repeat(maskLength)}${suffix}`;
+};
+
 export function GarminIntegrationActions({
   isConnected,
   garminUserId,
@@ -62,6 +76,7 @@ export function GarminIntegrationActions({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [isDisconnecting, startDisconnect] = useTransition();
+  const maskedGarminUserId = useMemo(() => obfuscateGarminUserId(garminUserId), [garminUserId]);
 
   useEffect(() => {
     if (!status) return;
@@ -69,15 +84,15 @@ export function GarminIntegrationActions({
     if (status === "success") {
       if (reason === "already_connected") {
         toast.info("Garmin déjà connecté.", {
-          description: garminUserId ? `userId: ${garminUserId}` : undefined,
+          description: maskedGarminUserId ? `userId: ${maskedGarminUserId}` : undefined,
         });
       } else if (reason === "reassigned") {
         toast.success("Garmin relié à ce compte.", {
-          description: garminUserId ? `userId: ${garminUserId}` : undefined,
+          description: maskedGarminUserId ? `userId: ${maskedGarminUserId}` : undefined,
         });
       } else {
         toast.success("Garmin connecté !", {
-          description: garminUserId ? `userId: ${garminUserId}` : undefined,
+          description: maskedGarminUserId ? `userId: ${maskedGarminUserId}` : undefined,
         });
       }
     } else {
@@ -92,7 +107,7 @@ export function GarminIntegrationActions({
     }, 1500);
 
     return () => clearTimeout(timeout);
-  }, [garminUserId, reason, router, status]);
+  }, [maskedGarminUserId, reason, router, status]);
 
   const nextActionLabel = useMemo(() => {
     if (isConnected) {
@@ -155,9 +170,9 @@ export function GarminIntegrationActions({
           >
             Déconnecter Garmin
           </Button>
-          {garminUserId ? (
+          {maskedGarminUserId ? (
             <span className="inline-flex flex-1 items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-mono text-muted-foreground">
-              userId&nbsp;: {garminUserId}
+              userId&nbsp;: {maskedGarminUserId}
             </span>
           ) : null}
         </div>
