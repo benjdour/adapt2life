@@ -25,13 +25,10 @@ export const getStackServerApp = (): StackServerAppInstance => {
   return stackServerAppInstance;
 };
 
-export const stackServerApp = new Proxy({} as StackServerAppInstance, {
-  get(_target, property, receiver) {
-    const instance = getStackServerApp();
-    const value = Reflect.get(instance as Record<PropertyKey, unknown>, property, receiver);
-    if (typeof value === "function") {
-      return value.bind(instance);
-    }
-    return value;
-  },
-});
+export const stackServerApp = {
+  getUser: (...args: Parameters<StackServerAppInstance["getUser"]>) => getStackServerApp().getUser(...args),
+  useUser: (...args: Parameters<StackServerAppInstance["useUser"]>) => getStackServerApp().useUser(...args),
+  createTeam: (...args: Parameters<StackServerAppInstance["createTeam"]>) => getStackServerApp().createTeam(...args),
+  createUser: (...args: Parameters<StackServerAppInstance["createUser"]>) => getStackServerApp().createUser(...args),
+  grantProduct: (...args: Parameters<StackServerAppInstance["grantProduct"]>) => getStackServerApp().grantProduct(...args),
+};
