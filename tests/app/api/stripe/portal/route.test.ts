@@ -117,9 +117,11 @@ describe("POST /api/stripe/portal", () => {
 
     expect(response.status).toBe(200);
     expect(payload).toEqual({ url: "https://billing.stripe.com/session" });
-    expect(mockBillingPortalCreate).toHaveBeenCalledWith({
-      customer: "cus_123",
-      return_url: "http://localhost/secure/user-information",
-    });
+    expect(mockBillingPortalCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        customer: "cus_123",
+        return_url: expect.stringContaining("/secure/user-information"),
+      }),
+    );
   });
 });

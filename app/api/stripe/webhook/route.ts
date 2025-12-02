@@ -1,4 +1,3 @@
-import { headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import type Stripe from "stripe";
@@ -26,8 +25,7 @@ const priceToPlan: Record<string, UserPlanId> = {
 
 export async function POST(request: NextRequest) {
   const stripe = await getStripeClient();
-  const headerList = await headers();
-  const signature = headerList.get("stripe-signature");
+  const signature = request.headers.get("stripe-signature");
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
   if (!signature || !webhookSecret) {

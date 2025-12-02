@@ -15,12 +15,13 @@ const getStripeClient = async () => {
 };
 
 const resolveOrigin = (request: NextRequest) => {
-  const origin = request.headers.get("origin");
-  if (origin) {
-    return origin;
+  const originHeader = request.headers.get("origin");
+  if (originHeader) {
+    return originHeader;
   }
-  const proto = request.headers.get("x-forwarded-proto") ?? "https";
-  const host = request.headers.get("host") ?? process.env.APP_URL ?? "http://localhost:3000";
+  const url = new URL(request.url);
+  const proto = request.headers.get("x-forwarded-proto") ?? url.protocol.replace(":", "");
+  const host = request.headers.get("host") ?? url.host ?? process.env.APP_URL ?? "localhost:3000";
   return `${proto}://${host}`;
 };
 
