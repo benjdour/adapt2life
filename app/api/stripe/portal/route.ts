@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import Stripe from "stripe";
 import { eq } from "drizzle-orm";
 
 import { db } from "@/db";
@@ -9,8 +8,11 @@ const getStackServerApp = async () => {
   return stackServerApp;
 };
 
-const STRIPE_API_VERSION: Stripe.LatestApiVersion = "2025-11-17.clover";
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "", { apiVersion: STRIPE_API_VERSION });
+const STRIPE_API_VERSION = "2025-11-17.clover" as const;
+const getStripeClient = async () => {
+  const Stripe = (await import("stripe")).default;
+  return new Stripe(process.env.STRIPE_SECRET_KEY ?? "", { apiVersion: STRIPE_API_VERSION });
+};
 
 const resolveOrigin = (request: NextRequest) => {
   const origin = request.headers.get("origin");
@@ -44,6 +46,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const stripe = await getStripeClient();
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: localUser.stripeCustomerId,
       return_url: `${resolveOrigin(request)}/secure/user-information`,
