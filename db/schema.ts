@@ -34,6 +34,7 @@ export const users = pgTable("users", {
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
   stripePlanId: text("stripe_plan_id"),
+  planDowngradeAt: timestamp("plan_downgrade_at", { withTimezone: true }),
 });
 
 export const workouts = pgTable(

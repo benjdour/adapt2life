@@ -4,7 +4,7 @@ import type Stripe from "stripe";
 
 import { db } from "@/db";
 import { users } from "@/db/schema";
-import { USER_PLAN_CATALOG, getUserPlanConfig, type UserPlanId } from "@/lib/constants/userPlans";
+import { USER_PLAN_CATALOG, DEFAULT_USER_PLAN, getUserPlanConfig, type UserPlanId } from "@/lib/constants/userPlans";
 import { STRIPE_PRICES } from "@/lib/constants/stripe";
 
 const STRIPE_API_VERSION = "2025-11-17.clover" as const;
@@ -12,6 +12,11 @@ const STRIPE_API_VERSION = "2025-11-17.clover" as const;
 const getStripeClient = async () => {
   const Stripe = (await import("stripe")).default;
   return new Stripe(process.env.STRIPE_SECRET_KEY ?? "", { apiVersion: STRIPE_API_VERSION });
+};
+
+const getNextQuotaResetDate = () => {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
 };
 
 const priceToPlan: Record<string, UserPlanId> = {
@@ -73,6 +78,7 @@ const handleCheckoutSession = async (session: Stripe.Checkout.Session) => {
     stripeCustomerId,
     stripeSubscriptionId,
     stripePlanId: planId,
+    planDowngradeAt: null,
   };
 
   if (planId) {
@@ -106,6 +112,7 @@ const handleSubscriptionUpdate = async (subscription: Stripe.Subscription) => {
   const update: Partial<typeof users.$inferInsert> = {
     stripeSubscriptionId: subscription.id,
     stripePlanId: planId,
+    planDowngradeAt: subscription.cancel_at_period_end ? getNextQuotaResetDate() : null,
   };
 
   if (planId) {
@@ -121,9 +128,27 @@ const handleSubscriptionDeletion = async (subscription: Stripe.Subscription) => 
     return;
   }
 
+  if (subscription.cancel_at_period_end) {
+    await db
+      .update(users)
+      .set({
+        planDowngradeAt: getNextQuotaResetDate(),
+      })
+      .where(eq(users.stripeCustomerId, customerId));
+    return;
+  }
+
+  const starterPlan = getUserPlanConfig(DEFAULT_USER_PLAN);
   await db
     .update(users)
-    .set({ stripeSubscriptionId: null, stripePlanId: null, planType: "free" })
+    .set({
+      stripeSubscriptionId: null,
+      stripePlanId: null,
+      planType: DEFAULT_USER_PLAN,
+      planDowngradeAt: null,
+      trainingGenerationsRemaining: starterPlan.trainingQuota ?? 0,
+      garminConversionsRemaining: starterPlan.conversionQuota ?? 0,
+    })
     .where(eq(users.stripeCustomerId, customerId));
 };
 

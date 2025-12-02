@@ -39,6 +39,7 @@ vi.mock("drizzle-orm", () => ({
 vi.mock("server-only", () => ({}));
 
 const { POST } = await import("@/app/api/stripe/webhook/route");
+const FIXED_NOW = new Date("2025-01-15T10:00:00.000Z");
 
 const createNextRequest = (url: string, init?: RequestInit): NextRequest => {
   const request = new Request(url, init);
@@ -63,6 +64,8 @@ describe("POST /api/stripe/webhook", () => {
   const originalEnv = { ...process.env };
 
   beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(FIXED_NOW);
     vi.clearAllMocks();
     updateBuilder.set.mockClear();
     updateBuilder.where.mockClear();
@@ -72,6 +75,7 @@ describe("POST /api/stripe/webhook", () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     process.env = { ...originalEnv };
   });
 
@@ -125,14 +129,15 @@ describe("POST /api/stripe/webhook", () => {
         stripeCustomerId: "cus_123",
         stripeSubscriptionId: "sub_123",
         planType: "paid_light",
+        planDowngradeAt: null,
       }),
     );
   });
 
-  it("handles customer.subscription.deleted events", async () => {
+  it("handles customer.subscription.deleted events immediately", async () => {
     mockConstructEvent.mockReturnValueOnce({
       type: "customer.subscription.deleted",
-      data: { object: { customer: "cus_123" } },
+      data: { object: { customer: "cus_123", cancel_at_period_end: false } },
     });
 
     const response = await POST(makeRequest("{}"));
@@ -143,6 +148,23 @@ describe("POST /api/stripe/webhook", () => {
         stripeSubscriptionId: null,
         stripePlanId: null,
         planType: "free",
+        planDowngradeAt: null,
+      }),
+    );
+  });
+
+  it("schedules downgrade when deletion occurs at period end", async () => {
+    mockConstructEvent.mockReturnValueOnce({
+      type: "customer.subscription.deleted",
+      data: { object: { customer: "cus_123", cancel_at_period_end: true } },
+    });
+
+    const response = await POST(makeRequest("{}"));
+
+    expect(response.status).toBe(200);
+    expect(updateBuilder.set).toHaveBeenCalledWith(
+      expect.objectContaining({
+        planDowngradeAt: new Date(Date.UTC(2025, 1, 1)),
       }),
     );
   });

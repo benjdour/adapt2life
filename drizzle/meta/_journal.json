@@ -134,6 +134,13 @@
       "when": 1764627224583,
       "tag": "0018_stripe_subscription_tracking",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1764700000000,
+      "tag": "0019_plan_downgrade",
+      "breakpoints": true
     }
   ]
 }

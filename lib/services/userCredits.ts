@@ -116,13 +116,34 @@ export const resetMonthlyQuotas = async () => {
   const currentMonthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
 
   const targets = await db
-    .select({ id: users.id, planType: users.planType })
+    .select({ id: users.id, planType: users.planType, planDowngradeAt: users.planDowngradeAt })
     .from(users)
     .where(or(isNull(users.lastQuotaResetAt), lt(users.lastQuotaResetAt, currentMonthStart)));
 
   let updated = 0;
 
   for (const target of targets) {
+    const planDowngradeDate =
+      target.planDowngradeAt instanceof Date ? target.planDowngradeAt : target.planDowngradeAt ? new Date(target.planDowngradeAt) : null;
+
+    if (planDowngradeDate && now >= planDowngradeDate) {
+      const starterPlan = getUserPlanConfig(DEFAULT_USER_PLAN);
+      await db
+        .update(users)
+        .set({
+          lastQuotaResetAt: now,
+          planDowngradeAt: null,
+          planType: DEFAULT_USER_PLAN,
+          stripePlanId: null,
+          stripeSubscriptionId: null,
+          trainingGenerationsRemaining: starterPlan.trainingQuota ?? 0,
+          garminConversionsRemaining: starterPlan.conversionQuota ?? 0,
+        })
+        .where(eq(users.id, target.id));
+      updated += 1;
+      continue;
+    }
+
     const planType = isUserPlanId(target.planType) ? target.planType : DEFAULT_USER_PLAN;
     const plan = getUserPlanConfig(planType);
     const updateValues: Partial<typeof users.$inferInsert> = {

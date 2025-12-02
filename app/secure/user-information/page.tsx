@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { DEFAULT_USER_PLAN, getUserPlanConfig } from "@/lib/constants/userPlans";
 import { ManageSubscriptionButton } from "@/components/profile/ManageSubscriptionButton";
+import { PlanDowngradeToast } from "@/components/profile/PlanDowngradeToast";
 
 const userSelection = {
   id: users.id,
@@ -35,6 +36,7 @@ const userSelection = {
   stripeCustomerId: users.stripeCustomerId,
   stripeSubscriptionId: users.stripeSubscriptionId,
   stripePlanId: users.stripePlanId,
+  planDowngradeAt: users.planDowngradeAt,
 };
 
 const GENDER_OPTIONS = [
@@ -320,6 +322,16 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
   const localUser = maybeLocalUser ?? (await ensureLocalUser(stackUser));
 
   const planConfig = getUserPlanConfig(localUser.planType);
+  const planDowngradeAtDate =
+    localUser.planDowngradeAt instanceof Date
+      ? localUser.planDowngradeAt
+      : localUser.planDowngradeAt
+        ? new Date(localUser.planDowngradeAt)
+        : null;
+  const hasScheduledDowngrade = Boolean(planDowngradeAtDate) && planDowngradeAtDate.getTime() > Date.now();
+  const planDowngradeLabel = planDowngradeAtDate
+    ? new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric" }).format(planDowngradeAtDate)
+    : null;
   const isStarterPlan = planConfig.id === "free";
   const canManageSubscription = Boolean(localUser.stripeCustomerId);
   const trainingCap = planConfig.trainingQuota;
@@ -366,6 +378,7 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
 
   return (
     <div className="mx-auto flex min-h-screen max-w-5xl flex-col gap-8 px-6 py-12 text-foreground">
+      <PlanDowngradeToast downgradeAt={planDowngradeAtDate ? planDowngradeAtDate.toISOString() : null} />
       <Card>
         <CardHeader>
           <p className="text-xs uppercase tracking-wide text-primary/80">Compte</p>
@@ -387,6 +400,12 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {hasScheduledDowngrade && planDowngradeLabel ? (
+            <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-xs text-amber-200">
+              Ton abonnement restera actif jusqu’au {planDowngradeLabel}. Tu repasseras automatiquement sur Starter lors de la prochaine
+              remise à zéro des quotas.
+            </div>
+          ) : null}
           <div className="mb-4 flex flex-wrap items-center gap-3">
             <Button asChild variant="outline" size="sm">
               <Link href="/pricing">Choisir un abonnement</Link>
