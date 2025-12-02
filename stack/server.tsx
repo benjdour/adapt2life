@@ -1,9 +1,9 @@
 import "server-only";
 
-import { StackServerApp as StackServerAppCtor } from "@stackframe/stack";
+import { StackServerApp as StackServerAppCtor, type StackServerApp } from "@stackframe/stack";
 import { getStackClientApp } from "./client";
 
-type StackServerAppInstance = InstanceType<typeof StackServerAppCtor>;
+type StackServerAppInstance = StackServerApp<true, string>;
 
 let stackServerAppInstance: StackServerAppInstance | null = null;
 
@@ -15,7 +15,7 @@ const createStackServerApp = (): StackServerAppInstance => {
   return new StackServerAppCtor({
     inheritsFrom: getStackClientApp(),
     secretServerKey,
-  });
+  }) as StackServerAppInstance;
 };
 
 export const getStackServerApp = (): StackServerAppInstance => {

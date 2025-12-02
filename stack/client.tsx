@@ -1,6 +1,6 @@
-import { StackClientApp as StackClientAppCtor } from "@stackframe/stack";
+import { StackClientApp as StackClientAppCtor, type StackClientApp } from "@stackframe/stack";
 
-type StackClientAppInstance = InstanceType<typeof StackClientAppCtor>;
+type StackClientAppInstance = StackClientApp<true, string>;
 
 let stackClientAppInstance: StackClientAppInstance | null = null;
 
@@ -18,7 +18,7 @@ const createStackClientApp = (): StackClientAppInstance => {
     tokenStore: "nextjs-cookie",
     projectId,
     publishableClientKey,
-  });
+  }) as StackClientAppInstance;
 };
 
 export const getStackClientApp = (): StackClientAppInstance => {
