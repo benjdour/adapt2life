@@ -1,11 +1,9 @@
 import type { Metadata } from "next";
-import { StackProvider, StackTheme } from "@stackframe/stack";
+import { StackTheme } from "@stackframe/stack";
 import { Inter, Orbitron, Poppins } from "next/font/google";
 import Script from "next/script";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
-
-import dynamic from "next/dynamic";
 import { getStackClientApp } from "@/stack/client";
 import { stackServerApp } from "@/stack/server";
 import "./globals.css";
@@ -13,6 +11,7 @@ import { UiToaster } from "@/components/ui/ui-toaster";
 import { TopNav } from "@/components/TopNav";
 import { Footer } from "@/components/Footer";
 import { canAccessAdminArea } from "@/lib/accessControl";
+import { ClientStackProvider } from "@/components/stack/ClientStackProvider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -101,16 +100,6 @@ export const metadata: Metadata = {
   },
 };
 
-const StackProviderNoSSR = dynamic(
-  async () => {
-    const { StackProvider: ImportedStackProvider } = await import("@stackframe/stack");
-    return function StackProviderWrapper(props: React.ComponentProps<typeof ImportedStackProvider>) {
-      return <ImportedStackProvider {...props} />;
-    };
-  },
-  { ssr: false },
-);
-
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -142,7 +131,7 @@ export default async function RootLayout({
             style={{ display: "none", visibility: "hidden" }}
           />
         </noscript>
-        <StackProviderNoSSR app={stackApp}>
+        <ClientStackProvider app={stackApp}>
           <StackTheme>
             <div className="flex min-h-screen flex-col">
               <TopNav isAuthenticated={Boolean(user)} showAdminLink={canAccessAdminArea(user?.id)} />
@@ -160,7 +149,7 @@ export default async function RootLayout({
               }}
             />
           </StackTheme>
-        </StackProviderNoSSR>
+        </ClientStackProvider>
       </body>
     </html>
   );
