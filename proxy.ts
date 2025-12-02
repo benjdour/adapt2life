@@ -11,6 +11,9 @@ type RoutePolicy = {
 
 const stackMiddlewareApp = new StackServerApp({
   tokenStore: "nextjs-cookie",
+  projectId: process.env.NEXT_PUBLIC_STACK_PROJECT_ID,
+  secretServerKey: process.env.STACK_SECRET_SERVER_KEY,
+  publishableClientKey: process.env.NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY,
 });
 
 const PROTECTED_ROUTE_POLICIES: RoutePolicy[] = [
