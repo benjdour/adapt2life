@@ -195,9 +195,11 @@ export default async function PricingPage({ searchParams }: PageProps) {
                   disabled={isCurrentPlan}
                   isAuthenticated={Boolean(stackUser)}
                 />
-                <p className="text-xs text-muted-foreground">
-                  Quotas remis à zéro le 1<sup>er</sup> de chaque mois, quelle que soit la formule (mensuelle ou annuelle).
-                </p>
+                {planId === "free" ? null : (
+                  <p className="text-xs text-muted-foreground">
+                    Quotas remis à zéro le 1<sup>er</sup> de chaque mois, quelle que soit la formule (mensuelle ou annuelle).
+                  </p>
+                )}
                 {isCurrentPlan ? (
                   <p className="text-xs font-medium text-primary">Tu disposes déjà de cette formule.</p>
                 ) : null}
