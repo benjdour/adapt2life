@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import { users } from "@/db/schema";
-import { stackServerApp } from "@/stack/server";
+import { getStackServerApp } from "@/stack/server";
 
 const STRIPE_API_VERSION: Stripe.LatestApiVersion = "2025-11-17.clover";
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "", { apiVersion: STRIPE_API_VERSION });
@@ -24,6 +24,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Stripe est indisponible." }, { status: 500 });
   }
 
+  const stackServerApp = getStackServerApp();
   const stackUser = await stackServerApp.getUser({ or: "return-null", tokenStore: request });
   if (!stackUser) {
     return NextResponse.json({ error: "Authentification requise." }, { status: 401 });
