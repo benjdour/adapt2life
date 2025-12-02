@@ -577,19 +577,19 @@ export async function POST(request: NextRequest) {
     hasLocalUser: Boolean(ownerContext.localUserId),
   });
 
+  const promptTemplate = await loadPromptTemplate();
+  if (!promptTemplate) {
+    return NextResponse.json(
+      {
+        error:
+          "Prompt Garmin introuvable. Ajoute la variable d’environnement GARMIN_TRAINER_PROMPT ou place un fichier docs/garmin_trainer_prompt.txt sur le serveur.",
+      },
+      { status: 500 },
+    );
+  }
+
   let conversionCreditLocked = false;
   try {
-    const promptTemplate = await loadPromptTemplate();
-    if (!promptTemplate) {
-      return NextResponse.json(
-        {
-          error:
-            "Prompt Garmin introuvable. Ajoute la variable d’environnement GARMIN_TRAINER_PROMPT ou place un fichier docs/garmin_trainer_prompt.txt sur le serveur.",
-        },
-        { status: 500 },
-      );
-    }
-
     const creditReservation = await reserveGarminConversionCredit(localUserId);
     if (!creditReservation) {
       return NextResponse.json(
@@ -607,17 +607,17 @@ export async function POST(request: NextRequest) {
     const modelCandidates = await getAiModelCandidates("garmin-trainer");
     const systemPrompt = process.env.GARMIN_TRAINER_SYSTEM_PROMPT ?? FALLBACK_SYSTEM_PROMPT;
 
-    const inferredOrigin =
-      request.headers.get("origin") ??
-      request.headers.get("referer") ??
-      `${request.headers.get("x-forwarded-proto") ?? "https"}://${request.headers.get("host") ?? "localhost"}`;
-    const referer = process.env.APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? inferredOrigin ?? "http://localhost:3000";
+  const inferredOrigin =
+    request.headers.get("origin") ??
+    request.headers.get("referer") ??
+    `${request.headers.get("x-forwarded-proto") ?? "https"}://${request.headers.get("host") ?? "localhost"}`;
+  const referer = process.env.APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? inferredOrigin ?? "http://localhost:3000";
 
-    const sportsForPrompt = inferExerciseSportsFromMarkdown(normalizedExample);
-    const defaultPrompt = [ownerContext.ownerInstruction, buildFinalPrompt(promptTemplate, normalizedExample)].join("\n\n");
-    const hasToolSport = sportsForPrompt.some((sport) => shouldUseExerciseTool(sport));
-    const useExerciseTool = EXERCISE_TOOL_FEATURE_ENABLED && hasToolSport;
-    const needsExerciseCatalog = hasToolSport && !useExerciseTool;
+  const sportsForPrompt = inferExerciseSportsFromMarkdown(normalizedExample);
+  const defaultPrompt = [ownerContext.ownerInstruction, buildFinalPrompt(promptTemplate, normalizedExample)].join("\n\n");
+  const hasToolSport = sportsForPrompt.some((sport) => shouldUseExerciseTool(sport));
+  const useExerciseTool = EXERCISE_TOOL_FEATURE_ENABLED && hasToolSport;
+  const needsExerciseCatalog = hasToolSport && !useExerciseTool;
 
     const { strict: strictClient, classic: classicClient } = getGarminAiClients();
     let rawContent: string | null = null;
@@ -755,11 +755,8 @@ export async function POST(request: NextRequest) {
         }
       }
     }
-
     conversionCreditLocked = false;
-    return NextResponse.json(
-      parsedJson === undefined ? { raw: rawContent } : { trainingJson: parsedJson, raw: rawContent },
-    );
+    return NextResponse.json(parsedJson === undefined ? { raw: rawContent } : { trainingJson: parsedJson, raw: rawContent });
   } finally {
     if (conversionCreditLocked && localUserId) {
       try {
