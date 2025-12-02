@@ -66,8 +66,8 @@ export const downloadPlanPdf = (plan: string, fileName = "plan-adapt2life.pdf") 
     return;
   }
   const pdfBytes = buildPdfBytes(plan);
-  const blobBuffer = pdfBytes.buffer.slice(0, pdfBytes.byteLength);
-  const blob = new Blob([blobBuffer], { type: "application/pdf" });
+  const bufferCopy = new Uint8Array(pdfBytes);
+  const blob = new Blob([bufferCopy], { type: "application/pdf" });
   const url = window.URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
