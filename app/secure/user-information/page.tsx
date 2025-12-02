@@ -367,7 +367,7 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
   return (
     <div className="mx-auto flex min-h-screen max-w-5xl flex-col gap-8 px-6 py-12 text-foreground">
       <Card>
-        <CardHeader>
+        <CardHeader className="border-none pb-0">
           <p className="text-xs uppercase tracking-wide text-primary/80">Compte</p>
           <CardTitle>Informations utilisateur</CardTitle>
           <CardDescription>
