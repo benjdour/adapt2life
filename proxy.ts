@@ -1,20 +1,13 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { StackServerApp } from "@stackframe/stack";
 
 import { enforceRateLimit } from "@/lib/security/rateLimiter";
+import { stackServerApp } from "@/stack/server";
 
 type RoutePolicy = {
   pattern: RegExp;
   allowedRoles?: string[];
 };
-
-const stackMiddlewareApp = new StackServerApp({
-  tokenStore: "nextjs-cookie",
-  projectId: process.env.NEXT_PUBLIC_STACK_PROJECT_ID,
-  secretServerKey: process.env.STACK_SECRET_SERVER_KEY,
-  publishableClientKey: process.env.NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY,
-});
 
 const PROTECTED_ROUTE_POLICIES: RoutePolicy[] = [
   { pattern: /^\/secure(?:\/|$)/ },
@@ -96,7 +89,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const user = await stackMiddlewareApp.getUser({ or: "return-null", tokenStore: request });
+  const user = await stackServerApp.getUser({ or: "return-null", tokenStore: request });
 
   if (!user) {
     if (isApiRoute) {
