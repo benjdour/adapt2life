@@ -3,7 +3,7 @@ import process from "node:process";
 
 const NEXT_PORT = Number.parseInt(process.env.E2E_PORT ?? "3131", 10);
 const HOST = "127.0.0.1";
-const READY_REGEX = /ready - started server on/i;
+const READY_PATTERNS = [/ready -/i, /started server on/i, /local:\s+http/i];
 
 let serverProcess: ChildProcess | null = null;
 
@@ -22,7 +22,8 @@ const waitForReady = (child: ChildProcess) =>
 
     const onData = (data: Buffer) => {
       const text = data.toString();
-      if (READY_REGEX.test(text)) {
+      process.stdout.write(`[next-dev] ${text}`);
+      if (READY_PATTERNS.some((pattern) => pattern.test(text))) {
         clearTimeout(timeout);
         child.stdout?.off("data", onData);
         resolve();
