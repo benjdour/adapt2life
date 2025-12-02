@@ -11,6 +11,8 @@ import { GarminWorkoutPreview } from "@/components/GarminWorkoutPreview";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { downloadPlanPdf } from "@/lib/utils/pdf";
+import { isGarminSportSupported } from "@/lib/utils/garminCompatibility";
 
 type GenerateTrainingResponse = {
   trainingJson?: GarminTrainerWorkout;
@@ -31,6 +33,12 @@ export function GarminTrainerGenerator({ sourcePlan }: GarminTrainerGeneratorPro
   const [pushDetails, setPushDetails] = useState<string | null>(null);
   const [loadingMessage, setLoadingMessage] = useState<string>(TRAINING_LOADING_MESSAGES[0]);
   const [conversionInput, setConversionInput] = useState<string>("");
+  const workoutSupported = useMemo(() => {
+    if (!trainingJson) {
+      return true;
+    }
+    return isGarminSportSupported(trainingJson.sport ?? null);
+  }, [trainingJson]);
 
   useEffect(() => {
     setRawResult(null);
@@ -142,6 +150,16 @@ export function GarminTrainerGenerator({ sourcePlan }: GarminTrainerGeneratorPro
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleDownloadPdf = () => {
+    const trimmed = conversionInput.trim();
+    if (!trimmed) {
+      toast.error("Plan introuvable", { description: "Ajoute ou génère un plan avant de l’exporter." });
+      return;
+    }
+    downloadPlanPdf(trimmed, "plan-garmin.pdf");
+    toast.success("Plan exporté", { description: "Le PDF est prêt dans tes téléchargements." });
   };
 
   const handlePushToGarmin = async () => {
@@ -259,9 +277,20 @@ export function GarminTrainerGenerator({ sourcePlan }: GarminTrainerGeneratorPro
           </CardHeader>
           <CardContent className="space-y-4">
             {trainingJson ? <GarminWorkoutPreview workout={trainingJson} /> : null}
-            <Button type="button" onClick={handlePushToGarmin} disabled={isPushing} className="w-full" isLoading={isPushing}>
-              Envoyer l’entraînement sur Garmin
+            <Button
+              type="button"
+              onClick={workoutSupported ? handlePushToGarmin : handleDownloadPdf}
+              disabled={workoutSupported ? isPushing : false}
+              className="w-full"
+              isLoading={workoutSupported ? isPushing : false}
+            >
+              {workoutSupported ? "Envoyer l’entraînement sur Garmin" : "Télécharger le plan PDF"}
             </Button>
+            {trainingJson && !workoutSupported ? (
+              <p className="text-xs text-muted-foreground">
+                Ce type de sport n’est pas compatible avec l’API Garmin Training. Télécharge le plan pour l’utiliser hors ligne.
+              </p>
+            ) : null}
 
             {pushDetails ? (
               <div className="space-y-2">

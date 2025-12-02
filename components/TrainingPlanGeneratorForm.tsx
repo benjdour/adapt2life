@@ -10,6 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { AppError, describeAppError, getErrorDescriptor } from "@/lib/errors";
+import { downloadPlanPdf } from "@/lib/utils/pdf";
+import { evaluatePlanCompatibility } from "@/lib/utils/garminCompatibility";
 
 export type GeneratedPlanPayload = {
   plan: string;
@@ -37,6 +39,10 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = 
   const [loadingMessage, setLoadingMessage] = useState<string>(TRAINING_LOADING_MESSAGES[0]);
   const [isSending, setIsSending] = useState(false);
   const [sendLoadingMessage, setSendLoadingMessage] = useState<string>(TRAINING_LOADING_MESSAGES[0]);
+  const [planCompatibility, setPlanCompatibility] = useState<{ isCompatible: boolean; blocker: string | null }>({
+    isCompatible: true,
+    blocker: null,
+  });
 
   useEffect(() => {
     if (!isLoading) {
@@ -92,6 +98,7 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = 
     setConversionSource(null);
     setHasSentSuccessfully(false);
     setActiveJobId(null);
+    setPlanCompatibility({ isCompatible: true, blocker: null });
     onPlanGenerated?.(null);
 
     const trimmedPrompt = prompt.trim();
@@ -137,6 +144,8 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = 
       setConversionSource(fallbackRaw.trim());
       setHasSentSuccessfully(false);
       setActiveJobId(null);
+      const compatibility = evaluatePlanCompatibility(`${humanPlan}\n${trimmedPrompt}`);
+      setPlanCompatibility(compatibility);
       onPlanGenerated?.({
         plan: humanPlan,
         rawPlan: fallbackRaw,
@@ -148,12 +157,17 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = 
       const descriptor = describeAppError(submissionError, "training-plan/request-failed");
       toast.error(descriptor.title, { description: descriptor.description });
       onPlanGenerated?.(null);
+      setPlanCompatibility({ isCompatible: true, blocker: null });
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleSendToGarmin = async () => {
+    if (!planCompatibility.isCompatible) {
+      handleDownloadPdf();
+      return;
+    }
     if (!conversionSource) {
       toast.error("Aucun plan à envoyer", {
         description: "Génère d’abord une séance avant de l’envoyer vers Garmin.",
@@ -203,6 +217,15 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = 
     } finally {
       // reste à true jusqu’à résolution du job
     }
+  };
+
+  const handleDownloadPdf = () => {
+    if (!plan) {
+      toast.error("Plan introuvable", { description: "Génère d’abord un entraînement." });
+      return;
+    }
+    downloadPlanPdf(plan, "plan-adapt2life.pdf");
+    toast.success("Plan exporté", { description: "Le PDF est prêt dans tes téléchargements." });
   };
 
   useEffect(() => {
@@ -301,13 +324,25 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = 
             <Button
               type="button"
               className="w-full"
-              onClick={handleSendToGarmin}
-              disabled={isSending || hasSentSuccessfully}
-              isLoading={isSending}
+              onClick={planCompatibility.isCompatible ? handleSendToGarmin : handleDownloadPdf}
+              disabled={planCompatibility.isCompatible ? isSending || hasSentSuccessfully : false}
+              isLoading={planCompatibility.isCompatible ? isSending : false}
               data-gtm="send-garmin"
             >
-              {hasSentSuccessfully ? "Entraînement envoyé" : isSending ? sendLoadingMessage : "Envoyer à Garmin Connect"}
+              {planCompatibility.isCompatible
+                ? hasSentSuccessfully
+                  ? "Entraînement envoyé"
+                  : isSending
+                  ? sendLoadingMessage
+                  : "Envoyer à Garmin Connect"
+                : "Télécharger le plan PDF"}
             </Button>
+            {!planCompatibility.isCompatible ? (
+              <p className="mt-2 text-xs text-muted-foreground">
+                Cet entraînement ({planCompatibility.blocker ?? "type non supporté"}) n’est pas compatible avec Garmin Training.
+                Télécharge le PDF pour le suivre manuellement.
+              </p>
+            ) : null}
               </div>
             ) : null}
           </CardContent>
