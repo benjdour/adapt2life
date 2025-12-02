@@ -15,7 +15,7 @@ export const USER_PLAN_CATALOG: Record<UserPlanId, UserPlanConfig> = {
   free: {
     id: "free",
     label: "Starter",
-    description: "10 générations + 5 conversions offertes.",
+    description: "Pack unique : 10 générations et 5 conversions offertes, sans recharge automatique.",
     trainingQuota: 10,
     conversionQuota: 5,
   },

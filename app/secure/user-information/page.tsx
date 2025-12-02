@@ -320,6 +320,7 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
   const localUser = maybeLocalUser ?? (await ensureLocalUser(stackUser));
 
   const planConfig = getUserPlanConfig(localUser.planType);
+  const isStarterPlan = planConfig.id === "free";
   const canManageSubscription = Boolean(localUser.stripeCustomerId);
   const trainingCap = planConfig.trainingQuota;
   const conversionCap = planConfig.conversionQuota;
@@ -392,7 +393,7 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
             </Button>
             <ManageSubscriptionButton canManage={canManageSubscription} />
             <p className="text-xs text-muted-foreground">
-              Les quotas mensuels se remettent à zéro le 1<sup>er</sup> de chaque mois.
+              {isStarterPlan ? "Crédits Starter utilisables une seule fois — aucune recharge mensuelle." : <>Les quotas mensuels se remettent à zéro le 1<sup>er</sup> de chaque mois.</>}
             </p>
           </div>
           <div className="grid gap-6 sm:grid-cols-2">

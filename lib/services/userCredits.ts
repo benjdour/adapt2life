@@ -128,6 +128,12 @@ export const resetMonthlyQuotas = async () => {
     const updateValues: Partial<typeof users.$inferInsert> = {
       lastQuotaResetAt: now,
     };
+
+    if (plan.id === DEFAULT_USER_PLAN) {
+      await db.update(users).set(updateValues).where(eq(users.id, target.id));
+      continue;
+    }
+
     if (plan.trainingQuota !== null) {
       updateValues.trainingGenerationsRemaining = plan.trainingQuota;
     }

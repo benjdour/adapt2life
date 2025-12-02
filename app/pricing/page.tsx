@@ -91,8 +91,8 @@ export default async function PricingPage({ searchParams }: PageProps) {
         <p className="text-xs uppercase tracking-[0.4em] text-primary/80">Tarifs Adapt2Life</p>
         <h1 className="text-4xl font-heading leading-tight md:text-5xl">Choisis le volume qui suit ton entraînement</h1>
         <p className="text-base text-muted-foreground md:text-lg">
-          Chaque formule existe en version mensuelle ou annuelle (sans engagement), et les quotas se réinitialisent automatiquement le
-          1er de chaque mois.
+          Starter est un pack unique (10 générations + 5 conversions offerts). Les formules Momentum, Peak et Elite existent en version
+          mensuelle ou annuelle (sans engagement) et leurs quotas se réinitialisent automatiquement le 1<sup>er</sup> de chaque mois.
         </p>
         {banner ? (
           <div
@@ -144,6 +144,7 @@ export default async function PricingPage({ searchParams }: PageProps) {
           const plan = USER_PLAN_CATALOG[planId];
           const price = PLAN_PRICING[planId];
           const isCurrentPlan = Boolean(stackUser && currentPlan === planId);
+          const isStarterPlan = planId === "free";
 
           return (
             <Card
@@ -188,6 +189,7 @@ export default async function PricingPage({ searchParams }: PageProps) {
                     <li>Conversions Garmin illimitées</li>
                   )}
                   <li>Accès complet aux workflows Adapt2Life et au support e-mail.</li>
+                  {isStarterPlan ? <li>Crédits offerts une seule fois — aucune recharge mensuelle.</li> : null}
                 </ul>
                 <PlanCheckoutButtons
                   planId={planId}
@@ -195,7 +197,9 @@ export default async function PricingPage({ searchParams }: PageProps) {
                   disabled={isCurrentPlan}
                   isAuthenticated={Boolean(stackUser)}
                 />
-                {planId === "free" ? null : (
+                {isStarterPlan ? (
+                  <p className="text-xs text-muted-foreground">Crédits Starter utilisables une seule fois.</p>
+                ) : (
                   <p className="text-xs text-muted-foreground">
                     Quotas remis à zéro le 1<sup>er</sup> de chaque mois, quelle que soit la formule (mensuelle ou annuelle).
                   </p>
