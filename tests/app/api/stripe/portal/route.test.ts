@@ -56,7 +56,7 @@ const createNextRequest = (url: string, init?: RequestInit): NextRequest => {
       has: () => false,
     },
     ip: undefined,
-    geo: {} as NextRequest["geo"],
+    geo: undefined,
     ua: undefined,
     page: { name: url, params: {} },
     nextConfig: {},
