@@ -8,7 +8,7 @@ import { USER_PLAN_CATALOG, getUserPlanConfig, type UserPlanId } from "@/lib/con
 import { STRIPE_PRICES } from "@/lib/constants/stripe";
 
 type StripeTypes = typeof import("stripe");
-type StripeEvent = StripeTypes["Event"];
+type StripeEvent = InstanceType<StripeTypes["default"]>["events"]["create"]["return_type"];
 
 const STRIPE_API_VERSION = "2025-11-17.clover" as const;
 
