@@ -782,6 +782,38 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
 
   const segments = Array.isArray(clone.segments) ? clone.segments : [];
 
+  const VALID_SEGMENT_SPORTS = new Set([
+    "RUNNING",
+    "CYCLING",
+    "LAP_SWIMMING",
+    "STRENGTH_TRAINING",
+    "CARDIO_TRAINING",
+    "GENERIC",
+    "YOGA",
+    "PILATES",
+    "MULTI_SPORT",
+  ]);
+
+  const normalizeSegmentSport = (value: unknown): string | null => {
+    if (typeof value !== "string") {
+      return null;
+    }
+    const upper = value.trim().toUpperCase().replace(/[^A-Z0-9]+/g, "_");
+    if (VALID_SEGMENT_SPORTS.has(upper)) {
+      return upper;
+    }
+    if (upper === "SWIMMING" || upper === "POOL_SWIMMING") {
+      return "LAP_SWIMMING";
+    }
+    if (upper === "BIKE") {
+      return "CYCLING";
+    }
+    if (upper === "RUN" || upper === "ROAD_RUNNING") {
+      return "RUNNING";
+    }
+    return null;
+  };
+
   const normalizedSegments = segments.map((segment) => {
     if (!segment || typeof segment !== "object") {
       return segment;
@@ -806,9 +838,21 @@ const enforceWorkoutPostProcessing = (workout: Record<string, unknown>): Record<
     if ("workoutSteps" in segmentRecord) {
       delete segmentRecord.workoutSteps;
     }
-    const sportType = typeof segmentRecord.sportType === "string" ? segmentRecord.sportType : null;
+    const sportTypeRaw = typeof segmentRecord.sportType === "string" ? segmentRecord.sportType : null;
+    if ("sportType" in segmentRecord) {
+      delete segmentRecord.sportType;
+    }
 
-    const isSwim = sportType === "swimming" || sportType === "pool_swimming" || segmentRecord.sport === "LAP_SWIMMING";
+    const normalizedSport = normalizeSegmentSport(segmentRecord.sport) ?? normalizeSegmentSport(sportTypeRaw);
+    if (normalizedSport) {
+      segmentRecord.sport = normalizedSport;
+    } else if (segmentRecord.sport && typeof segmentRecord.sport === "string") {
+      delete segmentRecord.sport;
+    }
+
+    const isSwim =
+      (sportTypeRaw ? sportTypeRaw.toLowerCase() === "swimming" || sportTypeRaw.toLowerCase() === "pool_swimming" : false) ||
+      segmentRecord.sport === "LAP_SWIMMING";
     const segmentSport = typeof segmentRecord.sport === "string" ? segmentRecord.sport : null;
     segmentRecord.steps = normalizeSteps(segmentRecord.steps, isSwim, segmentSport);
 
