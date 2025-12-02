@@ -9,14 +9,14 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://adapt2life.app";
 const pageUrl = `${siteUrl}/features/coach-ia-garmin`;
 
 export const metadata: Metadata = {
-  title: "Coach IA Garmin — Guide complet Adapt2Life",
+  title: "Smart Coach — Guide complet Adapt2Life",
   description:
     "Comprends comment Adapt2Life combine l’IA et tes données Garmin pour générer des plans d’entraînement sur-mesure, validés et envoyés sur ta montre.",
   alternates: {
     canonical: pageUrl,
   },
   openGraph: {
-    title: "Coach IA Garmin — Adapt2Life",
+    title: "Smart Coach — Adapt2Life",
     description:
       "Découvre notre approche IA + Garmin : diagnostic quotidien, génération de séances, envoi automatique et suivi de la récupération.",
     url: pageUrl,
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
         url: `${siteUrl}/brand/og-image.jpg`,
         width: 1200,
         height: 630,
-        alt: "Adapt2Life — Coach IA Garmin",
+        alt: "Adapt2Life — Smart Coach",
       },
     ],
   },
@@ -151,7 +151,7 @@ const pageFaq = [
 const jsonLd = {
   "@context": "https://schema.org",
   "@type": "Article",
-  headline: "Coach IA Garmin — Guide complet Adapt2Life",
+  headline: "Smart Coach — Guide complet Adapt2Life",
   description:
     "Comprendre comment Adapt2Life combine l’IA et les données Garmin pour générer des plans d’entraînement personnalisés et envoyés automatiquement sur ta montre.",
   datePublished: "2024-11-01",
@@ -194,7 +194,7 @@ const breadcrumbLd = {
     {
       "@type": "ListItem",
       position: 3,
-      name: "Coach IA Garmin",
+      name: "Smart Coach",
       item: pageUrl,
     },
   ],
@@ -220,7 +220,7 @@ export default function CoachIAGarminPage() {
         <div className="space-y-5">
           <p className="text-xs uppercase tracking-[0.5em] text-primary/80">Présentation complète</p>
           <h1 className="text-4xl font-heading leading-tight md:text-5xl">
-            Coach IA Garmin : la méthode Adapt2Life pour des entraînements toujours alignés sur ta réalité.
+            Smart Coach : la méthode Adapt2Life pour des entraînements toujours alignés sur ta réalité.
           </h1>
           <p className="text-base text-muted-foreground">
             Relie tes données, décris ton contexte et laisse l’IA composer, valider et envoyer tes séances directement sur ton

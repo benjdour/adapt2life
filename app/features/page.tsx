@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
-  title: "Fonctionnalités — Coach IA Garmin & entraînements personnalisés",
+  title: "Fonctionnalités — Smart Coach & entraînements personnalisés",
   description:
     "AI Ultra Coach, synchronisation Garmin Connect, IA adaptative : explorez toutes les fonctionnalités d’Adapt2Life pour des entraînements personnalisés basés sur vos données.",
 };
@@ -121,7 +121,7 @@ export default function FeaturesPage() {
         <p className="text-sm uppercase tracking-[0.3em] text-primary/80">Guide approfondi</p>
         <div className="mt-4 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
           <div className="space-y-3">
-            <h2 className="text-3xl font-heading text-foreground">Coach IA Garmin : tout comprendre en 5 minutes</h2>
+            <h2 className="text-3xl font-heading text-foreground">Smart Coach : tout comprendre en 5 minutes</h2>
             <p className="text-base text-muted-foreground">
               Découvre comment Adapt2Life lit tes données Garmin, génère tes séances et les envoie automatiquement sur ta montre.
             </p>

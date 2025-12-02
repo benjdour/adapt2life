@@ -31,7 +31,7 @@ const buildAuthenticatedLinks = (showAdminLink: boolean) => {
 const guestLinks = [
   { label: "Accueil", href: "/" },
   { label: "Fonctionnalités", href: "/features" },
-  { label: "Coach IA Garmin", href: "/features/coach-ia-garmin" },
+  { label: "Smart Coach", href: "/features/coach-ia-garmin" },
   { label: "Comment ça marche", href: "/how-it-works" },
   { label: "FAQ", href: "/faq" },
   { label: "Contact", href: "/contact" },

@@ -5,7 +5,7 @@ import Link from "next/link";
 const navigationLinks = [
   { label: "Accueil", href: "/" },
   { label: "Fonctionnalités", href: "/features" },
-  { label: "Coach IA Garmin", href: "/features/coach-ia-garmin" },
+  { label: "Smart Coach", href: "/features/coach-ia-garmin" },
   { label: "À propos", href: "/about" },
   { label: "Tarifs", href: "/pricing" },
   { label: "Comment ça marche", href: "/how-it-works" },
