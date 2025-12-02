@@ -7,9 +7,10 @@ import { users } from "@/db/schema";
 import { USER_PLAN_CATALOG, getUserPlanConfig, type UserPlanId } from "@/lib/constants/userPlans";
 import { STRIPE_PRICES } from "@/lib/constants/stripe";
 
+const STRIPE_API_VERSION = "2025-11-17.clover" as const;
+
 const getStripeClient = async () => {
   const Stripe = (await import("stripe")).default;
-  const STRIPE_API_VERSION: Stripe.LatestApiVersion = "2025-11-17.clover";
   return new Stripe(process.env.STRIPE_SECRET_KEY ?? "", { apiVersion: STRIPE_API_VERSION });
 };
 
