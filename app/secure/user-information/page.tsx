@@ -370,7 +370,7 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
         <CardHeader className="border-none pb-2">
           <p className="text-xs uppercase tracking-wide text-primary/80">Compte</p>
           <CardTitle>Informations utilisateur</CardTitle>
-          <CardDescription>
+          <CardDescription className="pb-2">
             Consulte les informations associées à ton profil Adapt2Life et mets-les à jour pour personnaliser tes recommandations.
           </CardDescription>
         </CardHeader>
