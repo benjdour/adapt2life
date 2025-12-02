@@ -5,7 +5,8 @@ import Script from "next/script";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
-import { stackClientApp } from "@/stack/client";
+import dynamic from "next/dynamic";
+import { getStackClientApp } from "@/stack/client";
 import { stackServerApp } from "@/stack/server";
 import "./globals.css";
 import { UiToaster } from "@/components/ui/ui-toaster";
@@ -100,12 +101,23 @@ export const metadata: Metadata = {
   },
 };
 
+const StackProviderNoSSR = dynamic(
+  async () => {
+    const { StackProvider: ImportedStackProvider } = await import("@stackframe/stack");
+    return function StackProviderWrapper(props: React.ComponentProps<typeof ImportedStackProvider>) {
+      return <ImportedStackProvider {...props} />;
+    };
+  },
+  { ssr: false },
+);
+
 export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   const user = await stackServerApp.getUser({ or: "return-null", tokenStore: "nextjs-cookie" });
+  const stackApp = getStackClientApp();
 
   return (
     <html lang="en">
@@ -130,7 +142,7 @@ export default async function RootLayout({
             style={{ display: "none", visibility: "hidden" }}
           />
         </noscript>
-        <StackProvider app={stackClientApp}>
+        <StackProviderNoSSR app={stackApp}>
           <StackTheme>
             <div className="flex min-h-screen flex-col">
               <TopNav isAuthenticated={Boolean(user)} showAdminLink={canAccessAdminArea(user?.id)} />
@@ -148,7 +160,7 @@ export default async function RootLayout({
               }}
             />
           </StackTheme>
-        </StackProvider>
+        </StackProviderNoSSR>
       </body>
     </html>
   );
