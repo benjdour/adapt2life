@@ -1,14 +1,12 @@
 import { headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
+import type Stripe from "stripe";
 
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { USER_PLAN_CATALOG, getUserPlanConfig, type UserPlanId } from "@/lib/constants/userPlans";
 import { STRIPE_PRICES } from "@/lib/constants/stripe";
-
-type StripeTypes = typeof import("stripe");
-type StripeEvent = InstanceType<StripeTypes["default"]>["events"]["create"]["return_type"];
 
 const STRIPE_API_VERSION = "2025-11-17.clover" as const;
 
@@ -36,7 +34,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Configuration Stripe incomplète." }, { status: 400 });
   }
 
-  let event: StripeEvent;
+  let event: Stripe.Event;
   try {
     const payload = await request.text();
     event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
