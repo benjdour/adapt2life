@@ -11,40 +11,73 @@ const GARMIN_SUPPORTED_SPORTS = new Set([
   "PILATES",
 ]);
 
-const SPORT_NAME_MAP: Record<string, string> = {
-  "course a pied": "RUNNING",
-  course: "RUNNING",
-  running: "RUNNING",
-  footing: "RUNNING",
-  trail: "RUNNING",
-  marathon: "RUNNING",
-  triathlon: "MULTI_SPORT",
-  duathlon: "MULTI_SPORT",
-  multisport: "MULTI_SPORT",
-  velo: "CYCLING",
-  vélo: "CYCLING",
-  cyclisme: "CYCLING",
-  cycling: "CYCLING",
-  spinning: "CYCLING",
-  natation: "LAP_SWIMMING",
-  swim: "LAP_SWIMMING",
-  swimming: "LAP_SWIMMING",
-  piscine: "LAP_SWIMMING",
-  "musculation": "STRENGTH_TRAINING",
-  "renforcement musculaire": "STRENGTH_TRAINING",
-  renforcement: "STRENGTH_TRAINING",
-  strength: "STRENGTH_TRAINING",
-  "cardio training": "CARDIO_TRAINING",
-  cardio: "CARDIO_TRAINING",
-  hiit: "CARDIO_TRAINING",
-  hit: "CARDIO_TRAINING",
-  rameur: "CARDIO_TRAINING",
-  "velo elliptique": "CARDIO_TRAINING",
-  "vélo elliptique": "CARDIO_TRAINING",
-  rower: "CARDIO_TRAINING",
-  yoga: "YOGA",
-  pilates: "PILATES",
+const SPORT_SYNONYMS: Record<string, Record<string, string>> = {
+  fr: {
+    "course a pied": "RUNNING",
+    course: "RUNNING",
+    "course pied": "RUNNING",
+    footing: "RUNNING",
+    trail: "RUNNING",
+    marathon: "RUNNING",
+    triathlon: "MULTI_SPORT",
+    duathlon: "MULTI_SPORT",
+    multisport: "MULTI_SPORT",
+    multisports: "MULTI_SPORT",
+    "multi sport": "MULTI_SPORT",
+    velo: "CYCLING",
+    vélo: "CYCLING",
+    cyclisme: "CYCLING",
+    spinning: "CYCLING",
+    natation: "LAP_SWIMMING",
+    piscine: "LAP_SWIMMING",
+    "nage en piscine": "LAP_SWIMMING",
+    "musculation": "STRENGTH_TRAINING",
+    "renforcement musculaire": "STRENGTH_TRAINING",
+    renforcement: "STRENGTH_TRAINING",
+    "entrainement force": "STRENGTH_TRAINING",
+    cardio: "CARDIO_TRAINING",
+    "cardio training": "CARDIO_TRAINING",
+    hiit: "CARDIO_TRAINING",
+    hit: "CARDIO_TRAINING",
+    rameur: "CARDIO_TRAINING",
+    "velo elliptique": "CARDIO_TRAINING",
+    "vélo elliptique": "CARDIO_TRAINING",
+    rower: "CARDIO_TRAINING",
+    yoga: "YOGA",
+    pilates: "PILATES",
+  },
+  en: {
+    running: "RUNNING",
+    run: "RUNNING",
+    trail: "RUNNING",
+    marathon: "RUNNING",
+    triathlon: "MULTI_SPORT",
+    duathlon: "MULTI_SPORT",
+    "multi-sport": "MULTI_SPORT",
+    multisport: "MULTI_SPORT",
+    cycling: "CYCLING",
+    bike: "CYCLING",
+    biking: "CYCLING",
+    spinning: "CYCLING",
+    swimming: "LAP_SWIMMING",
+    swim: "LAP_SWIMMING",
+    "pool swim": "LAP_SWIMMING",
+    strength: "STRENGTH_TRAINING",
+    "strength training": "STRENGTH_TRAINING",
+    weights: "STRENGTH_TRAINING",
+    gym: "STRENGTH_TRAINING",
+    cardio: "CARDIO_TRAINING",
+    "cardio training": "CARDIO_TRAINING",
+    hiit: "CARDIO_TRAINING",
+    rowing: "CARDIO_TRAINING",
+    rower: "CARDIO_TRAINING",
+    "elliptical": "CARDIO_TRAINING",
+    yoga: "YOGA",
+    pilates: "PILATES",
+  },
 };
+
+const LOCALE_PRIORITY = ["fr", "en"] as const;
 
 const RAW_UNSUPPORTED_KEYWORDS = [
   { keyword: "yoga", label: "une séance de yoga" },
@@ -70,18 +103,36 @@ const UNSUPPORTED_KEYWORDS = RAW_UNSUPPORTED_KEYWORDS.map((entry) => ({
   normalized: removeDiacritics(entry.keyword).toLowerCase(),
 }));
 
-export const detectPlanSport = (plan: string | null | undefined) => {
+const normalizeSportKey = (value: string) =>
+  removeDiacritics(value)
+    .toLowerCase()
+    .replace(/[\s\-_/]+/g, " ")
+    .trim();
+
+export const detectPlanSport = (plan: string | null | undefined, preferredLocale?: string | null) => {
   if (!plan) {
-    return { label: null as string | null, garminSportId: null as string | null };
+    return { label: null as string | null, garminSportId: null as string | null, locale: null as string | null };
   }
-  const match = plan.match(/^\s*Sport\s*:\s*(.+)$/im);
+  const match = plan.match(/^\s*(?:sport|deporte|deporte)\s*[:：]\s*(.+)$/im);
   if (!match) {
-    return { label: null, garminSportId: null };
+    return { label: null, garminSportId: null, locale: null };
   }
   const label = match[1].trim();
-  const normalized = removeDiacritics(label).toLowerCase();
-  const garminSportId = SPORT_NAME_MAP[normalized] ?? null;
-  return { label, garminSportId };
+  const normalized = normalizeSportKey(label);
+
+  const localesToCheck = preferredLocale
+    ? [preferredLocale, ...LOCALE_PRIORITY.filter((locale) => locale !== preferredLocale)]
+    : LOCALE_PRIORITY;
+
+  for (const locale of localesToCheck) {
+    const synonymMap = SPORT_SYNONYMS[locale];
+    const garminSportId = synonymMap?.[normalized];
+    if (garminSportId) {
+      return { label, garminSportId, locale };
+    }
+  }
+
+  return { label, garminSportId: null, locale: null };
 };
 
 export const evaluatePlanCompatibility = (text: string | null | undefined, detectedSportId?: string | null) => {
