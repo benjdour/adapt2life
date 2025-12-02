@@ -106,11 +106,9 @@ export default async function PricingPage({ searchParams }: PageProps) {
             <p className="text-sm text-white/90">{banner.description}</p>
           </div>
         ) : null}
-        <div className="flex justify-center">
-          <Button asChild size="lg">
-            <Link href="/handler/sign-in?redirect=/generateur-entrainement">Tester gratuitement</Link>
-          </Button>
-        </div>
+        <p className="text-xs font-medium uppercase tracking-[0.4em] text-muted-foreground/70">
+          Starter inclus gratuitement pour chaque nouveau compte
+        </p>
       </section>
 
       <section className="grid gap-6 md:grid-cols-2">
