@@ -367,10 +367,10 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
   return (
     <div className="mx-auto flex min-h-screen max-w-5xl flex-col gap-8 px-6 py-12 text-foreground">
       <Card>
-        <CardHeader className="border-none pb-2">
+        <CardHeader>
           <p className="text-xs uppercase tracking-wide text-primary/80">Compte</p>
           <CardTitle>Informations utilisateur</CardTitle>
-          <CardDescription className="pb-2">
+          <CardDescription>
             Consulte les informations associées à ton profil Adapt2Life et mets-les à jour pour personnaliser tes recommandations.
           </CardDescription>
         </CardHeader>
