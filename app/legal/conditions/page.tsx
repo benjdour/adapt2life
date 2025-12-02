@@ -36,9 +36,10 @@ const sections = [
   {
     title: "5. Paiements & abonnements",
     content: [
-      "Les paiements des plans Starter, Momentum, Peak et Elite sont traités via Stripe. En souscrivant, vous autorisez Adapt2Life et Stripe à débiter le moyen de paiement enregistré selon la périodicité choisie (mensuelle ou annuelle).",
-      "Les abonnements sont reconduits automatiquement jusqu’à annulation. Vous pouvez gérer ou annuler votre abonnement depuis la page Profil ou en contactant le support (contact@adapt2life.app). L’annulation prend effet à la fin de la période en cours. Aucune pénalité de résiliation anticipée n’est appliquée.",
-      "Adapt2Life se réserve le droit de suspendre ou résilier l’accès en cas de fraude, de non-respect des conditions ou d’échec répété de paiement.",
+      "Les paiements des plans Starter (usage unique), Momentum, Peak, Elite et Ultra (accès restreint) sont traités via Stripe. En souscrivant, vous autorisez Adapt2Life et Stripe à débiter le moyen de paiement enregistré selon la périodicité choisie (mensuelle ou annuelle).",
+      "Starter offre 10 générations et 5 conversions gratuites une seule fois. Les plans payants mensuels ou annuels voient leurs quotas remis à zéro automatiquement chaque 1er du mois — même en cas de facturation annuelle.",
+      "Les abonnements sont reconduits automatiquement jusqu’à annulation. Vous pouvez gérer ou annuler votre abonnement depuis la page Profil (lien « Gérer mon abonnement » qui ouvre le portail client Stripe) ou en contactant le support (contact@adapt2life.app). L’annulation prend effet à la fin de la période en cours. Aucune pénalité de résiliation anticipée n’est appliquée.",
+      "En cas de fraude, de non-respect des présentes conditions, d’échec répété de paiement ou de violation manifeste de la politique d’utilisation, Adapt2Life se réserve le droit de suspendre ou résilier l’accès.",
     ],
   },
   {

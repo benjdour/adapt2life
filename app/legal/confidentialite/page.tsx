@@ -21,6 +21,7 @@ const sections = [
       "2.1 Données fournies directement :",
       "- Données de compte : adresse e-mail et nom lors de la création d’un compte ou à la prise de contact.",
       "- Données de communication : contenu des messages envoyés au support.",
+      "- Données d’abonnement : type de plan choisi (Starter, Momentum, Peak, Elite, Ultra), quotas restants, identifiants techniques associés à votre plan.",
       "2.2 Données Garmin collectées via l’API :",
       "- Données d’activité : type d’activité (course, vélo, etc.), date/heure de début et fin, durée, distance, allure, calories, fréquence cardiaque, données GPS et altitude.",
       "- Données de santé et bien-être : sommeil, niveaux de stress, variabilité de la fréquence cardiaque (HRV), score Body Battery, suivi des cycles menstruels (si activé).",
@@ -36,6 +37,7 @@ const sections = [
       "- Fournir le Service (connexion et génération de plans personnalisés).",
       "- Personnaliser les entraînements à partir des données Garmin.",
       "- Assurer la sécurité (détection d’activités frauduleuses).",
+      "- Gérer les quotas d’utilisation (Starter ne se recharge pas ; Momentum/Peak/Elite/Ultra sont remis à zéro automatiquement chaque 1er du mois).",
       "- Améliorer le Service grâce à des données anonymisées.",
     ],
   },
@@ -51,8 +53,9 @@ const sections = [
   {
     title: "5. Paiements & gestion d’abonnement",
     content: [
-      "- Paiements : nous utilisons Stripe pour traiter les paiements (carte bancaire, Apple Pay, etc.). Stripe agit en tant que sous-traitant et collecte certaines données de paiement (numéro de carte, adresse, code postal) conformément à sa politique de confidentialité. Adapt2Life ne stocke jamais les informations complètes de carte.",
-      "- Gestion d’abonnement : les changements de plan (upgrade/downgrade) sont gérés via l’espace client ou sur demande auprès du support. Les annulations prennent effet à la fin de la période de facturation.",
+      "- Paiements : nous utilisons Stripe pour traiter les paiements (carte bancaire, Apple Pay, etc.). Stripe agit en tant que sous-traitant et collecte certaines données de paiement (numéro de carte, adresse, code postal) conformément à sa politique de confidentialité. Adapt2Life ne stocke jamais les informations complètes de carte ; seuls les identifiants techniques de client/abonnement Stripe (customerId, subscriptionId, priceId) sont conservés.",
+      "- Gestion d’abonnement : les changements de plan (upgrade/downgrade) sont gérés via l’espace Profil (bouton « Gérer mon abonnement » qui ouvre le portail client Stripe) ou sur demande auprès du support. Les annulations prennent effet à la fin de la période de facturation.",
+      "- Facturation & supports : les e-mails transactionnels (confirmation de paiement, alertes) sont envoyés via Resend. Ils contiennent uniquement les informations nécessaires au suivi de facturation.",
     ],
   },
   {
