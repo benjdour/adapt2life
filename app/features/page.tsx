@@ -5,10 +5,21 @@ import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://adapt2life.app";
+
 export const metadata: Metadata = {
   title: "Fonctionnalités — Smart Coach & entraînements personnalisés",
   description:
     "AI Ultra Coach, synchronisation Garmin Connect, IA adaptative : explorez toutes les fonctionnalités d’Adapt2Life pour des entraînements personnalisés basés sur vos données.",
+  alternates: {
+    canonical: `${siteUrl}/features`,
+  },
+  openGraph: {
+    url: `${siteUrl}/features`,
+    title: "Fonctionnalités Smart Coach Adapt2Life",
+    description: "Smart Coach, intégration Garmin, IA adaptative : tout ce qu’offre Adapt2Life pour des séances sur mesure.",
+    type: "website",
+  },
 };
 
 const features = [
@@ -127,7 +138,7 @@ export default function FeaturesPage() {
             </p>
           </div>
           <Button asChild size="lg" className="px-8 text-base font-semibold">
-            <Link href="/features/coach-ia-garmin">Lire le guide complet</Link>
+            <Link href="/features/smart-coach">Lire le guide complet</Link>
           </Button>
         </div>
       </section>

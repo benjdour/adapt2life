@@ -4,10 +4,21 @@ import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://adapt2life.app";
+
 export const metadata: Metadata = {
   title: "Comment ça marche — Entraînement personnalisé avec Garmin et IA",
   description:
     "Connectez votre montre Garmin, décrivez votre forme du jour et laissez l’IA Adapt2Life générer des entraînements personnalisés envoyés automatiquement sur votre montre.",
+  alternates: {
+    canonical: `${siteUrl}/how-it-works`,
+  },
+  openGraph: {
+    url: `${siteUrl}/how-it-works`,
+    title: "Comment fonctionne Smart Coach Adapt2Life",
+    description: "Découvrez les 4 étapes pour connecter Garmin, briefer l’IA et envoyer vos séances personnalisées.",
+    type: "website",
+  },
 };
 
 const steps = [

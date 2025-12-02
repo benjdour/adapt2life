@@ -5,7 +5,7 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://adapt2life.app";
 const staticRoutes: string[] = [
   "/",
   "/features",
-  "/features/coach-ia-garmin",
+  "/features/smart-coach",
   "/about",
   "/pricing",
   "/how-it-works",

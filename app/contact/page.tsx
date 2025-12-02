@@ -1,78 +1,24 @@
-"use client";
+import type { Metadata } from "next";
 
-import { useState } from "react";
-import { z } from "zod";
-import Link from "next/link";
+import { ContactForm } from "./ContactForm";
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://adapt2life.app";
 
-const contactSchema = z.object({
-  firstName: z.string().min(2, "Merci d’indiquer votre prénom."),
-  lastName: z.string().min(2, "Merci d’indiquer votre nom."),
-  email: z.string().email("Adresse e-mail invalide."),
-  subject: z.string().min(3, "Merci d’ajouter un objet."),
-  message: z.string().min(10, "Merci de détailler votre message."),
-});
-
-type FormState = {
-  firstName: string;
-  lastName: string;
-  email: string;
-  subject: string;
-  message: string;
+export const metadata: Metadata = {
+  title: "Contact — Adapt2Life",
+  description: "Écris-nous pour une démo Smart Coach, une intégration Garmin ou une question sur les abonnements.",
+  alternates: {
+    canonical: `${siteUrl}/contact`,
+  },
+  openGraph: {
+    url: `${siteUrl}/contact`,
+    title: "Contact Adapt2Life",
+    description: "Planifie une démo Smart Coach ou pose tes questions à l’équipe Adapt2Life.",
+    type: "website",
+  },
 };
 
 export default function ContactPage() {
-  const [formState, setFormState] = useState<FormState>({ firstName: "", lastName: "", email: "", subject: "", message: "" });
-  const [status, setStatus] = useState<{ type: "success" | "error" | null; message?: string }>({ type: null });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = event.target;
-    setFormState((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setStatus({ type: null });
-
-    const validation = contactSchema.safeParse(formState);
-    if (!validation.success) {
-      setStatus({ type: "error", message: validation.error.issues?.[0]?.message ?? "Formulaire invalide." });
-      return;
-    }
-
-    try {
-      setIsSubmitting(true);
-      const response = await fetch("/api/contact", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formState),
-      });
-
-      const data = (await response.json()) as { success?: boolean; error?: string };
-
-      if (!response.ok || !data?.success) {
-        throw new Error(data.error ?? "Impossible d’envoyer le message.");
-      }
-
-      setStatus({ type: "success", message: "Message envoyé. Nous te répondons sous 24 heures ouvrées." });
-      setFormState({ firstName: "", lastName: "", email: "", subject: "", message: "" });
-    } catch (error) {
-      setStatus({
-        type: "error",
-        message: error instanceof Error ? error.message : "Impossible de traiter votre demande pour le moment.",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-6 px-6 py-10 text-foreground">
       <header className="space-y-2 text-center md:text-left">
@@ -81,101 +27,7 @@ export default function ContactPage() {
         <p className="text-sm text-muted-foreground">Écris-nous via le formulaire ou directement à contact@adapt2life.app</p>
       </header>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Formulaire de contact</CardTitle>
-          <CardDescription>Nous te répondons sous 24 heures ouvrées.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <label htmlFor="firstName" className="text-sm font-semibold text-foreground">
-                  Prénom
-                </label>
-                <Input
-                  id="firstName"
-                  name="firstName"
-                  value={formState.firstName}
-                  onChange={handleChange}
-                  placeholder="Ex. Marie"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="lastName" className="text-sm font-semibold text-foreground">
-                  Nom
-                </label>
-                <Input
-                  id="lastName"
-                  name="lastName"
-                  value={formState.lastName}
-                  onChange={handleChange}
-                  placeholder="Ex. Dupont"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="email" className="text-sm font-semibold text-foreground">
-                E-mail
-              </label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                value={formState.email}
-                onChange={handleChange}
-                placeholder="exemple@adapt2life.app"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="subject" className="text-sm font-semibold text-foreground">
-                Objet
-              </label>
-              <Input
-                id="subject"
-                name="subject"
-                value={formState.subject}
-                onChange={handleChange}
-                placeholder="Ex. Question sur l’abonnement"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="message" className="text-sm font-semibold text-foreground">
-                Message
-              </label>
-              <Textarea
-                id="message"
-                name="message"
-                rows={6}
-                value={formState.message}
-                onChange={handleChange}
-                placeholder="Décris ton besoin : objectif, contraintes, questions spécifiques, etc."
-              />
-            </div>
-
-            {status.type === "error" ? (
-              <p className="rounded-2xl border border-error/30 bg-error/5 px-4 py-2 text-sm text-error">{status.message}</p>
-            ) : null}
-
-            {status.type === "success" ? (
-              <p className="rounded-2xl border border-success/30 bg-success/5 px-4 py-2 text-sm text-success">{status.message}</p>
-            ) : null}
-
-            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <Button type="submit" className="w-full md:w-auto" isLoading={isSubmitting}>
-                Envoyer
-              </Button>
-              <Link href="mailto:contact@adapt2life.app" className="text-sm text-muted-foreground underline">
-                ou écris-nous directement
-              </Link>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+      <ContactForm />
 
       <section className="rounded-3xl border border-white/10 bg-card/80 p-6">
         <header className="space-y-2">
@@ -191,60 +43,23 @@ export default function ContactPage() {
             },
             {
               question: "Proposez-vous des partenariats clubs ou coachs ?",
-              answer:
-                "Nous travaillons déjà avec des clubs et des coaches. Explique ton contexte et nous te recontactons rapidement.",
+              answer: "Nous travaillons déjà avec des clubs et des coaches. Explique ton contexte et nous te recontactons rapidement.",
             },
             {
               question: "Comment contacter le support si j’ai un souci d’intégration Garmin ?",
               answer:
                 "Utilise ce formulaire ou envoie un email à support@adapt2life.app, en précisant ton ID Garmin et le message d’erreur.",
             },
-          ].map((faq) => (
-            <details key={faq.question} className="rounded-2xl border border-white/10 bg-black/20 p-5">
-              <summary className="cursor-pointer list-none text-lg font-heading text-foreground">
-                {faq.question}
+          ].map((item) => (
+            <details key={item.question} className="rounded-2xl border border-white/10 bg-white/5 p-5">
+              <summary className="cursor-pointer list-none text-lg font-heading">
+                {item.question}
                 <span className="ml-3 inline-block text-primary transition group-open:rotate-45">+</span>
               </summary>
-              <p className="mt-3 text-sm text-muted-foreground">{faq.answer}</p>
+              <p className="mt-3 text-sm text-muted-foreground">{item.answer}</p>
             </details>
           ))}
         </div>
-        <script
-          type="application/ld+json"
-          suppressHydrationWarning
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "FAQPage",
-              mainEntity: [
-                {
-                  "@type": "Question",
-                  name: "Puis-je planifier une démo personnalisée ?",
-                  acceptedAnswer: {
-                    "@type": "Answer",
-                    text: "Oui. Indique tes créneaux dans le formulaire ou écris-nous directement, nous organisons une démo adaptée à tes besoins.",
-                  },
-                },
-                {
-                  "@type": "Question",
-                  name: "Proposez-vous des partenariats clubs ou coachs ?",
-                  acceptedAnswer: {
-                    "@type": "Answer",
-                    text: "Nous travaillons déjà avec des clubs et des coaches. Explique ton contexte et nous te recontactons rapidement.",
-                  },
-                },
-                {
-                  "@type": "Question",
-                  name: "Comment contacter le support si j’ai un souci d’intégration Garmin ?",
-                  acceptedAnswer: {
-                    "@type": "Answer",
-                    text: "Utilise ce formulaire ou envoie un email à support@adapt2life.app, en précisant ton ID Garmin et le message d’erreur.",
-                  },
-                },
-              ],
-            }),
-          }}
-        />
       </section>
     </main>
   );

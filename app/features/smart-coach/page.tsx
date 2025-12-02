@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://adapt2life.app";
-const pageUrl = `${siteUrl}/features/coach-ia-garmin`;
+const pageUrl = `${siteUrl}/features/smart-coach`;
 
 export const metadata: Metadata = {
   title: "Smart Coach — Guide complet Adapt2Life",

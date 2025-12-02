@@ -64,7 +64,7 @@ const organizationSchema = {
 
 export const metadata: Metadata = {
   title: "Adapt2Life",
-  description: "Your AI-powered training companion",
+  description: "Smart Coach Adapt2Life — l’IA qui génère et envoie tes entraînements personnalisés vers Garmin.",
   metadataBase: new URL(siteUrl),
   icons: {
     icon: "/favicon.ico",
@@ -74,7 +74,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     url: siteUrl,
-    title: "Adapt2Life — Ton coach IA connecté à Garmin",
+    title: "Adapt2Life — Smart Coach connecté à Garmin",
     description: "Génère des entraînements personnalisés, synchronisés avec ta montre et adaptés à ta réalité.",
     siteName: "Adapt2Life",
     images: [
@@ -90,7 +90,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     site: "@adapt2life",
     creator: "@adapt2life",
-    title: "Adapt2Life — Ton coach IA connecté à Garmin",
+    title: "Adapt2Life — Smart Coach connecté à Garmin",
     description: "Des entraînements sur mesure, générés par IA et envoyés sur ta montre.",
     images: [`${siteUrl}/brand/og-image.jpg`],
   },
@@ -107,7 +107,7 @@ export default async function RootLayout({
   const user = await stackServerApp.getUser({ or: "return-null", tokenStore: "nextjs-cookie" });
 
   return (
-    <html lang="en">
+    <html lang="fr">
       <head>
         <Script
           id="gtm-base"

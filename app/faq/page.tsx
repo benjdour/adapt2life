@@ -110,9 +110,20 @@ const faqItems = [
   },
 ];
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://adapt2life.app";
+
 export const metadata: Metadata = {
   title: "FAQ — Adapt2Life",
   description: "Toutes les réponses aux questions fréquentes sur Adapt2Life, son IA et l’intégration Garmin.",
+  alternates: {
+    canonical: `${siteUrl}/faq`,
+  },
+  openGraph: {
+    url: `${siteUrl}/faq`,
+    title: "FAQ Adapt2Life",
+    description: "Comprends Smart Coach, la gestion des crédits et l’intégration Garmin grâce à notre FAQ détaillée.",
+    type: "website",
+  },
 };
 
 const jsonLd = {
