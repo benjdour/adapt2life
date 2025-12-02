@@ -12,13 +12,14 @@ const selectBuilder = {
   limit: vi.fn(),
 };
 
-vi.mock("stripe", () => ({
-  default: vi.fn().mockImplementation(() => ({
-    webhooks: {
+vi.mock("stripe", () => {
+  class Stripe {
+    webhooks = {
       constructEvent: mockConstructEvent,
-    },
-  })),
-}));
+    };
+  }
+  return { default: Stripe };
+});
 
 vi.mock("@/db", () => ({
   db: {
@@ -39,7 +40,24 @@ vi.mock("server-only", () => ({}));
 
 const { POST } = await import("@/app/api/stripe/webhook/route");
 
-const asNextRequest = (input: Request): NextRequest => input as unknown as NextRequest;
+const createNextRequest = (url: string, init?: RequestInit): NextRequest => {
+  const request = new Request(url, init);
+  return Object.assign(request, {
+    nextUrl: new URL(url),
+    cookies: {
+      get: () => undefined,
+      getAll: () => [],
+      set: vi.fn(),
+      delete: vi.fn(),
+      has: () => false,
+    },
+    ip: undefined,
+    geo: {} as NextRequest["geo"],
+    ua: undefined,
+    page: { name: url, params: {} },
+    nextConfig: {},
+  }) as unknown as NextRequest;
+};
 
 describe("POST /api/stripe/webhook", () => {
   const originalEnv = { ...process.env };
@@ -58,14 +76,14 @@ describe("POST /api/stripe/webhook", () => {
   });
 
   const makeRequest = (body = "{}", headers: Record<string, string> = {}) =>
-    asNextRequest(new Request("http://localhost/api/stripe/webhook", {
+    createNextRequest("http://localhost/api/stripe/webhook", {
       method: "POST",
       headers: {
         "stripe-signature": headers["stripe-signature"] ?? "sig",
         ...headers,
       },
       body,
-    }));
+    });
 
   it("returns 400 when the signature header is missing", async () => {
     const response = await POST(makeRequest("{}", { "stripe-signature": "" }));
