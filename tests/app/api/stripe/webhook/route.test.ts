@@ -1,4 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import type { NextRequest } from "next/server";
 
 const mockConstructEvent = vi.fn();
 const updateBuilder = {
@@ -38,6 +39,8 @@ vi.mock("server-only", () => ({}));
 
 const { POST } = await import("@/app/api/stripe/webhook/route");
 
+const asNextRequest = (input: Request): NextRequest => input as unknown as NextRequest;
+
 describe("POST /api/stripe/webhook", () => {
   const originalEnv = { ...process.env };
 
@@ -55,14 +58,14 @@ describe("POST /api/stripe/webhook", () => {
   });
 
   const makeRequest = (body = "{}", headers: Record<string, string> = {}) =>
-    new Request("http://localhost/api/stripe/webhook", {
+    asNextRequest(new Request("http://localhost/api/stripe/webhook", {
       method: "POST",
       headers: {
         "stripe-signature": headers["stripe-signature"] ?? "sig",
         ...headers,
       },
       body,
-    });
+    }));
 
   it("returns 400 when the signature header is missing", async () => {
     const response = await POST(makeRequest("{}", { "stripe-signature": "" }));

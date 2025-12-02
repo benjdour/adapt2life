@@ -1,8 +1,5 @@
 import type { Metadata } from "next";
 import { eq } from "drizzle-orm";
-import Link from "next/link";
-
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { db } from "@/db";
 import { users } from "@/db/schema";
