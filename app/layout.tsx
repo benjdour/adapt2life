@@ -4,7 +4,6 @@ import { Inter, Orbitron, Poppins } from "next/font/google";
 import Script from "next/script";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
-import { getStackClientApp } from "@/stack/client";
 import { stackServerApp } from "@/stack/server";
 import "./globals.css";
 import { UiToaster } from "@/components/ui/ui-toaster";
@@ -106,7 +105,6 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const user = await stackServerApp.getUser({ or: "return-null", tokenStore: "nextjs-cookie" });
-  const stackApp = getStackClientApp();
 
   return (
     <html lang="en">
@@ -131,7 +129,7 @@ export default async function RootLayout({
             style={{ display: "none", visibility: "hidden" }}
           />
         </noscript>
-        <ClientStackProvider app={stackApp}>
+        <ClientStackProvider>
           <StackTheme>
             <div className="flex min-h-screen flex-col">
               <TopNav isAuthenticated={Boolean(user)} showAdminLink={canAccessAdminArea(user?.id)} />

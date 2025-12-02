@@ -1,13 +1,13 @@
 "use client";
 
 import { StackProvider } from "@stackframe/stack";
-import type { StackClientApp } from "@stackframe/stack";
+import { getStackClientApp } from "@/stack/client";
 
 type ClientStackProviderProps = {
-  app: StackClientApp<true, string>;
   children: React.ReactNode;
 };
 
-export function ClientStackProvider({ app, children }: ClientStackProviderProps) {
+export function ClientStackProvider({ children }: ClientStackProviderProps) {
+  const app = getStackClientApp();
   return <StackProvider app={app}>{children}</StackProvider>;
 }
