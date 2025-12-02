@@ -7,6 +7,9 @@ import { users } from "@/db/schema";
 import { USER_PLAN_CATALOG, getUserPlanConfig, type UserPlanId } from "@/lib/constants/userPlans";
 import { STRIPE_PRICES } from "@/lib/constants/stripe";
 
+type StripeTypes = typeof import("stripe");
+type StripeEvent = StripeTypes["Event"];
+
 const STRIPE_API_VERSION = "2025-11-17.clover" as const;
 
 const getStripeClient = async () => {
@@ -33,7 +36,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Configuration Stripe incomplète." }, { status: 400 });
   }
 
-  let event: Stripe.Event;
+  let event: StripeEvent;
   try {
     const payload = await request.text();
     event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
