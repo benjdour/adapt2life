@@ -234,13 +234,18 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = 
     }
   };
 
-  const handleDownloadPdf = () => {
+  const handleDownloadPdf = async () => {
     if (!plan) {
       toast.error("Plan introuvable", { description: "Génère d’abord un entraînement." });
       return;
     }
-    downloadPlanPdf(plan, "plan-adapt2life.pdf");
-    toast.success("Plan exporté", { description: "Le PDF est prêt dans tes téléchargements." });
+    try {
+      await downloadPlanPdf(plan, "plan-adapt2life.pdf");
+      toast.success("Plan exporté", { description: "Le PDF est prêt dans tes téléchargements." });
+    } catch (error) {
+      console.error("plan pdf export failed", error);
+      toast.error("Export impossible", { description: "La génération du PDF a échoué. Réessaie ou contacte le support." });
+    }
   };
 
   useEffect(() => {

@@ -152,14 +152,19 @@ export function GarminTrainerGenerator({ sourcePlan }: GarminTrainerGeneratorPro
     }
   };
 
-  const handleDownloadPdf = () => {
+  const handleDownloadPdf = async () => {
     const trimmed = conversionInput.trim();
     if (!trimmed) {
       toast.error("Plan introuvable", { description: "Ajoute ou génère un plan avant de l’exporter." });
       return;
     }
-    downloadPlanPdf(trimmed, "plan-garmin.pdf");
-    toast.success("Plan exporté", { description: "Le PDF est prêt dans tes téléchargements." });
+    try {
+      await downloadPlanPdf(trimmed, "plan-garmin.pdf");
+      toast.success("Plan exporté", { description: "Le PDF est prêt dans tes téléchargements." });
+    } catch (error) {
+      console.error("garmin generator pdf export failed", error);
+      toast.error("Export impossible", { description: "La génération du PDF a échoué. Réessaie ou contacte le support." });
+    }
   };
 
   const handlePushToGarmin = async () => {
