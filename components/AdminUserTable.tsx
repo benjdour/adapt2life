@@ -15,6 +15,8 @@ type AdminUser = {
   createdAt: string | null;
   trainingGenerationsRemaining: number | null;
   garminConversionsRemaining: number | null;
+   trainingGenerationsUsedMonth: number | null;
+   garminConversionsUsedMonth: number | null;
   planType: string | null;
 };
 
@@ -109,20 +111,13 @@ export function AdminUserTable({ users }: AdminUserTableProps) {
               const planConfig = getUserPlanConfig(user.planType ?? DEFAULT_USER_PLAN);
               const trainingCap = planConfig.trainingQuota;
               const conversionCap = planConfig.conversionQuota;
-              const trainingRemaining =
-                trainingCap === null || typeof user.trainingGenerationsRemaining !== "number"
-                  ? null
-                  : user.trainingGenerationsRemaining;
-              const conversionRemaining =
-                conversionCap === null || typeof user.garminConversionsRemaining !== "number"
-                  ? null
-                  : user.garminConversionsRemaining;
-              const trainingUsed =
-                trainingCap === null || trainingRemaining === null ? null : Math.max(0, trainingCap - trainingRemaining);
+              const trainingUsageCounter =
+                typeof user.trainingGenerationsUsedMonth === "number" ? Math.max(0, user.trainingGenerationsUsedMonth) : 0;
+              const conversionUsageCounter =
+                typeof user.garminConversionsUsedMonth === "number" ? Math.max(0, user.garminConversionsUsedMonth) : 0;
+              const trainingUsed = trainingCap === null ? trainingUsageCounter : Math.min(trainingUsageCounter, trainingCap);
               const conversionsUsed =
-                conversionCap === null || conversionRemaining === null
-                  ? null
-                  : Math.max(0, conversionCap - conversionRemaining);
+                conversionCap === null ? conversionUsageCounter : Math.min(conversionUsageCounter, conversionCap);
               return (
                 <tr key={user.id} className="border-b border-white/5">
                   <td className="py-2 pr-4">{lastName}</td>
@@ -151,10 +146,10 @@ export function AdminUserTable({ users }: AdminUserTableProps) {
                   </td>
                   <td className="py-2 pr-4 text-center text-xs font-semibold">
                     <div className="text-primary">
-                      G {trainingCap === null || trainingUsed === null ? "∞" : `${trainingUsed}/${trainingCap}`}
+                      G {trainingCap === null ? `${trainingUsed} / ∞` : `${trainingUsed}/${trainingCap}`}
                     </div>
                     <div className="text-secondary">
-                      C {conversionCap === null || conversionsUsed === null ? "∞" : `${conversionsUsed}/${conversionCap}`}
+                      C {conversionCap === null ? `${conversionsUsed} / ∞` : `${conversionsUsed}/${conversionCap}`}
                     </div>
                   </td>
                   <td className="py-2 pr-4 text-muted-foreground">{formatDate(user.createdAt)}</td>

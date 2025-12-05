@@ -8,20 +8,38 @@ export type CreditReservationResult = {
   remaining: number;
 };
 
-const incrementTrainingGenerations = async (userId: number, delta: number) => {
+const incrementTrainingUsage = async (userId: number) => {
   await db
     .update(users)
     .set({
-      trainingGenerationsRemaining: sql`${users.trainingGenerationsRemaining} + ${delta}`,
+      trainingGenerationsUsedMonth: sql`${users.trainingGenerationsUsedMonth} + 1`,
     })
     .where(eq(users.id, userId));
 };
 
-const incrementGarminConversions = async (userId: number, delta: number) => {
+const decrementTrainingUsage = async (userId: number) => {
   await db
     .update(users)
     .set({
-      garminConversionsRemaining: sql`${users.garminConversionsRemaining} + ${delta}`,
+      trainingGenerationsUsedMonth: sql`GREATEST(${users.trainingGenerationsUsedMonth} - 1, 0)`,
+    })
+    .where(eq(users.id, userId));
+};
+
+const incrementConversionUsage = async (userId: number) => {
+  await db
+    .update(users)
+    .set({
+      garminConversionsUsedMonth: sql`${users.garminConversionsUsedMonth} + 1`,
+    })
+    .where(eq(users.id, userId));
+};
+
+const decrementConversionUsage = async (userId: number) => {
+  await db
+    .update(users)
+    .set({
+      garminConversionsUsedMonth: sql`GREATEST(${users.garminConversionsUsedMonth} - 1, 0)`,
     })
     .where(eq(users.id, userId));
 };
@@ -43,6 +61,7 @@ export const reserveTrainingGenerationCredit = async (userId: number): Promise<C
   const planType = await fetchUserPlan(userId);
   const plan = getUserPlanConfig(planType);
   if (plan.trainingQuota === null) {
+    await incrementTrainingUsage(userId);
     return { remaining: Number.MAX_SAFE_INTEGER };
   }
 
@@ -50,6 +69,7 @@ export const reserveTrainingGenerationCredit = async (userId: number): Promise<C
     .update(users)
     .set({
       trainingGenerationsRemaining: sql`${users.trainingGenerationsRemaining} - 1`,
+      trainingGenerationsUsedMonth: sql`${users.trainingGenerationsUsedMonth} + 1`,
     })
     .where(and(eq(users.id, userId), gt(users.trainingGenerationsRemaining, 0)))
     .returning({ remaining: users.trainingGenerationsRemaining });
@@ -58,13 +78,27 @@ export const reserveTrainingGenerationCredit = async (userId: number): Promise<C
 };
 
 export const refundTrainingGenerationCredit = async (userId: number) => {
-  await incrementTrainingGenerations(userId, 1);
+  const planType = await fetchUserPlan(userId);
+  const plan = getUserPlanConfig(planType);
+  if (plan.trainingQuota === null) {
+    await decrementTrainingUsage(userId);
+    return;
+  }
+
+  await db
+    .update(users)
+    .set({
+      trainingGenerationsRemaining: sql`${users.trainingGenerationsRemaining} + 1`,
+      trainingGenerationsUsedMonth: sql`GREATEST(${users.trainingGenerationsUsedMonth} - 1, 0)`,
+    })
+    .where(eq(users.id, userId));
 };
 
 export const reserveGarminConversionCredit = async (userId: number): Promise<CreditReservationResult | null> => {
   const planType = await fetchUserPlan(userId);
   const plan = getUserPlanConfig(planType);
   if (plan.conversionQuota === null) {
+    await incrementConversionUsage(userId);
     return { remaining: Number.MAX_SAFE_INTEGER };
   }
 
@@ -72,6 +106,7 @@ export const reserveGarminConversionCredit = async (userId: number): Promise<Cre
     .update(users)
     .set({
       garminConversionsRemaining: sql`${users.garminConversionsRemaining} - 1`,
+      garminConversionsUsedMonth: sql`${users.garminConversionsUsedMonth} + 1`,
     })
     .where(and(eq(users.id, userId), gt(users.garminConversionsRemaining, 0)))
     .returning({ remaining: users.garminConversionsRemaining });
@@ -80,7 +115,20 @@ export const reserveGarminConversionCredit = async (userId: number): Promise<Cre
 };
 
 export const refundGarminConversionCredit = async (userId: number) => {
-  await incrementGarminConversions(userId, 1);
+  const planType = await fetchUserPlan(userId);
+  const plan = getUserPlanConfig(planType);
+  if (plan.conversionQuota === null) {
+    await decrementConversionUsage(userId);
+    return;
+  }
+
+  await db
+    .update(users)
+    .set({
+      garminConversionsRemaining: sql`${users.garminConversionsRemaining} + 1`,
+      garminConversionsUsedMonth: sql`GREATEST(${users.garminConversionsUsedMonth} - 1, 0)`,
+    })
+    .where(eq(users.id, userId));
 };
 
 export const getUserCreditSnapshot = async (userId: number) => {
@@ -101,6 +149,8 @@ export const applyUserPlan = async (userId: number, planId: UserPlanId) => {
   const plan = getUserPlanConfig(planId);
   const updateValues: Partial<typeof users.$inferInsert> = {
     planType: plan.id,
+    trainingGenerationsUsedMonth: 0,
+    garminConversionsUsedMonth: 0,
   };
   if (plan.trainingQuota !== null) {
     updateValues.trainingGenerationsRemaining = plan.trainingQuota;
@@ -138,6 +188,8 @@ export const resetMonthlyQuotas = async () => {
           stripeSubscriptionId: null,
           trainingGenerationsRemaining: starterPlan.trainingQuota ?? 0,
           garminConversionsRemaining: starterPlan.conversionQuota ?? 0,
+          trainingGenerationsUsedMonth: 0,
+          garminConversionsUsedMonth: 0,
         })
         .where(eq(users.id, target.id));
       updated += 1;
@@ -148,6 +200,8 @@ export const resetMonthlyQuotas = async () => {
     const plan = getUserPlanConfig(planType);
     const updateValues: Partial<typeof users.$inferInsert> = {
       lastQuotaResetAt: now,
+      trainingGenerationsUsedMonth: 0,
+      garminConversionsUsedMonth: 0,
     };
 
     if (plan.id === DEFAULT_USER_PLAN) {

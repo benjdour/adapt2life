@@ -31,6 +31,8 @@ export default async function AdminPage() {
         createdAt: users.createdAt,
         trainingGenerationsRemaining: users.trainingGenerationsRemaining,
         garminConversionsRemaining: users.garminConversionsRemaining,
+        trainingGenerationsUsedMonth: users.trainingGenerationsUsedMonth,
+        garminConversionsUsedMonth: users.garminConversionsUsedMonth,
         planType: users.planType,
       })
       .from(users)

@@ -29,6 +29,8 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow(),
   trainingGenerationsRemaining: integer("training_generations_remaining").notNull().default(10),
   garminConversionsRemaining: integer("garmin_conversions_remaining").notNull().default(5),
+  trainingGenerationsUsedMonth: integer("training_generations_used_month").notNull().default(0),
+  garminConversionsUsedMonth: integer("garmin_conversions_used_month").notNull().default(0),
   planType: text("plan_type").notNull().default("free"),
   lastQuotaResetAt: timestamp("last_quota_reset_at", { withTimezone: true }),
   stripeCustomerId: text("stripe_customer_id"),

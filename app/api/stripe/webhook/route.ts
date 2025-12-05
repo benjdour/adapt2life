@@ -84,6 +84,8 @@ const handleCheckoutSession = async (session: Stripe.Checkout.Session) => {
   if (planId) {
     const plan = getUserPlanConfig(planId);
     update.planType = planId;
+    update.trainingGenerationsUsedMonth = 0;
+    update.garminConversionsUsedMonth = 0;
     if (plan.trainingQuota !== null) {
       update.trainingGenerationsRemaining = plan.trainingQuota;
     }
@@ -148,6 +150,8 @@ const handleSubscriptionDeletion = async (subscription: Stripe.Subscription) => 
       planDowngradeAt: null,
       trainingGenerationsRemaining: starterPlan.trainingQuota ?? 0,
       garminConversionsRemaining: starterPlan.conversionQuota ?? 0,
+      trainingGenerationsUsedMonth: 0,
+      garminConversionsUsedMonth: 0,
     })
     .where(eq(users.stripeCustomerId, customerId));
 };

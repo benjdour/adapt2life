@@ -141,6 +141,13 @@
       "when": 1764700000000,
       "tag": "0019_plan_downgrade",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1764800000001,
+      "tag": "0020_plan_usage_counters",
+      "breakpoints": true
     }
   ]
 }
