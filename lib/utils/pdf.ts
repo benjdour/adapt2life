@@ -315,7 +315,7 @@ const buildPdfBytes = (content: string): Uint8Array => {
     objects[contentObjectId] = `${contentObjectId} 0 obj << /Length ${streamLength} >> stream\n${textStream}\nendstream endobj`;
   });
 
-  objects[fontObjectId] = `${fontObjectId} 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj`;
+  objects[fontObjectId] = `${fontObjectId} 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >> endobj`;
 
   append("%PDF-1.4");
   for (let index = 1; index < objects.length; index += 1) {
