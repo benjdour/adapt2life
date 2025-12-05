@@ -43,10 +43,12 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = 
     isGarminCompatible: boolean;
     blocker: string | null;
     sportLabel: string | null;
+    sportId: string | null;
   }>({
     isGarminCompatible: true,
     blocker: null,
     sportLabel: null,
+    sportId: null,
   });
 
   useEffect(() => {
@@ -103,7 +105,7 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = 
     setConversionSource(null);
     setHasSentSuccessfully(false);
     setActiveJobId(null);
-    setPlanCompatibility({ isGarminCompatible: true, blocker: null, sportLabel: null });
+    setPlanCompatibility({ isGarminCompatible: true, blocker: null, sportLabel: null, sportId: null });
     onPlanGenerated?.(null);
 
     const trimmedPrompt = prompt.trim();
@@ -157,6 +159,7 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = 
         isGarminCompatible,
         blocker: compatibility.blocker,
         sportLabel: detectedSport.label,
+        sportId: detectedSport.garminSportId ?? null,
       });
       onPlanGenerated?.({
         plan: humanPlan,
@@ -169,7 +172,7 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = 
       const descriptor = describeAppError(submissionError, "training-plan/request-failed");
       toast.error(descriptor.title, { description: descriptor.description });
       onPlanGenerated?.(null);
-      setPlanCompatibility({ isGarminCompatible: true, blocker: null, sportLabel: null });
+      setPlanCompatibility({ isGarminCompatible: true, blocker: null, sportLabel: null, sportId: null });
     } finally {
       setIsLoading(false);
     }
@@ -291,6 +294,9 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = 
     };
   }, [activeJobId, pendingToastId]);
 
+  const isSwimmingPlan = (planCompatibility.sportId ?? "").toUpperCase() === "LAP_SWIMMING";
+  const showSwimmingDualActions = planCompatibility.isGarminCompatible && isSwimmingPlan;
+
   return (
     <div className="space-y-6">
       <Card className="backdrop-blur">
@@ -333,28 +339,41 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = 
             <MarkdownPlan content={plan} className="text-sm leading-relaxed" />
             {enableInlineSend ? (
               <div className="border-t border-white/10 pt-4">
-            <Button
-              type="button"
-              className="w-full"
-              onClick={planCompatibility.isGarminCompatible ? handleSendToGarmin : handleDownloadPdf}
-              disabled={planCompatibility.isGarminCompatible ? isSending || hasSentSuccessfully : false}
-              isLoading={planCompatibility.isGarminCompatible ? isSending : false}
-              data-gtm="send-garmin"
-            >
-              {planCompatibility.isGarminCompatible
-                ? hasSentSuccessfully
-                  ? "Entraînement envoyé"
-                  : isSending
-                  ? sendLoadingMessage
-                  : "Envoyer à Garmin Connect"
-                : "Télécharger le plan PDF"}
-            </Button>
-            {!planCompatibility.isGarminCompatible ? (
-              <p className="mt-2 text-xs text-muted-foreground">
-                Cet entraînement ({planCompatibility.sportLabel ?? planCompatibility.blocker ?? "sport non pris en charge"}) n’est
-                pas compatible avec Garmin Training. Télécharge le PDF pour le suivre manuellement.
-              </p>
-            ) : null}
+                <div className={showSwimmingDualActions ? "flex flex-col gap-2 sm:flex-row" : undefined}>
+                  <Button
+                    type="button"
+                    className="w-full"
+                    onClick={planCompatibility.isGarminCompatible ? handleSendToGarmin : handleDownloadPdf}
+                    disabled={planCompatibility.isGarminCompatible ? isSending || hasSentSuccessfully : false}
+                    isLoading={planCompatibility.isGarminCompatible ? isSending : false}
+                    data-gtm="send-garmin"
+                  >
+                    {planCompatibility.isGarminCompatible
+                      ? hasSentSuccessfully
+                        ? "Entraînement envoyé"
+                        : isSending
+                        ? sendLoadingMessage
+                        : "Envoyer à Garmin Connect"
+                      : "Télécharger le plan PDF"}
+                  </Button>
+                  {showSwimmingDualActions ? (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="w-full"
+                      onClick={handleDownloadPdf}
+                      data-gtm="download-plan"
+                    >
+                      Télécharger le plan PDF
+                    </Button>
+                  ) : null}
+                </div>
+                {!planCompatibility.isGarminCompatible ? (
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Cet entraînement ({planCompatibility.sportLabel ?? planCompatibility.blocker ?? "sport non pris en charge"}) n’est
+                    pas compatible avec Garmin Training. Télécharge le PDF pour le suivre manuellement.
+                  </p>
+                ) : null}
               </div>
             ) : null}
           </CardContent>
