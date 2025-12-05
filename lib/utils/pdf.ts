@@ -1,4 +1,4 @@
-const LINES_PER_PAGE = 42;
+const LINES_PER_PAGE = 39;
 const MAX_LINE_WIDTH = 88;
 
 const WIN_ANSI_TUPLES: Array<[string, number]> = [
@@ -262,7 +262,7 @@ const buildTextStream = (lines: string[]): string => {
     "BT",
     "/F1 12 Tf",
     "1 16 TL",
-    "50 780 Td",
+    "50 750 Td",
     `${encodePdfLine(firstLine)} Tj`,
     ...rest.map((line) => `T* ${encodePdfLine(line)} Tj`),
     "ET",
