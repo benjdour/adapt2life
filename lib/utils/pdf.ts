@@ -128,7 +128,15 @@ const WIN_ANSI_OVERRIDES = WIN_ANSI_TUPLES.reduce<Record<string, number>>((acc, 
   return acc;
 }, {});
 
-const stripLeadingSymbols = (value: string) => value.replace(/^[^0-9A-Za-zÀ-ÿ]+/u, "").trimStart();
+const stripInlineFormatting = (value: string) => value.replace(/(\*\*|__)/g, "");
+
+const normalizeRepetitionCount = (value: string) =>
+  value.replace(/\b(\d+)\s*x\s*(\d+)/gi, (match, count, distance) => `${count}x${distance}`);
+
+const stripLeadingSymbols = (value: string) => {
+  const cleaned = normalizeRepetitionCount(stripInlineFormatting(value));
+  return cleaned.replace(/^[^0-9A-Za-zÀ-ÿ]+/u, "").trimStart();
+};
 
 const wrapParagraph = (
   text: string,
