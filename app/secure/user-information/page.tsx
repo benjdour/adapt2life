@@ -15,6 +15,8 @@ import { Button } from "@/components/ui/button";
 import { DEFAULT_USER_PLAN, getUserPlanConfig } from "@/lib/constants/userPlans";
 import { ManageSubscriptionButton } from "@/components/profile/ManageSubscriptionButton";
 import { PlanDowngradeToast } from "@/components/profile/PlanDowngradeToast";
+import { getRequestLocale } from "@/lib/i18n/request";
+import { buildLocalePath } from "@/lib/i18n/routing";
 
 const userSelection = {
   id: users.id,
@@ -245,7 +247,10 @@ async function updateProfile(formData: FormData) {
   const stackUser = await stackServerApp.getUser({ or: "return-null", tokenStore: "nextjs-cookie" });
 
   if (!stackUser) {
-    redirect("/handler/sign-in?redirect=/secure/user-information");
+    const locale = await getRequestLocale();
+    const signInPath = buildLocalePath(locale, "/handler/sign-in");
+    const profilePath = buildLocalePath(locale, "/secure/user-information");
+    redirect(`${signInPath}?redirect=${encodeURIComponent(profilePath)}`);
   }
 
   const firstName = getNullableText(formData.get("firstName"));
@@ -293,8 +298,10 @@ async function updateProfile(formData: FormData) {
     })
     .where(eq(users.id, localUser.id));
 
-  revalidatePath("/secure/user-information");
-  redirect("/secure/user-information?status=updated");
+  const locale = await getRequestLocale();
+  const profilePath = buildLocalePath(locale, "/secure/user-information");
+  revalidatePath(profilePath);
+  redirect(`${profilePath}?status=updated`);
 }
 
 export const metadata: Metadata = {
@@ -307,10 +314,14 @@ export const revalidate = 0;
 export default async function UserInformationPage({ searchParams }: PageProps) {
   noStore();
 
+  const locale = await getRequestLocale();
+  const signInPath = buildLocalePath(locale, "/handler/sign-in");
+  const profilePath = buildLocalePath(locale, "/secure/user-information");
+
   const stackUser = await stackServerApp.getUser({ or: "return-null", tokenStore: "nextjs-cookie" });
 
   if (!stackUser) {
-    redirect("/handler/sign-in?redirect=/secure/user-information");
+    redirect(`${signInPath}?redirect=${encodeURIComponent(profilePath)}`);
   }
 
   const [maybeLocalUser] = await db
@@ -410,7 +421,7 @@ export default async function UserInformationPage({ searchParams }: PageProps) {
           ) : null}
           <div className="mb-4 flex flex-wrap items-center gap-3">
             <Button asChild variant="outline" size="sm">
-              <Link href="/pricing">Choisir un abonnement</Link>
+              <Link href={buildLocalePath(locale, "/pricing")}>Choisir un abonnement</Link>
             </Button>
             <ManageSubscriptionButton canManage={canManageSubscription} />
             <p className="text-xs text-muted-foreground">

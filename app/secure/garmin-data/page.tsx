@@ -11,6 +11,8 @@ import { mockGarminData } from "@/lib/trainingScore";
 import { stackServerApp } from "@/stack/server";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { hasStackSessionCookie } from "@/lib/stack/sessionCookies";
+import { getRequestLocale } from "@/lib/i18n/request";
+import { buildLocalePath } from "@/lib/i18n/routing";
 
 export const metadata: Metadata = {
   title: "Adapt2Life — Données Garmin",
@@ -58,8 +60,11 @@ async function GarminDataPanel({ localUserId, gender }: GarminDataPanelProps) {
 }
 
 export default async function GarminDataPage() {
+  const locale = await getRequestLocale();
+  const signInPath = buildLocalePath(locale, "/handler/sign-in");
+  const garminDataPath = buildLocalePath(locale, "/secure/garmin-data");
   if (!(await hasStackSessionCookie())) {
-    redirect("/handler/sign-in?redirect=/secure/garmin-data");
+    redirect(`${signInPath}?redirect=${encodeURIComponent(garminDataPath)}`);
   }
 
   const stackUserPromise = stackServerApp.getUser({ or: "return-null", tokenStore: "nextjs-cookie" });
@@ -67,7 +72,7 @@ export default async function GarminDataPage() {
   const stackUser = await stackUserPromise;
 
   if (!stackUser) {
-    redirect("/handler/sign-in?redirect=/secure/garmin-data");
+    redirect(`${signInPath}?redirect=${encodeURIComponent(garminDataPath)}`);
   }
 
   const [localUser] = await db
@@ -77,7 +82,7 @@ export default async function GarminDataPage() {
     .limit(1);
 
   if (!localUser) {
-    redirect("/integrations/garmin");
+    redirect(buildLocalePath(locale, "/integrations/garmin"));
   }
 
   return (

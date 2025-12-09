@@ -3,8 +3,12 @@ import { StackHandler } from "@stackframe/stack";
 
 import { stackServerApp } from "@/stack/server";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { getRequestLocale } from "@/lib/i18n/request";
+import { buildLocalePath } from "@/lib/i18n/routing";
 
-export default function Handler(props: unknown) {
+export default async function Handler(props: unknown) {
+  const locale = await getRequestLocale();
+  const contactHref = buildLocalePath(locale, "/contact");
   return (
     <main className="mx-auto flex h-full w-full max-w-5xl flex-col gap-10 px-6 py-12 text-foreground">
       <div className="flex flex-col gap-8 md:flex-row md:items-center">
@@ -21,7 +25,7 @@ export default function Handler(props: unknown) {
             <li>• Plans recalculés selon ton énergie, ton sommeil et tes contraintes</li>
           </ul>
           <p className="text-sm text-muted-foreground">
-            Besoin d’aide ? <Link href="/contact" className="underline">Contacte-nous</Link> en 1 clic.
+            Besoin d’aide ? <Link href={contactHref} className="underline">Contacte-nous</Link> en 1 clic.
           </p>
         </section>
 

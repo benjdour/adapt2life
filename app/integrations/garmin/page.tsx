@@ -11,6 +11,8 @@ import { DashboardGrid } from "@/components/ui/dashboard-grid";
 
 import { GarminIntegrationActions } from "./garmin-integration-actions";
 import { DEFAULT_USER_PLAN, getUserPlanConfig } from "@/lib/constants/userPlans";
+import { getRequestLocale } from "@/lib/i18n/request";
+import { buildLocalePath } from "@/lib/i18n/routing";
 
 export const metadata: Metadata = {
   title: "Intégration Garmin Connect — Adapt2Life",
@@ -35,10 +37,14 @@ const normalizeSearchParam = (value: string | string[] | undefined) => {
 export default async function GarminIntegrationPage({ searchParams }: PageProps) {
   noStore();
 
+  const locale = await getRequestLocale();
+  const signInPath = buildLocalePath(locale, "/handler/sign-in");
+  const integrationPath = buildLocalePath(locale, "/integrations/garmin");
+
   const stackUser = await stackServerApp.getUser({ or: "return-null", tokenStore: "nextjs-cookie" });
 
   if (!stackUser) {
-    redirect("/handler/sign-in?redirect=/integrations/garmin");
+    redirect(`${signInPath}?redirect=${encodeURIComponent(integrationPath)}`);
   }
 
   const [existingUser] = await db

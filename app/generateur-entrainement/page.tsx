@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { TrainingGeneratorsSection } from "@/components/TrainingGeneratorsSection";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { hasStackSessionCookie } from "@/lib/stack/sessionCookies";
+import { getRequestLocale } from "@/lib/i18n/request";
+import { buildLocalePath } from "@/lib/i18n/routing";
 
 export const metadata: Metadata = {
   title: "Adapt2Life — Générateur d’entraînement",
@@ -21,8 +23,11 @@ function TrainingGeneratorSkeleton() {
 }
 
 export default async function TrainingGeneratorPage() {
+  const locale = await getRequestLocale();
+  const signInPath = buildLocalePath(locale, "/handler/sign-in");
+  const generatorPath = buildLocalePath(locale, "/generateur-entrainement");
   if (!(await hasStackSessionCookie())) {
-    redirect("/handler/sign-in?redirect=/generateur-entrainement");
+    redirect(`${signInPath}?redirect=${encodeURIComponent(generatorPath)}`);
   }
 
   return (
