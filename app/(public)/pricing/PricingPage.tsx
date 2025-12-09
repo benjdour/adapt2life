@@ -1,15 +1,15 @@
 import type { Metadata } from "next";
 import { eq } from "drizzle-orm";
+
+import { PlanCheckoutButtons } from "@/components/pricing/PlanCheckoutButtons";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { db } from "@/db";
 import { users } from "@/db/schema";
-import { stackServerApp } from "@/stack/server";
 import { USER_PLAN_CATALOG, type UserPlanId, isUserPlanId } from "@/lib/constants/userPlans";
-import { PlanCheckoutButtons } from "@/components/pricing/PlanCheckoutButtons";
+import { Locale } from "@/lib/i18n/locales";
+import { stackServerApp } from "@/stack/server";
 
-type PageProps = {
-  searchParams?: Record<string, string | string[] | undefined>;
-};
+type PageSearchParams = Record<string, string | string[] | undefined>;
 
 const PUBLIC_PLAN_ORDER = ["free", "paid_light", "paid", "paid_full"] as const;
 
@@ -28,20 +28,34 @@ const PLAN_PRICING: Record<
 };
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://adapt2life.app";
+const basePath = "/pricing";
 
-export const metadata: Metadata = {
-  title: "Tarifs Adapt2Life",
-  description: "Compare les plans Starter, Momentum, Peak et Elite pour choisir le volume de générations et conversions adapté à ta pratique.",
-  alternates: {
-    canonical: `${siteUrl}/pricing`,
-  },
-  openGraph: {
-    url: `${siteUrl}/pricing`,
+const metadataByLocale: Record<Locale, Metadata> = {
+  fr: {
     title: "Tarifs Adapt2Life",
-    description: "Découvre les offres Starter, Momentum, Peak et Elite : quotas mensuels et annuels pour adapter ton entraînement.",
-    type: "website",
+    description: "Compare les plans Starter, Momentum, Peak et Elite pour choisir le volume de générations et conversions adapté à ta pratique.",
+    alternates: { canonical: `${siteUrl}${basePath}` },
+    openGraph: {
+      url: `${siteUrl}${basePath}`,
+      title: "Tarifs Adapt2Life",
+      description: "Découvre les offres Starter, Momentum, Peak et Elite : quotas mensuels et annuels pour adapter ton entraînement.",
+      type: "website",
+    },
+  },
+  en: {
+    title: "Adapt2Life Pricing",
+    description: "Compare Starter, Momentum, Peak, and Elite to pick the right generation/conversion volume for your training.",
+    alternates: { canonical: `${siteUrl}/en${basePath}` },
+    openGraph: {
+      url: `${siteUrl}/en${basePath}`,
+      title: "Adapt2Life Pricing",
+      description: "See Starter, Momentum, Peak, and Elite – monthly and yearly quotas to match your workload.",
+      type: "website",
+    },
   },
 };
+
+export const getPricingMetadata = (locale: Locale): Metadata => metadataByLocale[locale] ?? metadataByLocale.fr;
 
 const normalizeParam = (value: string | string[] | undefined) => {
   if (Array.isArray(value)) {
@@ -66,7 +80,36 @@ const STATUS_BANNERS: Record<
   },
 };
 
-export default async function PricingPage({ searchParams }: PageProps) {
+const buildPricingJsonLd = (locale: Locale) => {
+  const pageUrl = locale === "fr" ? `${siteUrl}${basePath}` : `${siteUrl}/en${basePath}`;
+  return {
+    "@context": "https://schema.org",
+    "@type": "Service",
+    name: "Adapt2Life - Plans d'entraînement IA",
+    url: pageUrl,
+    provider: {
+      "@type": "Organization",
+      name: "Adapt2Life",
+      url: siteUrl,
+    },
+    offers: PUBLIC_PLAN_ORDER.map((planId) => ({
+      "@type": "Offer",
+      name: USER_PLAN_CATALOG[planId].label,
+      priceCurrency: "USD",
+      price: PLAN_PRICING[planId].monthlyValue,
+      url: pageUrl,
+      availability: "https://schema.org/InStock",
+      description: USER_PLAN_CATALOG[planId].description,
+    })),
+  };
+};
+
+export type PricingPageProps = {
+  locale: Locale;
+  searchParams?: PageSearchParams;
+};
+
+export async function PricingPage({ locale, searchParams }: PricingPageProps) {
   const stackUser = await stackServerApp.getUser({ or: "return-null", tokenStore: "nextjs-cookie" });
   let currentPlan: UserPlanId | null = null;
 
@@ -81,6 +124,7 @@ export default async function PricingPage({ searchParams }: PageProps) {
 
   const statusParam = normalizeParam(searchParams?.status);
   const banner = statusParam === "success" || statusParam === "cancel" ? STATUS_BANNERS[statusParam] : null;
+  const jsonLd = buildPricingJsonLd(locale);
 
   return (
     <main className="mx-auto flex max-w-5xl flex-col gap-10 px-6 py-12 text-foreground">
@@ -109,32 +153,7 @@ export default async function PricingPage({ searchParams }: PageProps) {
       </section>
 
       <section className="grid gap-6 md:grid-cols-2">
-        <script
-          type="application/ld+json"
-          suppressHydrationWarning
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "Service",
-              name: "Adapt2Life - Plans d'entraînement IA",
-              url: `${siteUrl}/pricing`,
-              provider: {
-                "@type": "Organization",
-                name: "Adapt2Life",
-                url: siteUrl,
-              },
-              offers: PUBLIC_PLAN_ORDER.map((planId) => ({
-                "@type": "Offer",
-                name: USER_PLAN_CATALOG[planId].label,
-                priceCurrency: "USD",
-                price: PLAN_PRICING[planId].monthlyValue,
-                url: `${siteUrl}/pricing`,
-                availability: "https://schema.org/InStock",
-                description: USER_PLAN_CATALOG[planId].description,
-              })),
-            }),
-          }}
-        />
+        <script type="application/ld+json" suppressHydrationWarning dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
         {PUBLIC_PLAN_ORDER.map((planId) => {
           const plan = USER_PLAN_CATALOG[planId];
           const price = PLAN_PRICING[planId];
@@ -169,16 +188,14 @@ export default async function PricingPage({ searchParams }: PageProps) {
                 <ul className="space-y-2 text-sm text-muted-foreground">
                   {plan.trainingQuota !== null ? (
                     <li>
-                      <span className="font-semibold text-foreground">{plan.trainingQuota}</span> générations d’entraînements IA
-                      mensuelles
+                      <span className="font-semibold text-foreground">{plan.trainingQuota}</span> générations d’entraînements IA mensuelles
                     </li>
                   ) : (
                     <li>Générations IA illimitées</li>
                   )}
                   {plan.conversionQuota !== null ? (
                     <li>
-                      <span className="font-semibold text-foreground">{plan.conversionQuota}</span> conversions Garmin
-                      automatisées
+                      <span className="font-semibold text-foreground">{plan.conversionQuota}</span> conversions Garmin automatisées
                     </li>
                   ) : (
                     <li>Conversions Garmin illimitées</li>
@@ -186,12 +203,7 @@ export default async function PricingPage({ searchParams }: PageProps) {
                   <li>Accès complet aux workflows Adapt2Life et au support e-mail.</li>
                   {isStarterPlan ? <li>Crédits offerts une seule fois — aucune recharge mensuelle.</li> : null}
                 </ul>
-                <PlanCheckoutButtons
-                  planId={planId}
-                  price={price}
-                  disabled={isCurrentPlan}
-                  isAuthenticated={Boolean(stackUser)}
-                />
+                <PlanCheckoutButtons planId={planId} price={price} disabled={isCurrentPlan} isAuthenticated={Boolean(stackUser)} />
                 {isStarterPlan ? (
                   <p className="text-xs text-muted-foreground">Crédits Starter utilisables une seule fois.</p>
                 ) : (
@@ -199,15 +211,11 @@ export default async function PricingPage({ searchParams }: PageProps) {
                     Quotas remis à zéro le 1<sup>er</sup> de chaque mois, quelle que soit la formule (mensuelle ou annuelle).
                   </p>
                 )}
-                {isCurrentPlan ? (
-                  <p className="text-xs font-medium text-primary">Tu disposes déjà de cette formule.</p>
-                ) : null}
               </CardContent>
             </Card>
           );
         })}
       </section>
-
     </main>
   );
 }
