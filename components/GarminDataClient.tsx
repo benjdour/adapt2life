@@ -8,27 +8,51 @@ import TrainingScoreGauge from "@/components/TrainingScoreGauge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { GarminActivityHighlight, GarminDataBundle, GarminSection } from "@/lib/garminData";
 
+export type GarminDataClientCopy = {
+  waitingSyncLabel: string;
+  activityCarousel: {
+    counterLabel: string;
+    fallbackType: string;
+    fallbackDate: string;
+    previousAria: string;
+    nextAria: string;
+    stats: {
+      duration: string;
+      intensity: string;
+      heartRate: string;
+      power: string;
+      cadence: string;
+      calories: string;
+    };
+  };
+  toasts: {
+    errorTitle: string;
+    errorDescription: string;
+    successTitle: string;
+    successDescription: string;
+  };
+  noConnection: {
+    title: string;
+    description: string;
+  };
+  firstSync: {
+    title: string;
+    description: string;
+  };
+};
+
 type GarminDataClientProps = {
   initialData: GarminDataBundle;
+  copy: GarminDataClientCopy;
 };
 
-const renderMetricValue = ({
-  value,
-  hasSyncedOnce,
+const ActivityCarousel = ({
+  activities,
+  copy,
 }: {
-  value: string | null;
-  hasSyncedOnce: boolean;
+  activities: GarminActivityHighlight[];
+  copy: GarminDataClientCopy["activityCarousel"];
 }) => {
-  if (value) {
-    return <span className="text-base font-semibold text-foreground">{value}</span>;
-  }
-  if (hasSyncedOnce) {
-    return <span className="text-sm text-warning">En attente de synchro</span>;
-  }
-  return null;
-};
-
-const ActivityCarousel = ({ activities }: { activities: GarminActivityHighlight[] }) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
 
@@ -38,6 +62,9 @@ const ActivityCarousel = ({ activities }: { activities: GarminActivityHighlight[
 
   const boundedIndex = Math.min(activeIndex, activities.length - 1);
   const current = activities[boundedIndex];
+  const activityCounter = copy.counterLabel
+    .replace("{current}", String(boundedIndex + 1))
+    .replace("{total}", String(activities.length));
 
   const goToPrevious = () => {
     if (activities.length === 0) return;
@@ -74,12 +101,12 @@ const ActivityCarousel = ({ activities }: { activities: GarminActivityHighlight[
   };
 
   const stats = [
-    { label: "Durée", value: current.durationDisplay },
-    { label: "Intensité", value: current.intensityDisplay },
-    { label: "FC moyenne", value: current.heartRateDisplay },
-    { label: "Puissance", value: current.powerDisplay },
-    { label: "Cadence", value: current.cadenceDisplay },
-    { label: "Calories", value: current.caloriesDisplay },
+    { label: copy.stats.duration, value: current.durationDisplay },
+    { label: copy.stats.intensity, value: current.intensityDisplay },
+    { label: copy.stats.heartRate, value: current.heartRateDisplay },
+    { label: copy.stats.power, value: current.powerDisplay },
+    { label: copy.stats.cadence, value: current.cadenceDisplay },
+    { label: copy.stats.calories, value: current.caloriesDisplay },
   ].filter((stat) => Boolean(stat.value));
 
   return (
@@ -91,17 +118,15 @@ const ActivityCarousel = ({ activities }: { activities: GarminActivityHighlight[
     >
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">
-            Activité {boundedIndex + 1} / {activities.length}
-          </p>
-          <h3 className="mt-1 text-lg font-semibold text-foreground">{current.type ?? "Activité"}</h3>
-          <p className="text-sm text-muted-foreground">{current.startDisplay ?? "Date inconnue"}</p>
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">{activityCounter}</p>
+          <h3 className="mt-1 text-lg font-semibold text-foreground">{current.type ?? copy.fallbackType}</h3>
+          <p className="text-sm text-muted-foreground">{current.startDisplay ?? copy.fallbackDate}</p>
         </div>
         <div className="hidden gap-2 md:flex">
           <button
             type="button"
             onClick={goToPrevious}
-            aria-label="Activité précédente"
+            aria-label={copy.previousAria}
             className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/5 text-lg text-foreground transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70"
           >
             <span aria-hidden="true">&lt;</span>
@@ -109,7 +134,7 @@ const ActivityCarousel = ({ activities }: { activities: GarminActivityHighlight[
           <button
             type="button"
             onClick={goToNext}
-            aria-label="Activité suivante"
+            aria-label={copy.nextAria}
             className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/5 text-lg text-foreground transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70"
           >
             <span aria-hidden="true">&gt;</span>
@@ -130,7 +155,7 @@ const ActivityCarousel = ({ activities }: { activities: GarminActivityHighlight[
   );
 };
 
-const GarminDataClient = ({ initialData }: GarminDataClientProps) => {
+const GarminDataClient = ({ initialData, copy }: GarminDataClientProps) => {
   const [data, setData] = useState<GarminDataBundle>(initialData);
   const hasShownErrorRef = useRef(false);
 
@@ -146,8 +171,8 @@ const GarminDataClient = ({ initialData }: GarminDataClientProps) => {
         });
         if (!response.ok) {
           if (!hasShownErrorRef.current) {
-            toast.error("Impossible d’actualiser les données Garmin.", {
-              description: "Dernière synchronisation indisponible. Vérifie ta connexion ou réessaie plus tard.",
+            toast.error(copy.toasts.errorTitle, {
+              description: copy.toasts.errorDescription,
             });
             hasShownErrorRef.current = true;
           }
@@ -157,16 +182,16 @@ const GarminDataClient = ({ initialData }: GarminDataClientProps) => {
         if (!cancelled) {
           setData(payload);
           if (hasShownErrorRef.current) {
-            toast.success("Données Garmin mises à jour", {
-              description: "La connexion est rétablie, les dernières mesures sont affichées.",
+            toast.success(copy.toasts.successTitle, {
+              description: copy.toasts.successDescription,
             });
             hasShownErrorRef.current = false;
           }
         }
       } catch {
         if (!hasShownErrorRef.current) {
-          toast.error("Impossible d’actualiser les données Garmin.", {
-            description: "Dernière synchronisation indisponible. Vérifie ta connexion ou réessaie plus tard.",
+          toast.error(copy.toasts.errorTitle, {
+            description: copy.toasts.errorDescription,
           });
           hasShownErrorRef.current = true;
         }
@@ -180,11 +205,21 @@ const GarminDataClient = ({ initialData }: GarminDataClientProps) => {
       cancelled = true;
       clearInterval(interval);
     };
-  }, []);
+  }, [copy]);
 
   const sections: GarminSection[] = useMemo(() => data.sections ?? [], [data.sections]);
   const hasSyncedOnce = data.hasSyncedOnce;
   const hasConnection = Boolean(data.connection);
+
+  const renderMetricValue = (value: string | null) => {
+    if (value) {
+      return <span className="text-base font-semibold text-foreground">{value}</span>;
+    }
+    if (hasSyncedOnce) {
+      return <span className="text-sm text-warning">{copy.waitingSyncLabel}</span>;
+    }
+    return null;
+  };
 
   return (
     <div className="space-y-6">
@@ -193,10 +228,8 @@ const GarminDataClient = ({ initialData }: GarminDataClientProps) => {
       {!hasConnection ? (
         <Card className="border-dashed">
           <CardContent className="space-y-2 py-6">
-            <p className="text-sm font-semibold text-foreground">Aucune connexion Garmin</p>
-            <p className="text-sm text-muted-foreground">
-              Relie ton compte via la page d’intégration pour voir tes données apparaître ici.
-            </p>
+            <p className="text-sm font-semibold text-foreground">{copy.noConnection.title}</p>
+            <p className="text-sm text-muted-foreground">{copy.noConnection.description}</p>
           </CardContent>
         </Card>
       ) : null}
@@ -204,10 +237,8 @@ const GarminDataClient = ({ initialData }: GarminDataClientProps) => {
       {hasConnection && !hasSyncedOnce ? (
         <Card className="border-dashed border-primary/40 bg-card/80">
           <CardContent className="space-y-2 py-6">
-            <p className="text-sm font-semibold text-foreground">Première synchronisation en attente</p>
-            <p className="text-sm text-muted-foreground">
-              Dès que Garmin enverra tes premières données, elles apparaîtront automatiquement ici.
-            </p>
+            <p className="text-sm font-semibold text-foreground">{copy.firstSync.title}</p>
+            <p className="text-sm text-muted-foreground">{copy.firstSync.description}</p>
           </CardContent>
         </Card>
       ) : null}
@@ -235,11 +266,13 @@ const GarminDataClient = ({ initialData }: GarminDataClientProps) => {
                   {section.description ? <CardDescription>{section.description}</CardDescription> : null}
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {hasActivities && section.activities ? <ActivityCarousel activities={section.activities} /> : null}
+                  {hasActivities && section.activities ? (
+                    <ActivityCarousel activities={section.activities} copy={copy.activityCarousel} />
+                  ) : null}
                   {visibleItems.length > 0 ? (
                     <div className="grid gap-4 md:grid-cols-2">
                       {visibleItems.map((item) => {
-                        const metricValue = renderMetricValue({ value: item.value, hasSyncedOnce });
+                        const metricValue = renderMetricValue(item.value);
                         return (
                           <div key={item.label} className="rounded-2xl border border-white/10 bg-muted/30 p-4">
                             <p className="text-xs uppercase tracking-wide text-muted-foreground">{item.label}</p>

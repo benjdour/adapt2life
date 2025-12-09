@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 
-import GarminDataClient from "@/components/GarminDataClient";
+import GarminDataClient, { GarminDataClientCopy } from "@/components/GarminDataClient";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { getCachedGarminData } from "@/lib/cachedGarminData";
@@ -13,14 +13,107 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { hasStackSessionCookie } from "@/lib/stack/sessionCookies";
 import { getRequestLocale } from "@/lib/i18n/request";
 import { buildLocalePath } from "@/lib/i18n/routing";
+import { Locale } from "@/lib/i18n/locales";
 
-export const metadata: Metadata = {
-  title: "Adapt2Life — Données Garmin",
+type GarminDataPageCopy = {
+  metadataTitle: string;
+  headerTag: string;
+  headerTitle: string;
+  headerDescription: string;
+  client: GarminDataClientCopy;
 };
+
+const copyByLocale: Record<Locale, GarminDataPageCopy> = {
+  fr: {
+    metadataTitle: "Adapt2Life — Données Garmin",
+    headerTag: "Garmin",
+    headerTitle: "Données synchronisées",
+    headerDescription: "Visualise les métriques clés envoyées par Garmin Connect.",
+    client: {
+      waitingSyncLabel: "En attente de synchro",
+      activityCarousel: {
+        counterLabel: "Activité {current} / {total}",
+        fallbackType: "Activité",
+        fallbackDate: "Date inconnue",
+        previousAria: "Activité précédente",
+        nextAria: "Activité suivante",
+        stats: {
+          duration: "Durée",
+          intensity: "Intensité",
+          heartRate: "FC moyenne",
+          power: "Puissance",
+          cadence: "Cadence",
+          calories: "Calories",
+        },
+      },
+      toasts: {
+        errorTitle: "Impossible d’actualiser les données Garmin.",
+        errorDescription: "Dernière synchronisation indisponible. Vérifie ta connexion ou réessaie plus tard.",
+        successTitle: "Données Garmin mises à jour",
+        successDescription: "La connexion est rétablie, les dernières mesures sont affichées.",
+      },
+      noConnection: {
+        title: "Aucune connexion Garmin",
+        description: "Relie ton compte via la page d’intégration pour voir tes données apparaître ici.",
+      },
+      firstSync: {
+        title: "Première synchronisation en attente",
+        description: "Dès que Garmin enverra tes premières données, elles apparaîtront automatiquement ici.",
+      },
+    },
+  },
+  en: {
+    metadataTitle: "Adapt2Life — Garmin data",
+    headerTag: "Garmin",
+    headerTitle: "Synced data",
+    headerDescription: "Review the key metrics sent by Garmin Connect.",
+    client: {
+      waitingSyncLabel: "Waiting for sync",
+      activityCarousel: {
+        counterLabel: "Activity {current} / {total}",
+        fallbackType: "Activity",
+        fallbackDate: "Unknown date",
+        previousAria: "Previous activity",
+        nextAria: "Next activity",
+        stats: {
+          duration: "Duration",
+          intensity: "Intensity",
+          heartRate: "Avg HR",
+          power: "Power",
+          cadence: "Cadence",
+          calories: "Calories",
+        },
+      },
+      toasts: {
+        errorTitle: "Unable to refresh Garmin data.",
+        errorDescription: "Latest sync unavailable. Check your connection or try again later.",
+        successTitle: "Garmin data updated",
+        successDescription: "Connection restored, latest measurements are now visible.",
+      },
+      noConnection: {
+        title: "No Garmin connection",
+        description: "Connect your account from the integration page to start seeing your metrics here.",
+      },
+      firstSync: {
+        title: "Awaiting first sync",
+        description: "As soon as Garmin sends your first payload, it will appear automatically.",
+      },
+    },
+  },
+};
+
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getRequestLocale();
+  const copy = copyByLocale[locale];
+  return {
+    title: copy.metadataTitle,
+  };
+}
 
 type GarminDataPanelProps = {
   localUserId: number;
   gender: string | null;
+  copy: GarminDataClientCopy;
 };
 
 function GarminDataSkeleton() {
@@ -39,7 +132,7 @@ function GarminDataSkeleton() {
   );
 }
 
-async function GarminDataPanel({ localUserId, gender }: GarminDataPanelProps) {
+async function GarminDataPanel({ localUserId, gender, copy }: GarminDataPanelProps) {
   const data =
     (await getCachedGarminData(localUserId, { gender })) ??
     {
@@ -53,7 +146,7 @@ async function GarminDataPanel({ localUserId, gender }: GarminDataPanelProps) {
   return (
     <Card className="overflow-hidden">
       <CardContent className="p-0">
-        <GarminDataClient initialData={data} />
+        <GarminDataClient initialData={data} copy={copy} />
       </CardContent>
     </Card>
   );
@@ -61,6 +154,7 @@ async function GarminDataPanel({ localUserId, gender }: GarminDataPanelProps) {
 
 export default async function GarminDataPage() {
   const locale = await getRequestLocale();
+  const copy = copyByLocale[locale];
   const signInPath = buildLocalePath(locale, "/handler/sign-in");
   const garminDataPath = buildLocalePath(locale, "/secure/garmin-data");
   if (!(await hasStackSessionCookie())) {
@@ -89,14 +183,14 @@ export default async function GarminDataPage() {
     <div className="mx-auto flex min-h-screen max-w-5xl flex-col gap-8 px-6 py-12 text-foreground">
       <Card>
         <CardHeader>
-          <p className="text-xs uppercase tracking-wide text-primary/80">Garmin</p>
-          <CardTitle>Données synchronisées</CardTitle>
-          <CardDescription>Visualise les métriques clés envoyées par Garmin Connect.</CardDescription>
+          <p className="text-xs uppercase tracking-wide text-primary/80">{copy.headerTag}</p>
+          <CardTitle>{copy.headerTitle}</CardTitle>
+          <CardDescription>{copy.headerDescription}</CardDescription>
         </CardHeader>
       </Card>
 
       <Suspense fallback={<GarminDataSkeleton />}>
-        <GarminDataPanel localUserId={localUser.id} gender={localUser.gender} />
+        <GarminDataPanel localUserId={localUser.id} gender={localUser.gender} copy={copy.client} />
       </Suspense>
     </div>
   );
