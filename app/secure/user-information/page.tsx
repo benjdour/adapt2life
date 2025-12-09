@@ -311,10 +311,44 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export default async function UserInformationPage({ searchParams }: PageProps) {
-  noStore();
-
-  const locale = await getRequestLocale();
+const copyByLocale = {
+  fr: {
+    accountTag: "Compte",
+    accountTitle: "Informations utilisateur",
+    accountDescription: "Consulte les informations associées à ton profil Adapt2Life et mets-les à jour pour personnaliser tes recommandations.",
+    subscriptionTitle: "Abonnement & crédits",
+    downgradeWarning: (date: string) => `Ton abonnement restera actif jusqu’au ${date}. Tu repasseras automatiquement sur Starter lors de la prochaine remise à zéro des quotas.`,
+    pickPlan: "Choisir un abonnement",
+    starterNote: "Crédits Starter utilisables une seule fois — aucune recharge mensuelle.",
+    quotaNote: <>Les quotas mensuels se remettent à zéro le 1<sup>er</sup> de chaque mois.</>,
+    trainingLabel: "Générations IA",
+    conversionLabel: "Conversions Garmin",
+    unlimited: "Illimité",
+    sessionsRemaining: (count: number) =>
+      count > 0 ? `${count} séance${count > 1 ? "s" : ""} restantes` : "Quota utilisé — contacte-nous pour prolonger l’accès",
+    conversionsRemaining: (count: number) =>
+      count > 0 ? `${count} conversion${count > 1 ? "s" : ""} restantes` : "Quota utilisé — contacte-nous pour prolonger l’accès",
+    profileSectionTitle: "Profil et objectifs",
+    profileSectionDescription: "Complète tes informations personnelles pour que l’IA ajuste ses recommandations.",
+    firstNameLabel: "Prénom",
+    lastNameLabel: "Nom",
+    pseudoLabel: "Pseudo (optionnel)",
+    genderLabel: "Genre",
+    birthDateLabel: "Date de naissance",
+    sportLevelLabel: "Niveau sportif",
+    heightLabel: "Taille (cm)",
+    weightLabel: "Poids (kg)",
+    goalLabel: "Objectif principal",
+    updateButton: "Mettre à jour le profil",
+    weightHint: "Valeur suggérée d’après ta dernière mesure Garmin.",
+    statusUpdated: "Profil mis à jour avec succès 🎉",
+  },
+  en: {
+    accountTag: "Account",
+    accountTitle: "User information",
+    accountDescription: "Review and edit your Adapt2Life profile to personalize recommendations.",
+    subscriptionTitle: "Plan & credits",
+    downgradeWarning: (date: string) => `Your subscription stays active until ${date}. You’ll return to Starter on the next quota reset.
   const signInPath = buildLocalePath(locale, "/handler/sign-in");
   const profilePath = buildLocalePath(locale, "/secure/user-information");
 
