@@ -1,8 +1,9 @@
 import { Metadata } from "next";
-import { revalidatePath, unstable_noStore as noStore } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { and, desc, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { ReactNode } from "react";
 
 import { db } from "@/db";
 import { garminWebhookEvents, users } from "@/db/schema";
@@ -17,6 +18,7 @@ import { ManageSubscriptionButton } from "@/components/profile/ManageSubscriptio
 import { PlanDowngradeToast } from "@/components/profile/PlanDowngradeToast";
 import { getRequestLocale } from "@/lib/i18n/request";
 import { buildLocalePath } from "@/lib/i18n/routing";
+import { Locale } from "@/lib/i18n/locales";
 
 const userSelection = {
   id: users.id,
@@ -40,25 +42,6 @@ const userSelection = {
   stripePlanId: users.stripePlanId,
   planDowngradeAt: users.planDowngradeAt,
 };
-
-const GENDER_OPTIONS = [
-  { value: "homme", label: "Homme" },
-  { value: "femme", label: "Femme" },
-  { value: "non-specifie", label: "Non spécifié" },
-];
-
-const SPORT_LEVEL_OPTIONS = [
-  { value: 1, label: "Sédentaire", description: "Activité physique très faible, aucun entraînement régulier." },
-  { value: 2, label: "Débutant absolu", description: "Commence tout juste une activité sportive, peu d’expérience." },
-  { value: 3, label: "Débutant régulier", description: "Pratique légère 1 à 2 fois par semaine, encore en phase d’apprentissage." },
-  { value: 4, label: "Loisir occasionnel", description: "Activité de loisir sans objectif particulier, rythme irrégulier." },
-  { value: 5, label: "Loisir sérieux", description: "Pratique structurée 2 à 3 fois par semaine, objectifs personnels simples." },
-  { value: 6, label: "Intermédiaire", description: "Bon niveau d’endurance, séances régulières avec planification basique." },
-  { value: 7, label: "Avancé", description: "S’entraîne fréquemment avec planification, vise des performances mesurées." },
-  { value: 8, label: "Expert", description: "Suit un programme exigeant avec encadrement ou suivi précis des données." },
-  { value: 9, label: "Compétiteur élite amateur", description: "Participe à des compétitions de haut niveau, gros volume d’entraînement." },
-  { value: 10, label: "Professionnel", description: "Athlète professionnel ou semi-pro avec calendrier compétitif intense." },
-];
 
 const WEIGHT_KG_PATHS: string[][] = [
   ["weightKg"],
@@ -311,16 +294,68 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+type GenderOption = { value: string; label: string };
+type SportLevelOption = { value: number; label: string; description: string };
+
+type Copy = {
+  accountTag: string;
+  accountTitle: string;
+  accountDescription: string;
+  subscriptionTitle: string;
+  downgradeWarning: (date: string) => string;
+  pickPlan: string;
+  starterNote: string;
+  quotaNote: ReactNode;
+  trainingLabel: string;
+  conversionLabel: string;
+  unlimited: string;
+  sessionsRemaining: (count: number) => string;
+  conversionsRemaining: (count: number) => string;
+  profileCardTitle: string;
+  profileCardSynced: string;
+  profileCardEmpty: string;
+  firstNameLabel: string;
+  lastNameLabel: string;
+  pseudoLabel: string;
+  genderLabel: string;
+  birthDateLabel: string;
+  sportLevelLabel: string;
+  heightLabel: string;
+  weightLabel: string;
+  goalLabel: string;
+  ageLabel: string;
+  agePlaceholder: string;
+  updateButton: string;
+  weightHint: string;
+  statusUpdated: string;
+  genderPlaceholder: string;
+  sportLevelPlaceholder: string;
+  pseudoPlaceholder: string;
+  lastNamePlaceholder: string;
+  firstNamePlaceholder: string;
+  heightPlaceholder: string;
+  weightPlaceholder: string;
+  goalPlaceholder: string;
+  genderOptions: GenderOption[];
+  sportLevelOptions: SportLevelOption[];
+};
+
 const copyByLocale = {
   fr: {
     accountTag: "Compte",
     accountTitle: "Informations utilisateur",
-    accountDescription: "Consulte les informations associées à ton profil Adapt2Life et mets-les à jour pour personnaliser tes recommandations.",
+    accountDescription:
+      "Consulte les informations associées à ton profil Adapt2Life et mets-les à jour pour personnaliser tes recommandations.",
     subscriptionTitle: "Abonnement & crédits",
-    downgradeWarning: (date: string) => `Ton abonnement restera actif jusqu’au ${date}. Tu repasseras automatiquement sur Starter lors de la prochaine remise à zéro des quotas.`,
+    downgradeWarning: (date: string) =>
+      `Ton abonnement restera actif jusqu’au ${date}. Tu repasseras automatiquement sur Starter lors de la prochaine remise à zéro des quotas.`,
     pickPlan: "Choisir un abonnement",
     starterNote: "Crédits Starter utilisables une seule fois — aucune recharge mensuelle.",
-    quotaNote: <>Les quotas mensuels se remettent à zéro le 1<sup>er</sup> de chaque mois.</>,
+    quotaNote: (
+      <>
+        Les quotas mensuels se remettent à zéro le 1<sup>er</sup> de chaque mois.
+      </>
+    ),
     trainingLabel: "Générations IA",
     conversionLabel: "Conversions Garmin",
     unlimited: "Illimité",
@@ -328,8 +363,9 @@ const copyByLocale = {
       count > 0 ? `${count} séance${count > 1 ? "s" : ""} restantes` : "Quota utilisé — contacte-nous pour prolonger l’accès",
     conversionsRemaining: (count: number) =>
       count > 0 ? `${count} conversion${count > 1 ? "s" : ""} restantes` : "Quota utilisé — contacte-nous pour prolonger l’accès",
-    profileSectionTitle: "Profil et objectifs",
-    profileSectionDescription: "Complète tes informations personnelles pour que l’IA ajuste ses recommandations.",
+    profileCardTitle: "Profil Adapt2Life",
+    profileCardSynced: "Informations synchronisées avec la base interne.",
+    profileCardEmpty: "Complète ce formulaire pour enregistrer ton profil Adapt2Life.",
     firstNameLabel: "Prénom",
     lastNameLabel: "Nom",
     pseudoLabel: "Pseudo (optionnel)",
@@ -339,16 +375,122 @@ const copyByLocale = {
     heightLabel: "Taille (cm)",
     weightLabel: "Poids (kg)",
     goalLabel: "Objectif principal",
+    ageLabel: "Âge (calculé)",
+    agePlaceholder: "Ex. 29",
     updateButton: "Mettre à jour le profil",
     weightHint: "Valeur suggérée d’après ta dernière mesure Garmin.",
     statusUpdated: "Profil mis à jour avec succès 🎉",
+    genderPlaceholder: "Sélectionne ton genre",
+    sportLevelPlaceholder: "Sélectionne ton niveau",
+    pseudoPlaceholder: "Ex. IronRunner",
+    lastNamePlaceholder: "Ex. Dupont",
+    firstNamePlaceholder: "Ex. Marie",
+    heightPlaceholder: "Ex. 172",
+    weightPlaceholder: "Ex. 68.5",
+    goalPlaceholder: "Ex. Terminer un marathon en moins de 4h, préparer un triathlon sprint...",
+    genderOptions: [
+      { value: "homme", label: "Homme" },
+      { value: "femme", label: "Femme" },
+      { value: "non-specifie", label: "Non spécifié" },
+    ],
+    sportLevelOptions: [
+      { value: 1, label: "Sédentaire", description: "Activité physique très faible, aucun entraînement régulier." },
+      { value: 2, label: "Débutant absolu", description: "Commence tout juste une activité sportive, peu d’expérience." },
+      {
+        value: 3,
+        label: "Débutant régulier",
+        description: "Pratique légère 1 à 2 fois par semaine, encore en phase d’apprentissage.",
+      },
+      { value: 4, label: "Loisir occasionnel", description: "Activité de loisir sans objectif particulier, rythme irrégulier." },
+      { value: 5, label: "Loisir sérieux", description: "Pratique structurée 2 à 3 fois par semaine, objectifs personnels simples." },
+      { value: 6, label: "Intermédiaire", description: "Bon niveau d’endurance, séances régulières avec planification basique." },
+      { value: 7, label: "Avancé", description: "S’entraîne fréquemment avec planification, vise des performances mesurées." },
+      { value: 8, label: "Expert", description: "Suit un programme exigeant avec encadrement ou suivi précis des données." },
+      {
+        value: 9,
+        label: "Compétiteur élite amateur",
+        description: "Participe à des compétitions de haut niveau, gros volume d’entraînement.",
+      },
+      { value: 10, label: "Professionnel", description: "Athlète professionnel ou semi-pro avec calendrier compétitif intense." },
+    ],
   },
   en: {
     accountTag: "Account",
     accountTitle: "User information",
     accountDescription: "Review and edit your Adapt2Life profile to personalize recommendations.",
     subscriptionTitle: "Plan & credits",
-    downgradeWarning: (date: string) => `Your subscription stays active until ${date}. You’ll return to Starter on the next quota reset.
+    downgradeWarning: (date: string) =>
+      `Your subscription stays active until ${date}. You’ll automatically return to Starter when quotas reset.`,
+    pickPlan: "Choose a plan",
+    starterNote: "Starter credits can be used once — no monthly refill.",
+    quotaNote: (
+      <>
+        Monthly quotas reset on the 1<sup>st</sup> of every month.
+      </>
+    ),
+    trainingLabel: "AI generations",
+    conversionLabel: "Garmin conversions",
+    unlimited: "Unlimited",
+    sessionsRemaining: (count: number) =>
+      count > 0 ? `${count} session${count > 1 ? "s" : ""} left` : "Quota used — contact us to extend access",
+    conversionsRemaining: (count: number) =>
+      count > 0 ? `${count} conversion${count > 1 ? "s" : ""} left` : "Quota used — contact us to extend access",
+    profileCardTitle: "Adapt2Life profile",
+    profileCardSynced: "Information synced with the internal database.",
+    profileCardEmpty: "Complete this form to save your Adapt2Life profile.",
+    firstNameLabel: "First name",
+    lastNameLabel: "Last name",
+    pseudoLabel: "Handle (optional)",
+    genderLabel: "Gender",
+    birthDateLabel: "Date of birth",
+    sportLevelLabel: "Sport level",
+    heightLabel: "Height (cm)",
+    weightLabel: "Weight (kg)",
+    goalLabel: "Primary goal",
+    ageLabel: "Age (calculated)",
+    agePlaceholder: "e.g. 29",
+    updateButton: "Save profile",
+    weightHint: "Suggested from your latest Garmin measurement.",
+    statusUpdated: "Profile updated successfully 🎉",
+    genderPlaceholder: "Select your gender",
+    sportLevelPlaceholder: "Select your level",
+    pseudoPlaceholder: "e.g. IronRunner",
+    lastNamePlaceholder: "e.g. Smith",
+    firstNamePlaceholder: "e.g. Anna",
+    heightPlaceholder: "e.g. 172",
+    weightPlaceholder: "e.g. 68.5",
+    goalPlaceholder: "e.g. Finish a marathon under 4h, prepare a sprint triathlon…",
+    genderOptions: [
+      { value: "homme", label: "Male" },
+      { value: "femme", label: "Female" },
+      { value: "non-specifie", label: "Unspecified" },
+    ],
+    sportLevelOptions: [
+      { value: 1, label: "Sedentary", description: "Very little activity, no regular training plan." },
+      { value: 2, label: "Absolute beginner", description: "Just starting to move, nearly no experience." },
+      {
+        value: 3,
+        label: "Regular beginner",
+        description: "Light practice 1–2 times per week, still learning.",
+      },
+      { value: 4, label: "Casual leisure", description: "Occasional workouts without a structured goal." },
+      { value: 5, label: "Serious leisure", description: "Structured 2–3 sessions per week with simple objectives." },
+      { value: 6, label: "Intermediate", description: "Solid endurance base with basic planning." },
+      { value: 7, label: "Advanced", description: "Trains frequently with a program and measured performance." },
+      { value: 8, label: "Expert", description: "Follows a demanding program with close data monitoring." },
+      {
+        value: 9,
+        label: "Elite amateur",
+        description: "Competes at a high level with significant training volume.",
+      },
+      { value: 10, label: "Professional", description: "Pro or semi-pro athlete with an intense race calendar." },
+    ],
+  },
+} satisfies Record<Locale, Copy>;
+
+export default async function UserInformationPage({ searchParams }: PageProps) {
+  const locale = await getRequestLocale();
+  const copy = copyByLocale[locale];
   const signInPath = buildLocalePath(locale, "/handler/sign-in");
   const profilePath = buildLocalePath(locale, "/secure/user-information");
 
@@ -376,9 +518,13 @@ const copyByLocale = {
   const nowIso = new Date().toISOString();
   const hasScheduledDowngrade =
     Boolean(planDowngradeAtDate) && planDowngradeAtDate && planDowngradeAtDate.toISOString() > nowIso;
-  const planDowngradeLabel = planDowngradeAtDate
-    ? new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric" }).format(planDowngradeAtDate)
-    : null;
+  const dateFormatter = new Intl.DateTimeFormat(locale === "fr" ? "fr-FR" : "en-US", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+  const planDowngradeLabel = planDowngradeAtDate ? dateFormatter.format(planDowngradeAtDate) : null;
+  const downgradeNotice = hasScheduledDowngrade && planDowngradeLabel ? copy.downgradeWarning(planDowngradeLabel) : null;
   const isStarterPlan = planConfig.id === "free";
   const canManageSubscription = Boolean(localUser.stripeCustomerId);
   const trainingCap = planConfig.trainingQuota;
@@ -398,10 +544,10 @@ const copyByLocale = {
       ? Math.min(100, Math.round((conversionsUsed / conversionCap) * 100))
       : 0;
 
-  const statusMessage = normalizeSearchParam(searchParams?.status) === "updated" ? "Profil mis à jour avec succès 🎉" : null;
+  const statusMessage = normalizeSearchParam(searchParams?.status) === "updated" ? copy.statusUpdated : null;
   const computedAge = calculateAge(localUser.birthDate ?? null);
-  const genderOptions = GENDER_OPTIONS;
-  const sportLevelOptions = SPORT_LEVEL_OPTIONS;
+  const genderOptions = copy.genderOptions;
+  const sportLevelOptions = copy.sportLevelOptions;
   const storedWeightValue =
     localUser.weightKg !== null && localUser.weightKg !== undefined
       ? Number.parseFloat(String(localUser.weightKg))
@@ -419,8 +565,7 @@ const copyByLocale = {
     weightPrefill = storedWeightValue;
     weightPrefillSource = "profile";
   }
-  const weightInputDefault =
-    weightPrefill !== null && Number.isFinite(weightPrefill) ? weightPrefill.toFixed(2) : "";
+  const weightInputDefault = weightPrefill !== null && Number.isFinite(weightPrefill) ? weightPrefill.toFixed(2) : "";
   const showGarminHint = weightPrefillSource === "garmin" && weightInputDefault !== "";
 
   return (
@@ -428,17 +573,15 @@ const copyByLocale = {
       <PlanDowngradeToast downgradeAt={planDowngradeAtDate ? planDowngradeAtDate.toISOString() : null} />
       <Card>
         <CardHeader>
-          <p className="text-xs uppercase tracking-wide text-primary/80">Compte</p>
-          <CardTitle>Informations utilisateur</CardTitle>
-          <CardDescription>
-            Consulte les informations associées à ton profil Adapt2Life et mets-les à jour pour personnaliser tes recommandations.
-          </CardDescription>
+          <p className="text-xs uppercase tracking-wide text-primary/80">{copy.accountTag}</p>
+          <CardTitle>{copy.accountTitle}</CardTitle>
+          <CardDescription>{copy.accountDescription}</CardDescription>
         </CardHeader>
       </Card>
 
       <Card className="border-primary/20 bg-gradient-to-br from-primary/5 via-card to-card">
         <CardHeader>
-          <CardTitle>Abonnement & crédits</CardTitle>
+          <CardTitle>{copy.subscriptionTitle}</CardTitle>
           <CardDescription className="flex flex-wrap items-center gap-2 text-sm">
             <span className="rounded-full border border-primary/40 bg-primary/10 px-3 py-0.5 text-xs font-semibold uppercase tracking-wide text-primary">
               {planConfig.label}
@@ -447,26 +590,23 @@ const copyByLocale = {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {hasScheduledDowngrade && planDowngradeLabel ? (
+          {downgradeNotice ? (
             <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-xs text-amber-200">
-              Ton abonnement restera actif jusqu’au {planDowngradeLabel}. Tu repasseras automatiquement sur Starter lors de la prochaine
-              remise à zéro des quotas.
+              {downgradeNotice}
             </div>
           ) : null}
           <div className="mb-4 flex flex-wrap items-center gap-3">
             <Button asChild variant="outline" size="sm">
-              <Link href={buildLocalePath(locale, "/pricing")}>Choisir un abonnement</Link>
+              <Link href={buildLocalePath(locale, "/pricing")}>{copy.pickPlan}</Link>
             </Button>
             <ManageSubscriptionButton canManage={canManageSubscription} />
-            <p className="text-xs text-muted-foreground">
-              {isStarterPlan ? "Crédits Starter utilisables une seule fois — aucune recharge mensuelle." : <>Les quotas mensuels se remettent à zéro le 1<sup>er</sup> de chaque mois.</>}
-            </p>
+            <p className="text-xs text-muted-foreground">{isStarterPlan ? copy.starterNote : copy.quotaNote}</p>
           </div>
           <div className="grid gap-6 sm:grid-cols-2">
             <div className="rounded-2xl border border-white/10 bg-background/50 p-4">
-              <p className="text-sm text-muted-foreground">Générations IA</p>
+              <p className="text-sm text-muted-foreground">{copy.trainingLabel}</p>
               {trainingCap === null || trainingUsed === null ? (
-                <p className="text-3xl font-semibold text-primary">Illimité</p>
+                <p className="text-3xl font-semibold text-primary">{copy.unlimited}</p>
               ) : (
                 <>
                   <p className="text-3xl font-semibold text-primary">
@@ -475,22 +615,19 @@ const copyByLocale = {
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {trainingRemaining !== null && trainingRemaining > 0
-                      ? `${trainingRemaining} séance${trainingRemaining > 1 ? "s" : ""} restantes`
-                      : "Quota utilisé — contacte-nous pour prolonger l’accès"}
+                      ? copy.sessionsRemaining(trainingRemaining)
+                      : copy.sessionsRemaining(0)}
                   </p>
                   <div className="mt-3 h-2 rounded-full bg-white/10">
-                    <div
-                      className="h-2 rounded-full bg-primary"
-                      style={{ width: `${trainingUsagePercent}%` }}
-                    />
+                    <div className="h-2 rounded-full bg-primary" style={{ width: `${trainingUsagePercent}%` }} />
                   </div>
                 </>
               )}
             </div>
             <div className="rounded-2xl border border-white/10 bg-background/50 p-4">
-              <p className="text-sm text-muted-foreground">Conversions Garmin</p>
+              <p className="text-sm text-muted-foreground">{copy.conversionLabel}</p>
               {conversionCap === null || conversionsUsed === null ? (
-                <p className="text-3xl font-semibold text-secondary">Illimité</p>
+                <p className="text-3xl font-semibold text-secondary">{copy.unlimited}</p>
               ) : (
                 <>
                   <p className="text-3xl font-semibold text-secondary">
@@ -499,14 +636,11 @@ const copyByLocale = {
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {conversionRemaining !== null && conversionRemaining > 0
-                      ? `${conversionRemaining} conversion${conversionRemaining > 1 ? "s" : ""} restantes`
-                      : "Quota utilisé — contacte-nous pour prolonger l’accès"}
+                      ? copy.conversionsRemaining(conversionRemaining)
+                      : copy.conversionsRemaining(0)}
                   </p>
                   <div className="mt-3 h-2 rounded-full bg-white/10">
-                    <div
-                      className="h-2 rounded-full bg-secondary"
-                      style={{ width: `${conversionUsagePercent}%` }}
-                    />
+                    <div className="h-2 rounded-full bg-secondary" style={{ width: `${conversionUsagePercent}%` }} />
                   </div>
                 </>
               )}
@@ -518,58 +652,52 @@ const copyByLocale = {
       <section className="space-y-6">
         <Card className="bg-card/80">
           <CardHeader>
-            <CardTitle>Profil Adapt2Life</CardTitle>
-            <CardDescription>
-              {localUser
-                ? "Informations synchronisées avec la base interne."
-                : "Complète ce formulaire pour enregistrer ton profil Adapt2Life."}
-            </CardDescription>
+            <CardTitle>{copy.profileCardTitle}</CardTitle>
+            <CardDescription>{localUser ? copy.profileCardSynced : copy.profileCardEmpty}</CardDescription>
           </CardHeader>
           <CardContent>
             <form action={updateProfile} className="space-y-6">
               {statusMessage ? (
-                <p className="rounded-2xl border border-secondary/30 bg-secondary/10 px-4 py-2 text-sm text-secondary">
-                  {statusMessage}
-                </p>
+                <p className="rounded-2xl border border-secondary/30 bg-secondary/10 px-4 py-2 text-sm text-secondary">{statusMessage}</p>
               ) : null}
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="sm:col-span-2">
-                  <Label htmlFor="pseudo">Pseudo</Label>
-                  <Input id="pseudo" name="pseudo" defaultValue={localUser?.pseudo ?? ""} placeholder="Ex. IronRunner" />
+                  <Label htmlFor="pseudo">{copy.pseudoLabel}</Label>
+                  <Input id="pseudo" name="pseudo" defaultValue={localUser?.pseudo ?? ""} placeholder={copy.pseudoPlaceholder} />
                 </div>
 
                 <div>
-                  <Label htmlFor="lastName">Nom</Label>
+                  <Label htmlFor="lastName">{copy.lastNameLabel}</Label>
                   <Input
                     id="lastName"
                     name="lastName"
                     defaultValue={localUser?.lastName ?? ""}
-                    placeholder="Ex. Dupont"
+                    placeholder={copy.lastNamePlaceholder}
                     autoComplete="family-name"
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="firstName">Prénom</Label>
+                  <Label htmlFor="firstName">{copy.firstNameLabel}</Label>
                   <Input
                     id="firstName"
                     name="firstName"
                     defaultValue={localUser?.firstName ?? ""}
-                    placeholder="Ex. Marie"
+                    placeholder={copy.firstNamePlaceholder}
                     autoComplete="given-name"
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="gender">Genre</Label>
+                  <Label htmlFor="gender">{copy.genderLabel}</Label>
                   <select
                     id="gender"
                     name="gender"
                     defaultValue={localUser?.gender ?? ""}
                     className="h-11 w-full rounded-md border border-white/10 bg-muted/30 px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
                   >
-                    <option value="">Sélectionne ton genre</option>
+                    <option value="">{copy.genderPlaceholder}</option>
                     {genderOptions.map((option) => (
                       <option key={option.value} value={option.value}>
                         {option.label}
@@ -579,7 +707,7 @@ const copyByLocale = {
                 </div>
 
                 <div>
-                  <Label htmlFor="birthDate">Date de naissance</Label>
+                  <Label htmlFor="birthDate">{copy.birthDateLabel}</Label>
                   <Input
                     id="birthDate"
                     name="birthDate"
@@ -590,12 +718,12 @@ const copyByLocale = {
                 </div>
 
                 <div>
-                  <Label htmlFor="age">Âge (calculé)</Label>
-                  <Input id="age" type="number" readOnly value={computedAge ?? ""} placeholder="Ex. 29" />
+                  <Label htmlFor="age">{copy.ageLabel}</Label>
+                  <Input id="age" type="number" readOnly value={computedAge ?? ""} placeholder={copy.agePlaceholder} />
                 </div>
 
                 <div>
-                  <Label htmlFor="heightCm">Taille (cm)</Label>
+                  <Label htmlFor="heightCm">{copy.heightLabel}</Label>
                   <Input
                     id="heightCm"
                     name="heightCm"
@@ -603,12 +731,12 @@ const copyByLocale = {
                     min="0"
                     step="1"
                     defaultValue={typeof localUser?.heightCm === "number" ? String(localUser.heightCm) : ""}
-                    placeholder="Ex. 172"
+                    placeholder={copy.heightPlaceholder}
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="weightKg">Poids (kg)</Label>
+                  <Label htmlFor="weightKg">{copy.weightLabel}</Label>
                   <Input
                     id="weightKg"
                     name="weightKg"
@@ -616,22 +744,20 @@ const copyByLocale = {
                     min="0"
                     step="0.01"
                     defaultValue={weightInputDefault}
-                    placeholder="Ex. 68.5"
+                    placeholder={copy.weightPlaceholder}
                   />
-                  {showGarminHint ? (
-                    <p className="text-xs text-muted-foreground">Valeur suggérée d’après ta dernière mesure Garmin.</p>
-                  ) : null}
+                  {showGarminHint ? <p className="text-xs text-muted-foreground">{copy.weightHint}</p> : null}
                 </div>
 
                 <div className="sm:col-span-2">
-                  <Label htmlFor="sportLevel">Niveau sportif</Label>
+                  <Label htmlFor="sportLevel">{copy.sportLevelLabel}</Label>
                   <select
                     id="sportLevel"
                     name="sportLevel"
                     defaultValue={localUser?.sportLevel ? String(localUser.sportLevel) : ""}
                     className="h-11 w-full rounded-md border border-white/10 bg-muted/30 px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/60"
                   >
-                    <option value="">Sélectionne ton niveau</option>
+                    <option value="">{copy.sportLevelPlaceholder}</option>
                     {sportLevelOptions.map((option) => (
                       <option key={option.value} value={String(option.value)}>
                         {`${option.value} — ${option.label}`}
@@ -641,24 +767,23 @@ const copyByLocale = {
                 </div>
 
                 <div className="sm:col-span-2">
-                  <Label htmlFor="trainingGoal">Objectif sportif principal</Label>
+                  <Label htmlFor="trainingGoal">{copy.goalLabel}</Label>
                   <Textarea
                     id="trainingGoal"
                     name="trainingGoal"
                     defaultValue={localUser?.trainingGoal ?? ""}
                     rows={3}
-                    placeholder="Ex. Terminer un marathon en moins de 4h, préparer un triathlon sprint..."
+                    placeholder={copy.goalPlaceholder}
                   />
                 </div>
               </div>
 
               <div className="flex justify-end">
-                <Button type="submit">Enregistrer le profil</Button>
+                <Button type="submit">{copy.updateButton}</Button>
               </div>
             </form>
           </CardContent>
         </Card>
-
       </section>
     </div>
   );
