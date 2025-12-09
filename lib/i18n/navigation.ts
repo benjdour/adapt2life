@@ -64,21 +64,20 @@ const socials: FooterLink[] = [
   { label: "Instagram", href: "https://www.instagram.com/adapt2life.app" },
 ];
 
-const legalLinks = (locale: Locale): FooterLink[] => {
-  if (locale === "en") {
-    return [
-      { label: "Legal notice", href: buildLocalePath("en", "/legal/legal-notice") },
-      { label: "Terms of use", href: buildLocalePath("en", "/legal/terms") },
-      { label: "Privacy policy", href: buildLocalePath("en", "/legal/privacy") },
-    ];
-  }
-
-  return [
-    { label: "Mentions légales", href: buildLocalePath("fr", "/legal/mentions-legales") },
-    { label: "Conditions d’utilisation", href: buildLocalePath("fr", "/legal/conditions") },
-    { label: "Politique de confidentialité", href: buildLocalePath("fr", "/legal/confidentialite") },
-  ];
-};
+const legalLinks = (locale: Locale): FooterLink[] => [
+  {
+    label: locale === "en" ? "Legal notice" : "Mentions légales",
+    href: buildLocalePath(locale, "/legal/mentions-legales"),
+  },
+  {
+    label: locale === "en" ? "Terms of use" : "Conditions d’utilisation",
+    href: buildLocalePath(locale, "/legal/conditions"),
+  },
+  {
+    label: locale === "en" ? "Privacy policy" : "Politique de confidentialité",
+    href: buildLocalePath(locale, "/legal/confidentialite"),
+  },
+];
 
 const buildLocaleAwareRedirect = (locale: Locale, targetPath: string) => {
   const redirectTarget = buildLocalePath(locale, targetPath);
