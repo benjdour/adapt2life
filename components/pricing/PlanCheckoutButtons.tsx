@@ -5,6 +5,8 @@ import Link from "next/link";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { buildLocalePath } from "@/lib/i18n/routing";
+import { Locale } from "@/lib/i18n/locales";
 
 export type PublicPlanId = "free" | "paid_light" | "paid" | "paid_full";
 
@@ -17,13 +19,24 @@ type Props = {
 
 type BillingCycle = "monthly" | "annual";
 
-export function PlanCheckoutButtons({ planId, price, disabled, isAuthenticated }: Props) {
+type PlanCheckoutButtonsProps = Props & {
+  locale?: string;
+};
+
+const buildSignInHref = (locale: string | undefined, redirect: string) => {
+  const targetLocale = locale ?? "fr";
+  const signInPath = buildLocalePath(targetLocale as Locale, "/handler/sign-in");
+  const redirectPath = buildLocalePath(targetLocale as Locale, redirect);
+  return `${signInPath}?redirect=${encodeURIComponent(redirectPath)}`;
+};
+
+export function PlanCheckoutButtons({ planId, price, disabled, isAuthenticated, locale }: PlanCheckoutButtonsProps) {
   const [loading, setLoading] = useState<BillingCycle | null>(null);
 
   if (planId === "free") {
     return (
       <Button asChild variant="primary" className="w-full" disabled={disabled}>
-        <Link href="/handler/sign-in?redirect=/generateur-entrainement">Commencer maintenant</Link>
+        <Link href={buildSignInHref(locale, "/generateur-entrainement")}>Commencer maintenant</Link>
       </Button>
     );
   }
@@ -34,7 +47,7 @@ export function PlanCheckoutButtons({ planId, price, disabled, isAuthenticated }
     }
 
     if (!isAuthenticated) {
-      window.location.href = "/handler/sign-in?redirect=/pricing";
+      window.location.href = buildSignInHref(locale, "/pricing");
       return;
     }
 

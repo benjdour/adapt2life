@@ -288,6 +288,12 @@ const isAbsoluteHref = (href: string) => /^(https?:)?\/\//.test(href);
 const localizeHref = (locale: Locale, href: string) => {
   if (isAbsoluteHref(href)) return href;
   const [pathname, search] = href.split("?");
+  if (pathname === "/handler/sign-in") {
+    const redirectParam = search?.replace("redirect=", "") ?? "/";
+    const localizedSignIn = buildLocalePath(locale, pathname);
+    const localizedRedirect = buildLocalePath(locale, redirectParam);
+    return `${localizedSignIn}?redirect=${encodeURIComponent(localizedRedirect)}`;
+  }
   const localized = buildLocalePath(locale, pathname);
   return search ? `${localized}?${search}` : localized;
 };

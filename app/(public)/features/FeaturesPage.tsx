@@ -143,6 +143,12 @@ export function FeaturesPage({ locale }: FeaturesPageProps) {
   const localizeHref = (href: string) => {
     if (/^(https?:)?\/\//.test(href)) return href;
     const [base, search] = href.split("?");
+    if (base === "/handler/sign-in") {
+      const redirectParam = search?.replace("redirect=", "") ?? "/generateur-entrainement";
+      const localizedSignIn = buildLocalePath(locale, base);
+      const localizedRedirect = buildLocalePath(locale, redirectParam);
+      return `${localizedSignIn}?redirect=${encodeURIComponent(localizedRedirect)}`;
+    }
     const localizedBase = buildLocalePath(locale, base);
     return search ? `${localizedBase}?${search}` : localizedBase;
   };
