@@ -11,6 +11,8 @@ import { TopNav } from "@/components/TopNav";
 import { Footer } from "@/components/Footer";
 import { canAccessAdminArea } from "@/lib/accessControl";
 import { ClientStackProvider } from "@/components/stack/ClientStackProvider";
+import { getNavigationConfig } from "@/lib/i18n/navigation";
+import { getRequestLocale } from "@/lib/i18n/request";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -104,10 +106,14 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const user = await stackServerApp.getUser({ or: "return-null", tokenStore: "nextjs-cookie" });
+  const [user, locale] = await Promise.all([
+    stackServerApp.getUser({ or: "return-null", tokenStore: "nextjs-cookie" }),
+    getRequestLocale(),
+  ]);
+  const navigationConfig = getNavigationConfig(locale);
 
   return (
-    <html lang="fr">
+    <html lang={locale}>
       <head>
         <Script
           id="gtm-base"
@@ -132,9 +138,14 @@ export default async function RootLayout({
         <ClientStackProvider>
           <StackTheme>
             <div className="flex min-h-screen flex-col">
-              <TopNav isAuthenticated={Boolean(user)} showAdminLink={canAccessAdminArea(user?.id)} />
+              <TopNav
+                isAuthenticated={Boolean(user)}
+                showAdminLink={canAccessAdminArea(user?.id)}
+                navigation={navigationConfig}
+                locale={locale}
+              />
               <main className="flex-1">{children}</main>
-              <Footer />
+              <Footer navigation={navigationConfig} />
             </div>
             <UiToaster />
             <Analytics />

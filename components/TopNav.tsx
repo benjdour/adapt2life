@@ -2,44 +2,53 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
+import { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { NavigationConfig } from "@/lib/i18n/navigation";
+import { buildLocalePath, stripLocaleFromPath } from "@/lib/i18n/routing";
+import { Locale } from "@/lib/i18n/locales";
 import { cn } from "@/lib/utils";
 
 type TopNavProps = {
   isAuthenticated: boolean;
   showAdminLink?: boolean;
+  navigation: NavigationConfig;
+  locale: Locale;
 };
 
-const buildAuthenticatedLinks = (showAdminLink: boolean) => {
-  const links = [
-    { label: "Dashboard", href: "/" },
-    { label: "Générateur", href: "/generateur-entrainement" },
-    { label: "Données Garmin", href: "/secure/garmin-data" },
-    { label: "Profil", href: "/secure/user-information" },
-    { label: "Intégration Garmin", href: "/integrations/garmin" },
-  ];
-
+const buildAuthenticatedLinks = (navigation: NavigationConfig, locale: Locale, showAdminLink: boolean) => {
+  const links = [...navigation.authenticatedLinks];
   if (showAdminLink) {
-    links.push({ label: "Admin", href: "/admin" });
+    links.push({ label: "Admin", href: buildLocalePath(locale, "/admin") });
   }
-
   return links;
 };
 
-const guestLinks = [
-  { label: "Accueil", href: "/" },
-  { label: "Fonctionnalités", href: "/features" },
-  { label: "Smart Coach", href: "/features/smart-coach" },
-  { label: "Comment ça marche", href: "/how-it-works" },
-  { label: "FAQ", href: "/faq" },
-  { label: "Contact", href: "/contact" },
-];
+const buildLanguageToggleHref = (targetLocale: Locale, fallbackHref: string, pathname: string | null, search: string | null) => {
+  if (!pathname) return fallbackHref;
+  const basePath = stripLocaleFromPath(pathname) || "/";
+  const localizedPath = buildLocalePath(targetLocale, basePath);
+  return search ? `${localizedPath}?${search}` : localizedPath;
+};
 
-export const TopNav = ({ isAuthenticated, showAdminLink = false }: TopNavProps) => {
+export const TopNav = ({ isAuthenticated, showAdminLink = false, navigation, locale }: TopNavProps) => {
   const [isOpen, setIsOpen] = useState(false);
-  const links = isAuthenticated ? buildAuthenticatedLinks(showAdminLink) : guestLinks;
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const searchString = searchParams?.toString() ?? null;
+
+  const links = useMemo(() => {
+    return isAuthenticated ? buildAuthenticatedLinks(navigation, locale, showAdminLink) : navigation.guestLinks;
+  }, [isAuthenticated, navigation, locale, showAdminLink]);
+
+  const languageToggleHref = buildLanguageToggleHref(
+    navigation.languageToggle.targetLocale,
+    navigation.languageToggle.fallbackHref,
+    pathname,
+    searchString,
+  );
 
   const handleSignOut = () => {
     const form = document.createElement("form");
@@ -49,7 +58,7 @@ export const TopNav = ({ isAuthenticated, showAdminLink = false }: TopNavProps) 
     const redirectInput = document.createElement("input");
     redirectInput.type = "hidden";
     redirectInput.name = "redirect";
-    redirectInput.value = "/";
+    redirectInput.value = navigation.signOutRedirect;
     form.appendChild(redirectInput);
 
     document.body.appendChild(form);
@@ -59,7 +68,7 @@ export const TopNav = ({ isAuthenticated, showAdminLink = false }: TopNavProps) 
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-background/80 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
-        <Link href="/" className="flex items-center gap-3 text-sm font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+        <Link href={navigation.logoHref} className="flex items-center gap-3 text-sm font-semibold uppercase tracking-[0.2em] text-muted-foreground">
           <Image src="/brand/logo-main.png" alt="Adapt2Life" width={36} height={36} className="h-9 w-9 rounded-full" />
           <span>Adapt2Life</span>
         </Link>
@@ -77,13 +86,18 @@ export const TopNav = ({ isAuthenticated, showAdminLink = false }: TopNavProps) 
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
+          <Button asChild variant="ghost" className="border border-white/10">
+            <Link href={languageToggleHref} title={navigation.languageToggle.title} aria-label={navigation.languageToggle.title}>
+              {navigation.languageToggle.label}
+            </Link>
+          </Button>
           {isAuthenticated ? (
             <Button variant="ghost" onClick={handleSignOut}>
-              Se déconnecter
+              {navigation.signOutLabel}
             </Button>
           ) : (
             <Button asChild variant="ghost">
-              <Link href="/handler/sign-in?redirect=/integrations/garmin">Se connecter</Link>
+              <Link href={navigation.signInHref}>{navigation.signInLabel}</Link>
             </Button>
           )}
         </div>
@@ -92,9 +106,9 @@ export const TopNav = ({ isAuthenticated, showAdminLink = false }: TopNavProps) 
           type="button"
           className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/5 text-foreground transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 md:hidden"
           onClick={() => setIsOpen((prev) => !prev)}
-          aria-label="Basculer la navigation"
+          aria-label={navigation.menuToggleAriaLabel}
         >
-          <span className="sr-only">Menu</span>
+          <span className="sr-only">{navigation.menuLabel}</span>
           <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
             <path
               d="M4 7h16M4 12h16M4 17h16"
@@ -107,7 +121,8 @@ export const TopNav = ({ isAuthenticated, showAdminLink = false }: TopNavProps) 
         </button>
       </div>
 
-      <div className={cn("border-t border-white/10 bg-background/95 md:hidden", isOpen ? "block" : "hidden")}>
+      <div className={cn("border-t border-white/10 bg-background/95 md:hidden", isOpen ? "block" : "hidden")}
+      >
         <div className="space-y-4 px-4 py-6 text-sm text-muted-foreground">
           <nav className="space-y-2">
             {links.map((link) => (
@@ -122,6 +137,16 @@ export const TopNav = ({ isAuthenticated, showAdminLink = false }: TopNavProps) 
             ))}
           </nav>
           <div className="flex flex-col gap-3">
+            <Button
+              asChild
+              variant="ghost"
+              className="w-full"
+              onClick={() => setIsOpen(false)}
+            >
+              <Link href={languageToggleHref} title={navigation.languageToggle.title}>
+                {navigation.languageToggle.label}
+              </Link>
+            </Button>
             {isAuthenticated ? (
               <Button
                 variant="ghost"
@@ -131,7 +156,7 @@ export const TopNav = ({ isAuthenticated, showAdminLink = false }: TopNavProps) 
                   handleSignOut();
                 }}
               >
-                Se déconnecter
+                {navigation.signOutLabel}
               </Button>
             ) : (
               <Button
@@ -142,7 +167,7 @@ export const TopNav = ({ isAuthenticated, showAdminLink = false }: TopNavProps) 
                   setIsOpen(false);
                 }}
               >
-                <Link href="/handler/sign-in?redirect=/integrations/garmin">Se connecter</Link>
+                <Link href={navigation.signInHref}>{navigation.signInLabel}</Link>
               </Button>
             )}
           </div>
