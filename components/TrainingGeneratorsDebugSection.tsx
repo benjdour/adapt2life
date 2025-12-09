@@ -5,8 +5,13 @@ import { useCallback, useState } from "react";
 import { GarminTrainerGenerator } from "@/components/GarminTrainerGenerator";
 import { TrainingPlanGeneratorForm, GeneratedPlanPayload } from "@/components/TrainingPlanGeneratorForm";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { DEFAULT_LOCALE, Locale } from "@/lib/i18n/locales";
 
-export function TrainingGeneratorsDebugSection() {
+type TrainingGeneratorsDebugSectionProps = {
+  locale?: Locale;
+};
+
+export function TrainingGeneratorsDebugSection({ locale = DEFAULT_LOCALE }: TrainingGeneratorsDebugSectionProps) {
   const [latestPlan, setLatestPlan] = useState<GeneratedPlanPayload | null>(null);
 
   const handlePlanGenerated = useCallback((payload: GeneratedPlanPayload | null) => {
@@ -22,7 +27,7 @@ export function TrainingGeneratorsDebugSection() {
 
   return (
     <>
-      <TrainingPlanGeneratorForm onPlanGenerated={handlePlanGenerated} enableInlineSend={false} />
+      <TrainingPlanGeneratorForm onPlanGenerated={handlePlanGenerated} enableInlineSend={false} locale={locale} />
 
       <Card id="garmin">
         <CardHeader className="text-center md:text-left">
@@ -32,7 +37,7 @@ export function TrainingGeneratorsDebugSection() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <GarminTrainerGenerator sourcePlan={latestPlan} />
+          <GarminTrainerGenerator sourcePlan={latestPlan} locale={locale} />
 
           <div className="rounded-2xl border border-white/10 bg-black/30 p-4 text-xs text-muted-foreground">
             <p className="font-semibold text-foreground">Bon à savoir</p>
