@@ -1,8 +1,30 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 
-const faqItems = [
+import { Button } from "@/components/ui/button";
+import { Locale } from "@/lib/i18n/locales";
+import { buildLocalePath } from "@/lib/i18n/routing";
+
+type FaqItem = {
+  question: string;
+  answer: string;
+};
+
+type FaqCopy = {
+  heroTag: string;
+  heroTitle: string;
+  heroDescription: string;
+  faqItems: FaqItem[];
+  helpTag: string;
+  helpTitle: string;
+  helpDescription: string;
+  helpAction: {
+    label: string;
+    href: string;
+  };
+};
+
+const sharedFaqItems: FaqItem[] = [
   {
     question: "Qu’est-ce qu’Adapt2Life ?",
     answer:
@@ -110,53 +132,96 @@ const faqItems = [
   },
 ];
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://adapt2life.app";
+const sharedCopy: Omit<FaqCopy, "faqItems"> = {
+  heroTag: "FAQ",
+  heroTitle: "Tout savoir sur Adapt2Life",
+  heroDescription:
+    "Nous avons compilé les questions les plus fréquentes sur la génération IA, l’intégration Garmin et la sécurité de tes données.",
+  helpTag: "Besoin d’aide",
+  helpTitle: "Tu n’as pas trouvé ta réponse ?",
+  helpDescription: "Contacte notre équipe ou rejoins la communauté pour échanger avec d’autres athlètes Adapt2Life.",
+  helpAction: { label: "Contacter l’équipe", href: "/contact" },
+};
 
-export const metadata: Metadata = {
-  title: "FAQ — Adapt2Life",
-  description: "Toutes les réponses aux questions fréquentes sur Adapt2Life, son IA et l’intégration Garmin.",
-  alternates: {
-    canonical: `${siteUrl}/faq`,
+const FAQ_COPY: Record<Locale, FaqCopy> = {
+  fr: {
+    ...sharedCopy,
+    faqItems: sharedFaqItems,
   },
-  openGraph: {
-    url: `${siteUrl}/faq`,
-    title: "FAQ Adapt2Life",
-    description: "Comprends Smart Coach, la gestion des crédits et l’intégration Garmin grâce à notre FAQ détaillée.",
-    type: "website",
+  en: {
+    ...sharedCopy,
+    faqItems: sharedFaqItems,
   },
 };
 
-const jsonLd = {
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://adapt2life.app";
+const basePath = "/faq";
+
+const metadataByLocale: Record<Locale, Metadata> = {
+  fr: {
+    title: "FAQ — Adapt2Life",
+    description: "Toutes les réponses aux questions fréquentes sur Adapt2Life, son IA et l’intégration Garmin.",
+    alternates: { canonical: `${siteUrl}${basePath}` },
+    openGraph: {
+      url: `${siteUrl}${basePath}`,
+      title: "FAQ Adapt2Life",
+      description: "Comprends Smart Coach, la gestion des crédits et l’intégration Garmin grâce à notre FAQ détaillée.",
+      type: "website",
+    },
+  },
+  en: {
+    title: "FAQ — Adapt2Life",
+    description: "Everything about Adapt2Life, Garmin integration, and AI training answered in one place.",
+    alternates: { canonical: `${siteUrl}/en${basePath}` },
+    openGraph: {
+      url: `${siteUrl}/en${basePath}`,
+      title: "Adapt2Life FAQ",
+      description: "Understand Smart Coach, credit handling, and Garmin sync through our detailed FAQ.",
+      type: "website",
+    },
+  },
+};
+
+export const getFaqMetadata = (locale: Locale): Metadata => metadataByLocale[locale] ?? metadataByLocale.fr;
+
+type FaqPageProps = {
+  locale: Locale;
+};
+
+const buildFaqJsonLd = (items: FaqItem[]) => ({
   "@context": "https://schema.org",
   "@type": "FAQPage",
-  mainEntity: faqItems.map((item) => ({
+  mainEntity: items.map((item) => ({
     "@type": "Question",
     name: item.question,
-    acceptedAnswer: {
-      "@type": "Answer",
-      text: item.answer,
-    },
+    acceptedAnswer: { "@type": "Answer", text: item.answer },
   })),
+});
+
+const isAbsolute = (href: string) => /^(https?:)?\/\//.test(href);
+
+const localizeHref = (locale: Locale, href: string) => {
+  if (isAbsolute(href)) return href;
+  const [pathname, search] = href.split("?");
+  const localized = buildLocalePath(locale, pathname);
+  return search ? `${localized}?${search}` : localized;
 };
 
-export default function FaqPage() {
+export function FaqPage({ locale }: FaqPageProps) {
+  const copy = FAQ_COPY[locale] ?? FAQ_COPY.fr;
+  const faqJsonLd = buildFaqJsonLd(copy.faqItems);
+
   return (
     <main className="mx-auto flex max-w-5xl flex-col gap-8 px-6 py-12 text-foreground">
       <header className="space-y-3 text-center md:text-left">
-        <p className="text-sm uppercase tracking-[0.35em] text-primary/80">FAQ</p>
-        <h1 className="text-4xl font-heading">Tout savoir sur Adapt2Life</h1>
-        <p className="text-base text-muted-foreground">
-          Nous avons compilé les questions les plus fréquentes sur la génération IA, l’intégration Garmin et la sécurité de
-          tes données.
-        </p>
+        <p className="text-sm uppercase tracking-[0.35em] text-primary/80">{copy.heroTag}</p>
+        <h1 className="text-4xl font-heading">{copy.heroTitle}</h1>
+        <p className="text-base text-muted-foreground">{copy.heroDescription}</p>
       </header>
 
       <section className="space-y-4">
-        {faqItems.map((item) => (
-          <details
-            key={item.question}
-            className="group rounded-2xl border border-white/10 bg-card/80 p-6 transition hover:border-primary/40"
-          >
+        {copy.faqItems.map((item) => (
+          <details key={item.question} className="group rounded-2xl border border-white/10 bg-card/80 p-6 transition hover:border-primary/40">
             <summary className="cursor-pointer list-none text-left text-lg font-heading leading-tight text-foreground">
               {item.question}
               <span className="ml-3 inline-block text-primary transition group-open:rotate-45">+</span>
@@ -167,25 +232,19 @@ export default function FaqPage() {
       </section>
 
       <section className="rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/15 via-background to-background p-8 text-center md:text-left">
-        <p className="text-sm uppercase tracking-[0.3em] text-primary/80">Besoin d’aide</p>
+        <p className="text-sm uppercase tracking-[0.3em] text-primary/80">{copy.helpTag}</p>
         <div className="mt-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="space-y-2">
-            <h2 className="text-2xl font-heading text-foreground">Tu n’as pas trouvé ta réponse ?</h2>
-            <p className="text-sm text-muted-foreground">
-              Contacte notre équipe ou rejoins la communauté pour échanger avec d’autres athlètes Adapt2Life.
-            </p>
+            <h2 className="text-2xl font-heading text-foreground">{copy.helpTitle}</h2>
+            <p className="text-sm text-muted-foreground">{copy.helpDescription}</p>
           </div>
           <Button asChild size="lg" className="px-6 text-base font-semibold">
-            <Link href="/contact">Contacter l’équipe</Link>
+            <Link href={localizeHref(locale, copy.helpAction.href)}>{copy.helpAction.label}</Link>
           </Button>
         </div>
       </section>
 
-      <script
-        type="application/ld+json"
-        suppressHydrationWarning
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <script type="application/ld+json" suppressHydrationWarning dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
     </main>
   );
 }
