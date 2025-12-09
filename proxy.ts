@@ -3,6 +3,9 @@ import { NextResponse } from "next/server";
 
 import { enforceRateLimit } from "@/lib/security/rateLimiter";
 import { stackServerApp } from "@/stack/server";
+import { buildLocalePath, deriveLocaleFromPathname, stripLocaleFromPath } from "@/lib/i18n/routing";
+import { LOCALE_HEADER_NAME } from "@/lib/i18n/request";
+import type { Locale } from "@/lib/i18n/locales";
 
 type RoutePolicy = {
   pattern: RegExp;
@@ -69,8 +72,19 @@ const buildRedirectUrl = (request: NextRequest, basePath: string) => new URL(bas
 
 const isPublicApiRoute = (pathname: string) => PUBLIC_API_PATTERNS.some((pattern) => pattern.test(pathname));
 
+const applyLocaleHeaders = (request: NextRequest, locale: Locale) => {
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set(LOCALE_HEADER_NAME, locale);
+  return requestHeaders;
+};
+
+const forwardWithLocale = (request: NextRequest, locale: Locale) =>
+  NextResponse.next({ request: { headers: applyLocaleHeaders(request, locale) } });
+
 export async function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const originalPathname = request.nextUrl.pathname;
+  const locale = deriveLocaleFromPathname(originalPathname);
+  const pathname = stripLocaleFromPath(originalPathname);
   const isApiRoute = pathname.startsWith("/api/");
 
   if (isApiRoute) {
@@ -86,7 +100,7 @@ export async function proxy(request: NextRequest) {
   }
 
   if (!policy) {
-    return NextResponse.next();
+    return forwardWithLocale(request, locale);
   }
 
   const user = await stackServerApp.getUser({ or: "return-null", tokenStore: request });
@@ -95,21 +109,25 @@ export async function proxy(request: NextRequest) {
     if (isApiRoute) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    const signInUrl = buildRedirectUrl(request, "/handler/sign-in");
+    const signInUrl = buildRedirectUrl(request, buildLocalePath(locale, "/handler/sign-in"));
     const returnTo = `${request.nextUrl.pathname}${request.nextUrl.search}`;
     signInUrl.searchParams.set("redirect", returnTo || "/");
-    return NextResponse.redirect(signInUrl);
+    const response = NextResponse.redirect(signInUrl);
+    response.headers.set(LOCALE_HEADER_NAME, locale);
+    return response;
   }
 
   if (policy.allowedRoles && policy.allowedRoles.length > 0) {
     const userRoles = extractUserRoles(user);
     const isAuthorized = policy.allowedRoles.some((role) => userRoles.includes(role));
     if (!isAuthorized) {
-      return NextResponse.redirect(buildRedirectUrl(request, FORBIDDEN_REDIRECT));
+      const redirectResponse = NextResponse.redirect(buildRedirectUrl(request, FORBIDDEN_REDIRECT));
+      redirectResponse.headers.set(LOCALE_HEADER_NAME, locale);
+      return redirectResponse;
     }
   }
 
-  return NextResponse.next();
+  return forwardWithLocale(request, locale);
 }
 
 export const config = {
