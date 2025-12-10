@@ -12,8 +12,202 @@ import { db } from "@/db";
 import { userGeneratedArtifacts, users } from "@/db/schema";
 import { getCachedGarminData } from "@/lib/cachedGarminData";
 import { Locale } from "@/lib/i18n/locales";
+import { buildLocalePath } from "@/lib/i18n/routing";
 import { computeTrainingScore, mockGarminData } from "@/lib/trainingScore";
 import { stackServerApp } from "@/stack/server";
+
+type QuickAction = {
+  title: string;
+  description: string;
+  href: string;
+  buttonLabel: string;
+};
+
+type NextStepsCopy = {
+  title: string;
+  description: string;
+  profileTitle: string;
+  profileDescription: string;
+  profileButton: string;
+  garminTitle: string;
+  garminDescription: string;
+  garminButton: string;
+};
+
+type EnergyCopy = {
+  tag: string;
+  title: string;
+  description: string;
+  graphLabel: string;
+  statusLabel: string;
+  trendLabel: string;
+  summaryIntro: string;
+  summaryItems: string[];
+  insights: {
+    high: string;
+    medium: string;
+    low: string;
+  };
+  trends: Record<"up" | "stable" | "down", { label: string; tip: string }>;
+};
+
+type QuickActionsCopy = {
+  title: string;
+  description: string;
+  defaultButtonLabel: string;
+  actions: QuickAction[];
+};
+
+type LatestPlanCopy = {
+  title: string;
+  descriptionWithDate: string;
+  descriptionFallback: string;
+  emptyState: string;
+};
+
+type DashboardCopy = {
+  tag: string;
+  welcomeTitle: string;
+  fallbackName: string;
+  description: string;
+};
+
+type HomeRouteCopy = {
+  dashboard: DashboardCopy;
+  nextSteps: NextStepsCopy;
+  energy: EnergyCopy;
+  quickActions: QuickActionsCopy;
+  latestPlan: LatestPlanCopy;
+};
+
+const HOME_ROUTE_COPY: Record<Locale, HomeRouteCopy> = {
+  fr: {
+    dashboard: {
+      tag: "Dashboard",
+      welcomeTitle: "Bienvenue {name} 👋",
+      fallbackName: "athlète",
+      description: "Visualise tes données clés et lance ta prochaine séance.",
+    },
+    nextSteps: {
+      title: "Prochaines étapes",
+      description: "Ces deux actions sont nécessaires pour personnaliser ton coaching et activer les synchronisations.",
+      profileTitle: "Profil",
+      profileDescription: "Renseigne ton profil pour que les recommandations soient adaptées.",
+      profileButton: "Compléter mon profil",
+      garminTitle: "Intégration Garmin",
+      garminDescription: "Lie Adapt2Life à ton compte Garmin Connect pour synchroniser tes données.",
+      garminButton: "Connexion à Garmin Connect",
+    },
+    energy: {
+      tag: "Énergie du jour",
+      title: "Energy Score",
+      description: "Analyse issue de ta dernière synchronisation Garmin.",
+      graphLabel: "Energy Score",
+      statusLabel: "Statut",
+      trendLabel: "Tendance",
+      summaryIntro: "Basé sur :",
+      summaryItems: ["Sommeil profond", "Variabilité cardiaque", "Charge d’entraînement", "Niveau de stress"],
+      insights: {
+        high: "Niveau optimal, prêt à performer ⚡",
+        medium: "Énergie stable, adapte l’intensité 🔁",
+        low: "Fatigue détectée, privilégie la récupération 🧘",
+      },
+      trends: {
+        up: { label: "En hausse", tip: "Ta récupération progresse, profites-en pour pousser un peu plus." },
+        stable: { label: "Stable", tip: "Maintiens ton équilibre actuel et garde un œil sur tes sensations." },
+        down: { label: "En baisse", tip: "Réduis la charge pour éviter le surmenage et focus récupération." },
+      },
+    },
+    quickActions: {
+      title: "Actions rapides",
+      description: "Accède aux sections clés de ton espace Adapt2Life.",
+      defaultButtonLabel: "Ouvrir",
+      actions: [
+        {
+          title: "Générateur d’entraînements personnalisés",
+          description: "Crée ta séance sur mesure (course, vélo, triathlon, renfo) en 10 secondes.",
+          href: "/generateur-entrainement",
+          buttonLabel: "Lancer",
+        },
+        {
+          title: "Plans basés sur ta récupération",
+          description: "Analyse ton stress, ta récupération et évite le surentraînement.",
+          href: "/secure/garmin-data",
+          buttonLabel: "Voir les données",
+        },
+      ],
+    },
+    latestPlan: {
+      title: "Dernier plan généré",
+      descriptionWithDate: "Dernière génération le {date}.",
+      descriptionFallback: "Visualise ta dernière séance fournie par le générateur IA.",
+      emptyState: "Aucune séance générée pour le moment. Lance le générateur IA pour créer ton premier plan.",
+    },
+  },
+  en: {
+    dashboard: {
+      tag: "Dashboard",
+      welcomeTitle: "Welcome {name} 👋",
+      fallbackName: "athlete",
+      description: "View your key metrics and launch your next session.",
+    },
+    nextSteps: {
+      title: "Next steps",
+      description: "Complete these two actions to personalize coaching and enable syncs.",
+      profileTitle: "Profile",
+      profileDescription: "Fill in your profile so recommendations match your context.",
+      profileButton: "Complete my profile",
+      garminTitle: "Garmin integration",
+      garminDescription: "Connect Adapt2Life to Garmin Connect to sync your data.",
+      garminButton: "Link Garmin Connect",
+    },
+    energy: {
+      tag: "Daily energy",
+      title: "Energy Score",
+      description: "Insights from your latest Garmin sync.",
+      graphLabel: "Energy Score",
+      statusLabel: "Status",
+      trendLabel: "Trend",
+      summaryIntro: "Based on:",
+      summaryItems: ["Deep sleep", "Heart rate variability", "Training load", "Stress level"],
+      insights: {
+        high: "Optimal level, ready to perform ⚡",
+        medium: "Stable energy, adjust intensity 🔁",
+        low: "Fatigue detected, focus on recovery 🧘",
+      },
+      trends: {
+        up: { label: "Trending up", tip: "Recovery improving—use it to push a bit more." },
+        stable: { label: "Stable", tip: "Maintain your balance and listen to your sensations." },
+        down: { label: "Trending down", tip: "Dial back the load to avoid overreaching and recover." },
+      },
+    },
+    quickActions: {
+      title: "Quick actions",
+      description: "Jump to the key areas of your Adapt2Life space.",
+      defaultButtonLabel: "Open",
+      actions: [
+        {
+          title: "Personalized workout generator",
+          description: "Create a custom session (run, bike, tri, strength) in 10 seconds.",
+          href: "/generateur-entrainement",
+          buttonLabel: "Launch",
+        },
+        {
+          title: "Recovery-based plans",
+          description: "Track stress, recovery, and avoid overtraining.",
+          href: "/secure/garmin-data",
+          buttonLabel: "View data",
+        },
+      ],
+    },
+    latestPlan: {
+      title: "Latest generated plan",
+      descriptionWithDate: "Last generated on {date}.",
+      descriptionFallback: "Review the latest workout provided by the AI generator.",
+      emptyState: "No workouts generated yet. Launch the AI generator to create your first plan.",
+    },
+  },
+};
 
 const normalizeFirstName = (value: unknown): string | null => {
   if (typeof value !== "string") {
@@ -79,23 +273,15 @@ const extractFirstName = (user: unknown, fallback?: string | null): string | nul
   return null;
 };
 
-const describeEnergyScore = (score: number) => {
+const describeEnergyScore = (score: number, energyCopy: EnergyCopy) => {
   if (score >= 80) {
-    return "Niveau optimal, prêt à performer ⚡";
+    return energyCopy.insights.high;
   }
   if (score >= 60) {
-    return "Énergie stable, adapte l’intensité 🔁";
+    return energyCopy.insights.medium;
   }
-  return "Fatigue détectée, privilégie la récupération 🧘";
+  return energyCopy.insights.low;
 };
-
-const TREND_DETAILS: Record<"up" | "stable" | "down", { label: string; tip: string }> = {
-  up: { label: "En hausse", tip: "Ta récupération progresse, profites-en pour pousser un peu plus." },
-  stable: { label: "Stable", tip: "Maintiens ton équilibre actuel et garde un œil sur tes sensations." },
-  down: { label: "En baisse", tip: "Réduis la charge pour éviter le surmenage et focus récupération." },
-};
-
-const SCORE_SUMMARY = ["Sommeil profond", "Variabilité cardiaque", "Charge d’entraînement", "Niveau de stress"] as const;
 
 const hasTextValue = (value: string | null | undefined) => typeof value === "string" && value.trim().length > 0;
 const hasPositiveNumber = (value: number | string | null | undefined) => {
@@ -116,6 +302,7 @@ type HomeRouteProps = {
 export async function HomeRoute({ locale }: HomeRouteProps) {
   noStore();
 
+  const copy = HOME_ROUTE_COPY[locale] ?? HOME_ROUTE_COPY.fr;
   const user = await stackServerApp.getUser({ or: "return-null", tokenStore: "nextjs-cookie" });
   let firstName = extractFirstName(user);
   let localUser:
@@ -190,23 +377,12 @@ export async function HomeRoute({ locale }: HomeRouteProps) {
   }
   const hasGarminConnection = Boolean(garminData?.connection);
   const energyCardLocked = !isProfileComplete || !hasGarminConnection;
-  const energyInsight = !energyCardLocked && heroScore !== null ? describeEnergyScore(heroScore) : null;
+  const energyInsight =
+    !energyCardLocked && heroScore !== null ? describeEnergyScore(heroScore, copy.energy) : null;
   const canDisplayEnergyData = !energyCardLocked && heroScore !== null && heroTrend !== null && energyInsight !== null;
 
-  const quickActions = [
-    {
-      title: "Générateur d’entraînements personnalisés",
-      description: "Crée ta séance sur mesure (course, vélo, triathlon, renfo) en 10 secondes.",
-      href: "/generateur-entrainement",
-      buttonLabel: "Lancer",
-    },
-    {
-      title: "Plans basés sur ta récupération",
-      description: "Analyse ton stress, ta récupération et évite le surentraînement.",
-      href: "/secure/garmin-data",
-      buttonLabel: "Voir les données",
-    },
-  ];
+  const quickActions = copy.quickActions.actions;
+  const localizeAppHref = (href: string) => buildLocalePath(locale, href);
 
   if (user) {
     let latestPlanMarkdown: string | null = null;
@@ -232,31 +408,31 @@ export async function HomeRoute({ locale }: HomeRouteProps) {
       <main className="mx-auto flex h-full w-full max-w-5xl flex-col gap-8 px-6 py-12 text-foreground">
         <Card>
           <CardHeader>
-            <p className="text-xs uppercase tracking-wide text-primary/80">Dashboard</p>
-            <CardTitle>Bienvenue {firstName ?? "athlète"} 👋</CardTitle>
-            <CardDescription>Visualise tes données clés et lance ta prochaine séance.</CardDescription>
+            <p className="text-xs uppercase tracking-wide text-primary/80">{copy.dashboard.tag}</p>
+            <CardTitle>
+              {copy.dashboard.welcomeTitle.replace("{name}", firstName ?? copy.dashboard.fallbackName)}
+            </CardTitle>
+            <CardDescription>{copy.dashboard.description}</CardDescription>
           </CardHeader>
         </Card>
 
         {(!isProfileComplete || !hasGarminConnection) ? (
           <Card className="border-white/10 bg-card/80">
             <CardHeader>
-              <CardTitle>Prochaines étapes</CardTitle>
-              <CardDescription>
-                Ces deux actions sont nécessaires pour personnaliser ton coaching et activer les synchronisations.
-              </CardDescription>
+              <CardTitle>{copy.nextSteps.title}</CardTitle>
+              <CardDescription>{copy.nextSteps.description}</CardDescription>
             </CardHeader>
             <CardContent>
               <DashboardGrid columns={{ sm: 1, md: 2 }} gap="sm">
                 {!isProfileComplete ? (
                   <Card className="h-full border border-white/15 bg-white/5">
                     <CardHeader>
-                      <CardTitle className="text-base">Profil</CardTitle>
-                      <CardDescription>Renseigne ton profil pour que les recommandations soient adaptées.</CardDescription>
+                      <CardTitle className="text-base">{copy.nextSteps.profileTitle}</CardTitle>
+                      <CardDescription>{copy.nextSteps.profileDescription}</CardDescription>
                     </CardHeader>
                     <CardContent>
                       <Button asChild className="w-full justify-center">
-                        <Link href="/secure/user-information">Compléter mon profil</Link>
+                        <Link href={localizeAppHref("/secure/user-information")}>{copy.nextSteps.profileButton}</Link>
                       </Button>
                     </CardContent>
                   </Card>
@@ -264,12 +440,12 @@ export async function HomeRoute({ locale }: HomeRouteProps) {
                 {!hasGarminConnection ? (
                   <Card className="h-full border border-white/15 bg-white/5">
                     <CardHeader>
-                      <CardTitle className="text-base">Intégration Garmin</CardTitle>
-                      <CardDescription>Lie Adapt2Life à ton compte Garmin Connect pour synchroniser tes données.</CardDescription>
+                      <CardTitle className="text-base">{copy.nextSteps.garminTitle}</CardTitle>
+                      <CardDescription>{copy.nextSteps.garminDescription}</CardDescription>
                     </CardHeader>
                     <CardContent>
                       <Button asChild className="w-full justify-center">
-                        <Link href="/integrations/garmin">Connexion à Garmin Connect</Link>
+                        <Link href={localizeAppHref("/integrations/garmin")}>{copy.nextSteps.garminButton}</Link>
                       </Button>
                     </CardContent>
                   </Card>
@@ -283,9 +459,9 @@ export async function HomeRoute({ locale }: HomeRouteProps) {
           {canDisplayEnergyData ? (
             <Card className="border-white/10 bg-card/80">
               <CardHeader className="space-y-1">
-                <p className="text-xs uppercase tracking-[0.4em] text-primary/80">Énergie du jour</p>
-                <CardTitle>Energy Score</CardTitle>
-                <CardDescription>Analyse issue de ta dernière synchronisation Garmin.</CardDescription>
+                <p className="text-xs uppercase tracking-[0.4em] text-primary/80">{copy.energy.tag}</p>
+                <CardTitle>{copy.energy.title}</CardTitle>
+                <CardDescription>{copy.energy.description}</CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col gap-6 md:flex-row md:items-center">
                 {(() => {
@@ -297,7 +473,7 @@ export async function HomeRoute({ locale }: HomeRouteProps) {
                       <div className="flex justify-center md:flex-none">
                         <AIScoreGraph
                           score={score}
-                          label="Energy Score"
+                          label={copy.energy.graphLabel}
                           trend={trend}
                           className="border-none bg-transparent p-0 shadow-none"
                           size={220}
@@ -307,16 +483,16 @@ export async function HomeRoute({ locale }: HomeRouteProps) {
                       <div className="flex-1 space-y-5">
                         <div className="grid gap-4 sm:grid-cols-2">
                           <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                            <p className="text-[11px] uppercase tracking-[0.25em] text-muted-foreground">Statut</p>
+                            <p className="text-[11px] uppercase tracking-[0.25em] text-muted-foreground">{copy.energy.statusLabel}</p>
                             <p className="mt-2 text-lg font-semibold text-foreground">{insight}</p>
                           </div>
                           <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                            <p className="text-[11px] uppercase tracking-[0.25em] text-muted-foreground">Tendance</p>
-                            <p className="mt-2 text-lg font-semibold text-foreground">{TREND_DETAILS[trend].label}</p>
-                            <p className="text-xs text-muted-foreground">{TREND_DETAILS[trend].tip}</p>
+                            <p className="text-[11px] uppercase tracking-[0.25em] text-muted-foreground">{copy.energy.trendLabel}</p>
+                            <p className="mt-2 text-lg font-semibold text-foreground">{copy.energy.trends[trend].label}</p>
+                            <p className="text-xs text-muted-foreground">{copy.energy.trends[trend].tip}</p>
                           </div>
                           <div className="sm:col-span-2 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-muted-foreground">
-                            Basé sur&nbsp;: {SCORE_SUMMARY.join(", ")}.
+                            {copy.energy.summaryIntro}&nbsp;{copy.energy.summaryItems.join(", ")}.
                           </div>
                         </div>
                         <div />
@@ -331,8 +507,8 @@ export async function HomeRoute({ locale }: HomeRouteProps) {
           {isProfileComplete && hasGarminConnection ? (
             <Card className="border-white/10 bg-card/80">
               <CardHeader>
-                <CardTitle>Actions rapides</CardTitle>
-                <CardDescription>Accède aux sections clés de ton espace Adapt2Life.</CardDescription>
+                <CardTitle>{copy.quickActions.title}</CardTitle>
+                <CardDescription>{copy.quickActions.description}</CardDescription>
               </CardHeader>
               <CardContent>
                 <DashboardGrid columns={{ sm: 1, md: 2, lg: 2 }} gap="sm">
@@ -344,7 +520,9 @@ export async function HomeRoute({ locale }: HomeRouteProps) {
                       </CardHeader>
                       <CardContent>
                         <Button asChild className="w-full justify-center">
-                          <Link href={action.href}>{action.buttonLabel ?? "Ouvrir"}</Link>
+                          <Link href={localizeAppHref(action.href)}>
+                            {action.buttonLabel ?? copy.quickActions.defaultButtonLabel}
+                          </Link>
                         </Button>
                       </CardContent>
                     </Card>
@@ -358,20 +536,18 @@ export async function HomeRoute({ locale }: HomeRouteProps) {
         {isProfileComplete && hasGarminConnection ? (
           <Card className="border-white/10 bg-card/80">
             <CardHeader>
-              <CardTitle>Dernier plan généré</CardTitle>
+              <CardTitle>{copy.latestPlan.title}</CardTitle>
               <CardDescription>
                 {latestPlanGeneratedAtLabel
-                  ? `Dernière génération le ${latestPlanGeneratedAtLabel}.`
-                  : "Visualise ta dernière séance fournie par le générateur IA."}
+                  ? copy.latestPlan.descriptionWithDate.replace("{date}", latestPlanGeneratedAtLabel)
+                  : copy.latestPlan.descriptionFallback}
               </CardDescription>
             </CardHeader>
             <CardContent>
               {latestPlanMarkdown ? (
                 <MarkdownPlan content={latestPlanMarkdown} className="prose prose-invert max-w-none" />
               ) : (
-                <p className="text-sm text-muted-foreground">
-                  Aucune séance générée pour le moment. Lance le générateur IA pour créer ton premier plan.
-                </p>
+                <p className="text-sm text-muted-foreground">{copy.latestPlan.emptyState}</p>
               )}
             </CardContent>
           </Card>
