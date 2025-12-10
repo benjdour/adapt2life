@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { z } from "zod";
 
@@ -8,14 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-
-const contactSchema = z.object({
-  firstName: z.string().min(2, "Merci d’indiquer votre prénom."),
-  lastName: z.string().min(2, "Merci d’indiquer votre nom."),
-  email: z.string().email("Adresse e-mail invalide."),
-  subject: z.string().min(3, "Merci d’ajouter un objet."),
-  message: z.string().min(10, "Merci de détailler votre message."),
-});
 
 type FormState = {
   firstName: string;
@@ -25,10 +17,54 @@ type FormState = {
   message: string;
 };
 
-export const ContactForm = () => {
+export type ContactFormCopy = {
+  title: string;
+  description: string;
+  labels: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    subject: string;
+    message: string;
+  };
+  placeholders: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    subject: string;
+    message: string;
+  };
+  validation: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    subject: string;
+    message: string;
+    generic: string;
+  };
+  success: string;
+  submitLabel: string;
+  mailLinkLabel: string;
+  errors: {
+    server: string;
+    request: string;
+  };
+};
+
+const buildSchema = (validation: ContactFormCopy["validation"]) =>
+  z.object({
+    firstName: z.string().min(2, validation.firstName),
+    lastName: z.string().min(2, validation.lastName),
+    email: z.string().email(validation.email),
+    subject: z.string().min(3, validation.subject),
+    message: z.string().min(10, validation.message),
+  });
+
+export const ContactForm = ({ copy }: { copy: ContactFormCopy }) => {
   const [formState, setFormState] = useState<FormState>({ firstName: "", lastName: "", email: "", subject: "", message: "" });
   const [status, setStatus] = useState<{ type: "success" | "error" | null; message?: string }>({ type: null });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const contactSchema = useMemo(() => buildSchema(copy.validation), [copy.validation]);
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = event.target;
@@ -41,7 +77,7 @@ export const ContactForm = () => {
 
     const validation = contactSchema.safeParse(formState);
     if (!validation.success) {
-      setStatus({ type: "error", message: validation.error.issues?.[0]?.message ?? "Formulaire invalide." });
+      setStatus({ type: "error", message: validation.error.issues?.[0]?.message ?? copy.validation.generic });
       return;
     }
 
@@ -58,15 +94,15 @@ export const ContactForm = () => {
       const data = (await response.json()) as { success?: boolean; error?: string };
 
       if (!response.ok || !data?.success) {
-        throw new Error(data.error ?? "Impossible d’envoyer le message.");
+        throw new Error(data.error ?? copy.errors.server);
       }
 
-      setStatus({ type: "success", message: "Message envoyé. Nous te répondons sous 24 heures ouvrées." });
+      setStatus({ type: "success", message: copy.success });
       setFormState({ firstName: "", lastName: "", email: "", subject: "", message: "" });
     } catch (error) {
       setStatus({
         type: "error",
-        message: error instanceof Error ? error.message : "Impossible de traiter votre demande pour le moment.",
+        message: error instanceof Error ? error.message : copy.errors.request,
       });
     } finally {
       setIsSubmitting(false);
@@ -76,30 +112,42 @@ export const ContactForm = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Formulaire de contact</CardTitle>
-        <CardDescription>Nous te répondons sous 24 heures ouvrées.</CardDescription>
+        <CardTitle>{copy.title}</CardTitle>
+        <CardDescription>{copy.description}</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <label htmlFor="firstName" className="text-sm font-semibold text-foreground">
-                Prénom
+                {copy.labels.firstName}
               </label>
-              <Input id="firstName" name="firstName" value={formState.firstName} onChange={handleChange} placeholder="Ex. Marie" />
+              <Input
+                id="firstName"
+                name="firstName"
+                value={formState.firstName}
+                onChange={handleChange}
+                placeholder={copy.placeholders.firstName}
+              />
             </div>
 
             <div>
               <label htmlFor="lastName" className="text-sm font-semibold text-foreground">
-                Nom
+                {copy.labels.lastName}
               </label>
-              <Input id="lastName" name="lastName" value={formState.lastName} onChange={handleChange} placeholder="Ex. Dupont" />
+              <Input
+                id="lastName"
+                name="lastName"
+                value={formState.lastName}
+                onChange={handleChange}
+                placeholder={copy.placeholders.lastName}
+              />
             </div>
           </div>
 
           <div>
             <label htmlFor="email" className="text-sm font-semibold text-foreground">
-              E-mail
+              {copy.labels.email}
             </label>
             <Input
               id="email"
@@ -107,20 +155,26 @@ export const ContactForm = () => {
               type="email"
               value={formState.email}
               onChange={handleChange}
-              placeholder="exemple@adapt2life.app"
+              placeholder={copy.placeholders.email}
             />
           </div>
 
           <div>
             <label htmlFor="subject" className="text-sm font-semibold text-foreground">
-              Objet
+              {copy.labels.subject}
             </label>
-              <Input id="subject" name="subject" value={formState.subject} onChange={handleChange} placeholder="Ex. Question sur l’abonnement" />
+            <Input
+              id="subject"
+              name="subject"
+              value={formState.subject}
+              onChange={handleChange}
+              placeholder={copy.placeholders.subject}
+            />
           </div>
 
           <div>
             <label htmlFor="message" className="text-sm font-semibold text-foreground">
-              Message
+              {copy.labels.message}
             </label>
             <Textarea
               id="message"
@@ -128,7 +182,7 @@ export const ContactForm = () => {
               rows={6}
               value={formState.message}
               onChange={handleChange}
-              placeholder="Décris ton besoin : objectif, contraintes, questions spécifiques, etc."
+              placeholder={copy.placeholders.message}
             />
           </div>
 
@@ -142,10 +196,10 @@ export const ContactForm = () => {
 
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <Button type="submit" className="w-full md:w-auto" isLoading={isSubmitting}>
-              Envoyer
+              {copy.submitLabel}
             </Button>
             <Link href="mailto:contact@adapt2life.app" className="text-sm text-muted-foreground underline">
-              ou écris-nous directement
+              {copy.mailLinkLabel}
             </Link>
           </div>
         </form>
