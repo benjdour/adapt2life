@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 
 import { NavigationConfig, getNavigationConfig } from "@/lib/i18n/navigation";
 import { deriveLocaleFromPathname } from "@/lib/i18n/routing";
-import { DEFAULT_LOCALE, Locale } from "@/lib/i18n/locales";
+import { DEFAULT_LOCALE, Locale, isLocale } from "@/lib/i18n/locales";
 
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
   <div>
@@ -21,6 +21,7 @@ type FooterProps = {
 
 export const Footer = ({ navigation }: FooterProps) => {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [currentLocale, setCurrentLocale] = useState<Locale>(() =>
     pathname ? deriveLocaleFromPathname(pathname) : DEFAULT_LOCALE,
   );
@@ -31,12 +32,14 @@ export const Footer = ({ navigation }: FooterProps) => {
   }, [navigation]);
 
   useEffect(() => {
-    const derived = pathname ? deriveLocaleFromPathname(pathname) : currentLocale;
-    if (derived && derived !== currentLocale) {
-      setCurrentLocale(derived);
-      setCurrentNavigation(getNavigationConfig(derived));
+    const derived = pathname ? deriveLocaleFromPathname(pathname) : null;
+    const searchLocale = searchParams?.get("locale");
+    const nextLocale = (searchLocale && isLocale(searchLocale) ? searchLocale : derived) ?? currentLocale;
+    if (nextLocale !== currentLocale) {
+      setCurrentLocale(nextLocale);
+      setCurrentNavigation(getNavigationConfig(nextLocale));
     }
-  }, [pathname, currentLocale, navigation]);
+  }, [pathname, currentLocale, navigation, searchParams]);
 
   const footer = currentNavigation.footer;
   return (

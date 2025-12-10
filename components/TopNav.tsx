@@ -8,7 +8,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { NavigationConfig, getNavigationConfig } from "@/lib/i18n/navigation";
 import { buildLocalePath, deriveLocaleFromPathname, stripLocaleFromPath } from "@/lib/i18n/routing";
-import { Locale } from "@/lib/i18n/locales";
+import { DEFAULT_LOCALE, Locale, isLocale } from "@/lib/i18n/locales";
 import { cn } from "@/lib/utils";
 
 type TopNavProps = {
@@ -64,13 +64,15 @@ export const TopNav = ({ isAuthenticated, showAdminLink = false, navigation, loc
   }, [navigation]);
 
   useEffect(() => {
-    const derivedLocale = pathname ? deriveLocaleFromPathname(pathname) : locale;
-    if (!derivedLocale) {
-      return;
-    }
-    if (derivedLocale !== currentLocale) {
-      setCurrentLocale(derivedLocale);
-      setCurrentNavigation(getNavigationConfig(derivedLocale));
+    const derivedFromPath = pathname ? deriveLocaleFromPathname(pathname) : null;
+    const params = searchString ? new URLSearchParams(searchString) : null;
+    const searchLocale = params ? params.get("locale") : null;
+    const nextLocale = (searchLocale && isLocale(searchLocale)
+      ? searchLocale
+      : derivedFromPath) ?? locale ?? DEFAULT_LOCALE;
+    if (nextLocale !== currentLocale) {
+      setCurrentLocale(nextLocale);
+      setCurrentNavigation(getNavigationConfig(nextLocale));
     }
   }, [pathname, currentLocale, locale, searchString]);
 
