@@ -20,23 +20,50 @@ type Props = {
 type BillingCycle = "monthly" | "annual";
 
 type PlanCheckoutButtonsProps = Props & {
-  locale?: string;
+  locale?: Locale;
 };
 
-const buildSignInHref = (locale: string | undefined, redirect: string) => {
-  const targetLocale = locale ?? "fr";
-  const signInPath = buildLocalePath(targetLocale as Locale, "/handler/sign-in");
-  const redirectPath = buildLocalePath(targetLocale as Locale, redirect);
+const BUTTON_COPY: Record<
+  Locale,
+  {
+    startNow: string;
+    monthlyLabel: string;
+    annualLabel: string;
+    checkoutError: string;
+    genericError: string;
+  }
+> = {
+  fr: {
+    startNow: "Commencer maintenant",
+    monthlyLabel: "Mensuel",
+    annualLabel: "Annuel",
+    checkoutError: "Impossible de démarrer le paiement.",
+    genericError: "Impossible de démarrer le paiement.",
+  },
+  en: {
+    startNow: "Start now",
+    monthlyLabel: "Monthly",
+    annualLabel: "Annual",
+    checkoutError: "Unable to start checkout.",
+    genericError: "Unable to start checkout.",
+  },
+};
+
+const buildSignInHref = (locale: Locale, redirect: string) => {
+  const signInPath = buildLocalePath(locale, "/handler/sign-in");
+  const redirectPath = buildLocalePath(locale, redirect);
   return `${signInPath}?redirect=${encodeURIComponent(redirectPath)}`;
 };
 
 export function PlanCheckoutButtons({ planId, price, disabled, isAuthenticated, locale }: PlanCheckoutButtonsProps) {
+  const resolvedLocale: Locale = locale ?? "fr";
+  const copy = BUTTON_COPY[resolvedLocale] ?? BUTTON_COPY.fr;
   const [loading, setLoading] = useState<BillingCycle | null>(null);
 
   if (planId === "free") {
     return (
       <Button asChild variant="primary" className="w-full" disabled={disabled}>
-        <Link href={buildSignInHref(locale, "/generateur-entrainement")}>Commencer maintenant</Link>
+        <Link href={buildSignInHref(resolvedLocale, "/generateur-entrainement")}>{copy.startNow}</Link>
       </Button>
     );
   }
@@ -47,7 +74,7 @@ export function PlanCheckoutButtons({ planId, price, disabled, isAuthenticated, 
     }
 
     if (!isAuthenticated) {
-      window.location.href = buildSignInHref(locale, "/pricing");
+      window.location.href = buildSignInHref(resolvedLocale, "/pricing");
       return;
     }
 
@@ -60,11 +87,11 @@ export function PlanCheckoutButtons({ planId, price, disabled, isAuthenticated, 
       });
       const data = (await response.json().catch(() => null)) as { url?: string; error?: string } | null;
       if (!response.ok || !data?.url) {
-        throw new Error(data?.error ?? "Impossible de démarrer le paiement.");
+        throw new Error(data?.error ?? copy.checkoutError);
       }
       window.location.href = data.url;
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Impossible de démarrer le paiement.");
+      toast.error(error instanceof Error ? error.message : copy.genericError);
     } finally {
       setLoading(null);
     }
@@ -80,7 +107,7 @@ export function PlanCheckoutButtons({ planId, price, disabled, isAuthenticated, 
         isLoading={loading === "monthly"}
         onClick={() => handleCheckout("monthly")}
       >
-        Mensuel — {price.monthly}
+        {copy.monthlyLabel} — {price.monthly}
       </Button>
       <Button
         type="button"
@@ -90,7 +117,7 @@ export function PlanCheckoutButtons({ planId, price, disabled, isAuthenticated, 
         isLoading={loading === "annual"}
         onClick={() => handleCheckout("annual")}
       >
-        Annuel — {price.annual}
+        {copy.annualLabel} — {price.annual}
       </Button>
     </div>
   );
