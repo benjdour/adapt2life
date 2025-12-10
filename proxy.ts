@@ -75,6 +75,7 @@ const isPublicApiRoute = (pathname: string) => PUBLIC_API_PATTERNS.some((pattern
 const applyLocaleHeaders = (request: NextRequest, locale: Locale) => {
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set(LOCALE_HEADER_NAME, locale);
+  requestHeaders.set("accept-language", locale);
   return requestHeaders;
 };
 
