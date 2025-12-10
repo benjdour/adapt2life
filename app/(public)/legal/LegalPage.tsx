@@ -230,9 +230,216 @@ const frLegalContent: Record<LegalSlug, LegalPageContent> = {
   },
 };
 
+const enLegalContent: Record<LegalSlug, LegalPageContent> = {
+  "mentions-legales": {
+    slug: "mentions-legales",
+    heroTag: "Legal notice",
+    heroTitle: "Official information",
+    updatedAt: "September 25, 2025",
+    metadataTitle: "Legal notice — Adapt2Life",
+    metadataDescription: "Official legal information for the Adapt2Life platform.",
+    sections: [
+      {
+        title: "Publisher",
+        content: [
+          "Company name: Adapt2Life Inc.",
+          "Legal form: Corporation",
+          "Head office: 115 rue Jean Lefèvre, La Malbaie, QC, G5A 1V3, Canada",
+          "Email: contact@adapt2life.app",
+        ],
+      },
+      {
+        title: "Publication director",
+        content: ["Benjamin Dour"],
+      },
+      {
+        title: "Hosting",
+        content: [
+          "Host: Vercel Inc.",
+          "Address: 440 N Barranca Ave #4133, Covina, CA, 91723, United States",
+        ],
+      },
+      {
+        title: "Intellectual property",
+        content: [
+          "All content on this site (graphics, images, text, videos, animations, sounds, logos, icons, layouts) is the exclusive property of Adapt2Life Inc., unless otherwise indicated for partners or authors.",
+        ],
+      },
+    ],
+  },
+  confidentialite: {
+    slug: "confidentialite",
+    heroTag: "Privacy policy",
+    heroTitle: "Protecting your data is our priority",
+    updatedAt: "September 25, 2025",
+    metadataTitle: "Privacy policy — Adapt2Life",
+    metadataDescription: "Full details on how Adapt2Life collects, uses, and protects personal data.",
+    sections: [
+      {
+        title: "1. Introduction",
+        content: [
+          "Welcome to Adapt2Life. We are fully transparent about how we protect your personal data. This policy explains the nature, purpose, and legal basis for processing your information when you use our site and app (the “Service”), wherever you are located. By accessing the Service, you acknowledge that you have read and accepted this policy.",
+        ],
+      },
+      {
+        title: "2. Personal data collected",
+        content: [
+          "2.1 Data you provide directly:",
+          "- Account data: email address and name when creating an account or contacting the team.",
+          "- Communications: content of the messages you send to support.",
+          "- Subscription data: chosen plan (Starter, Momentum, Peak, Elite, Ultra), remaining quotas, technical identifiers tied to your plan.",
+          "2.2 Garmin data collected via the API:",
+          "- Activity data: activity type (run, bike, etc.), start/end date and time, duration, distance, pace, calories, heart rate, GPS and elevation.",
+          "- Health and wellness data: sleep, stress levels, heart rate variability (HRV), Body Battery score, menstrual tracking (if enabled).",
+          "2.3 Automatically collected data:",
+          "- Technical info: IP address, device identifiers, operating system, browser type.",
+          "- Usage info: pages visited, frequency of use, features accessed.",
+        ],
+      },
+      {
+        title: "3. How we use the data",
+        content: [
+          "We use the collected data to:",
+          "- Provide the Service (login and generation of personalized plans).",
+          "- Personalize workouts using Garmin signals.",
+          "- Ensure security (detect fraudulent activity).",
+          "- Manage usage quotas (Starter never refills; Momentum/Peak/Elite/Ultra reset automatically on the 1st of each month).",
+          "- Improve the Service using anonymized insights.",
+        ],
+      },
+      {
+        title: "4. Sharing and disclosure",
+        content: [
+          "We never sell or rent your data. Sharing is limited to:",
+          "- Garmin: sending generated workouts for synchronization.",
+          "- AI providers (via OpenRouter): transmitting anonymized data to generate plans.",
+          "- Third-party vendors (Vercel, AWS, etc.): hosting and cloud services.",
+        ],
+      },
+      {
+        title: "5. Payments & subscriptions",
+        content: [
+          "- Payments: Stripe processes all payments (credit card, Apple Pay, etc.). Stripe acts as a processor and collects certain payment data (card number, address, postal code) according to its own privacy policy. Adapt2Life never stores full card details; only the technical identifiers (customerId, subscriptionId, priceId) are kept.",
+          "- Subscription management: plan upgrades/downgrades are handled from the Profile page (“Manage my subscription” opens the Stripe customer portal) or by contacting support. Cancellations take effect at the end of the billing period.",
+          "- Billing & notifications: transactional emails (payment confirmation, alerts) are sent via Resend and contain only the information needed for billing.",
+        ],
+      },
+      {
+        title: "6. International transfers",
+        content: [
+          "Your data may be stored on servers outside your jurisdiction. Appropriate safeguards are implemented.",
+          "Québec users: Adapt2Life performs a privacy impact assessment (PIA) for transfers outside the province.",
+        ],
+      },
+      {
+        title: "7. Your rights",
+        content: [
+          "6.1 Rights for everyone: rectify inaccurate data.",
+          "6.2 EEA/UK (GDPR) rights: access, portability, deletion, objection.",
+          "6.3 Québec/Canada (Law 64 / PIPEDA) rights: portability, withdraw consent.",
+          "6.4 California (CCPA/CPRA) rights: right to know, deletion, opt out of data sales.",
+        ],
+      },
+      {
+        title: "8. Data retention",
+        content: ["Data is stored as long as the account remains active. When an account is deleted, the associated data is removed."],
+      },
+      {
+        title: "9. Cookies and similar technologies",
+        content: [
+          "We use cookies to ensure the site operates properly and to analyze usage anonymously. You can configure your browser to refuse cookies.",
+        ],
+      },
+      {
+        title: "10. Children’s privacy",
+        content: [
+          "The Service is intended for users aged 16 and above. We do not knowingly collect information from children under 16.",
+        ],
+      },
+      {
+        title: "11. Contact",
+        content: ["Data protection lead: Benjamin Dour.", "Contact: contact@adapt2life.app"],
+      },
+    ],
+  },
+  conditions: {
+    slug: "conditions",
+    heroTag: "Terms of use",
+    heroTitle: "Use Adapt2Life with confidence",
+    updatedAt: "September 25, 2025",
+    metadataTitle: "Terms of use — Adapt2Life",
+    metadataDescription: "General terms and conditions governing the Adapt2Life service.",
+    sections: [
+      {
+        title: "1. Acceptance",
+        content: [
+          "By accessing or using the Adapt2Life application (the “Service”), you agree to be bound by these terms (“Terms”). If you disagree with any part, you may not access the Service.",
+        ],
+      },
+      {
+        title: "2. User accounts",
+        content: [
+          "When creating an account, you must provide accurate, complete information. You are responsible for safeguarding your password and any activities performed under it.",
+        ],
+      },
+      {
+        title: "3. Intellectual property",
+        content: [
+          "The Service and its original content, features, and components remain the exclusive property of Adapt2Life Inc. and its licensors.",
+        ],
+      },
+      {
+        title: "4. User content",
+        content: [
+          "You are responsible for any content you submit through the Service. You grant Adapt2Life a non-exclusive, worldwide, royalty-free license to use, modify, and distribute any content you provide via the Service.",
+        ],
+      },
+      {
+        title: "5. Payments & subscriptions",
+        content: [
+          "Payments for Starter (one-time), Momentum, Peak, Elite, and Ultra (restricted access) plans are processed through Stripe. By subscribing, you authorize Adapt2Life and Stripe to charge the stored payment method according to your chosen cadence (monthly or annual).",
+          "Starter grants 10 generations and 5 conversions once. Paid plans reset their quotas automatically on the 1st of each month—even if you pay annually.",
+          "Subscriptions renew automatically until cancelled. You can manage or cancel from the Profile page (“Manage my subscription” opens the Stripe customer portal) or by contacting support (contact@adapt2life.app). Cancellation takes effect at the end of the current period—no early termination fees.",
+          "In case of fraud, repeated payment failures, or clear misuse, Adapt2Life reserves the right to suspend or terminate access.",
+        ],
+      },
+      {
+        title: "6. Links to other sites",
+        content: [
+          "The Service may contain links to third-party websites or services not owned or controlled by Adapt2Life. We have no control over their content or privacy policies.",
+        ],
+      },
+      {
+        title: "7. Disclaimer",
+        content: [
+          "The Service is provided “as is” and “as available”. Adapt2Life makes no express or implied warranties regarding the Service. We do not guarantee it will be uninterrupted, secure, or error-free.",
+        ],
+      },
+      {
+        title: "8. Limitation of liability",
+        content: [
+          "Adapt2Life, its directors, employees, or partners shall not be liable for any indirect, incidental, special, or consequential damages, including lost profits, data, use, goodwill, or other intangible losses resulting from access to or use of the Service.",
+        ],
+      },
+      {
+        title: "9. Governing law",
+        content: [
+          "These Terms are governed by and construed in accordance with the laws of Québec, Canada, without regard to conflict-of-law provisions.",
+        ],
+      },
+      {
+        title: "10. Changes to the Terms",
+        content: [
+          "We reserve the right, at our sole discretion, to modify or replace these Terms at any time.",
+        ],
+      },
+    ],
+  },
+};
+
 const LEGAL_CONTENT: LegalContentByLocale = {
   fr: frLegalContent,
-  en: frLegalContent,
+  en: enLegalContent,
 };
 
 export const getLegalMetadata = (locale: Locale, slug: LegalSlug): Metadata => {
@@ -271,6 +478,7 @@ export function LegalPage({ slug, locale }: LegalPageProps) {
   }
   const localeContent = LEGAL_CONTENT[locale] ?? LEGAL_CONTENT.fr;
   const page = localeContent[slug];
+  const updatedLabel = locale === "fr" ? "Dernière mise à jour" : "Last updated";
 
   if (!page) {
     notFound();
@@ -281,7 +489,9 @@ export function LegalPage({ slug, locale }: LegalPageProps) {
       <header className="space-y-2">
         <p className="text-sm uppercase tracking-[0.3em] text-primary/80">{page.heroTag}</p>
         <h1 className="text-4xl font-heading">{page.heroTitle}</h1>
-        <p className="text-sm text-muted-foreground">Dernière mise à jour : {page.updatedAt}</p>
+        <p className="text-sm text-muted-foreground">
+          {updatedLabel}: {page.updatedAt}
+        </p>
       </header>
 
       {page.sections.map((section) => (
