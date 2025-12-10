@@ -21,6 +21,7 @@ type HowItWorksCopy = {
   heroTag: string;
   heroTitle: string;
   heroDescription: string;
+  stepLabel: string;
   steps: Step[];
   ctaTag: string;
   ctaTitle: string;
@@ -32,56 +33,38 @@ type HowItWorksCopy = {
   faqItems: FaqItem[];
 };
 
-const sharedSteps: Step[] = [
-  {
-    title: "Étape 1 — Connecte ta montre",
-    description:
-      "Autorise Adapt2Life à lire tes données Garmin en quelques secondes. Tu restes maître de la connexion et peux l’arrêter quand tu veux.",
-    image: "/brand/how-it-works-1.jpg",
-  },
-  {
-    title: "Étape 2 — Décris ta journée",
-    description:
-      "Raconte comment tu te sens, ton objectif du jour et tes contraintes de temps ou de matériel. Plus le brief est simple et précis, plus la séance colle à ta réalité.",
-    image: "/brand/how-it-works-2.jpg",
-  },
-  {
-    title: "Étape 3 — Génère et personnalise",
-    description:
-      "L’IA te suggère une séance complète (échauffement, bloc principal, récup). Tu peux regénérer, ajuster les blocs ou garder la version qui te plaît.",
-    image: "/brand/how-it-works-3.jpg",
-  },
-  {
-    title: "Étape 4 — Synchronise et exécute",
-    description:
-      "Envoie la séance sur ta montre Garmin et lance-toi. Après ton entraînement, nous adaptons les prochaines propositions à ta forme du moment.",
-    image: "/brand/how-it-works-4.jpg",
-  },
-];
-
-const sharedFaqItems: FaqItem[] = [
-  {
-    question: "Combien de temps prend la génération d’un entraînement ?",
-    answer:
-      "Quelques secondes pour un plan standard. Les conversions Garmin plus complexes peuvent atteindre 1 à 2 minutes selon la charge.",
-  },
-  {
-    question: "Puis-je regénérer ou modifier la séance avant envoi ?",
-    answer:
-      "Oui. Tu peux regénérer autant que nécessaire, ajuster les blocs ou les intensités avant d’envoyer la version finale dans Garmin Connect.",
-  },
-  {
-    question: "Que se passe-t-il si ma montre ou Garmin n’est pas disponible ?",
-    answer:
-      "Tu peux conserver la séance en version texte, la reprendre plus tard et l’envoyer quand tu es prêt. L’IA gardera ton brief pour proposer une alternative.",
-  },
-];
-
-const sharedCopy: HowItWorksCopy = {
+const frCopy: HowItWorksCopy = {
   heroTag: "Comment ça marche",
   heroTitle: "Ton plan en 4 étapes simples",
-  heroDescription: "Nous combinons ton ressenti, tes données Garmin (Body Battery, VFC, charge) et notre IA pour construire des séances ultra pertinentes.",
-  steps: sharedSteps,
+  heroDescription:
+    "Nous combinons ton ressenti, tes données Garmin (Body Battery, VFC, charge) et notre IA pour construire des séances ultra pertinentes.",
+  stepLabel: "Étape",
+  steps: [
+    {
+      title: "Connecte ta montre",
+      description:
+        "Autorise Adapt2Life à lire tes données Garmin en quelques secondes. Tu restes maître de la connexion et peux l’arrêter quand tu veux.",
+      image: "/brand/how-it-works-1.jpg",
+    },
+    {
+      title: "Décris ta journée",
+      description:
+        "Raconte comment tu te sens, ton objectif du jour et tes contraintes de temps ou de matériel. Plus le brief est simple et précis, plus la séance colle à ta réalité.",
+      image: "/brand/how-it-works-2.jpg",
+    },
+    {
+      title: "Génère et personnalise",
+      description:
+        "L’IA te suggère une séance complète (échauffement, bloc principal, récup). Tu peux regénérer, ajuster les blocs ou garder la version qui te plaît.",
+      image: "/brand/how-it-works-3.jpg",
+    },
+    {
+      title: "Synchronise et exécute",
+      description:
+        "Envoie la séance sur ta montre Garmin et lance-toi. Après ton entraînement, nous adaptons les prochaines propositions à ta forme du moment.",
+      image: "/brand/how-it-works-4.jpg",
+    },
+  ],
   ctaTag: "Passe à l’action",
   ctaTitle: "Envie d’essayer Adapt2Life ?",
   ctaDescription: "Connecte ton compte, génère un plan IA et synchronise-le directement avec Garmin Connect.",
@@ -89,12 +72,85 @@ const sharedCopy: HowItWorksCopy = {
   secondaryAction: { label: "Parler à l’équipe", href: "/contact" },
   faqTag: "Questions fréquentes",
   faqTitle: "Avant de lancer ta première séance",
-  faqItems: sharedFaqItems,
+  faqItems: [
+    {
+      question: "Combien de temps prend la génération d’un entraînement ?",
+      answer:
+        "Quelques secondes pour un plan standard. Les conversions Garmin plus complexes peuvent atteindre 1 à 2 minutes selon la charge.",
+    },
+    {
+      question: "Puis-je regénérer ou modifier la séance avant envoi ?",
+      answer:
+        "Oui. Tu peux regénérer autant que nécessaire, ajuster les blocs ou les intensités avant d’envoyer la version finale dans Garmin Connect.",
+    },
+    {
+      question: "Que se passe-t-il si ma montre ou Garmin n’est pas disponible ?",
+      answer:
+        "Tu peux conserver la séance en version texte, la reprendre plus tard et l’envoyer quand tu es prêt. L’IA gardera ton brief pour proposer une alternative.",
+    },
+  ],
+};
+
+const enCopy: HowItWorksCopy = {
+  heroTag: "How it works",
+  heroTitle: "Your plan in 4 simple steps",
+  heroDescription:
+    "We merge your daily feeling, Garmin signals (Body Battery, HRV, load) and our AI to build workouts that match reality.",
+  stepLabel: "Step",
+  steps: [
+    {
+      title: "Connect your watch",
+      description:
+        "Grant Adapt2Life permission to read your Garmin data in seconds. You remain in control and can revoke access whenever you want.",
+      image: "/brand/how-it-works-1.jpg",
+    },
+    {
+      title: "Describe your day",
+      description:
+        "Tell us how you feel, today’s goal and any time or equipment constraints. The clearer the brief, the better the workout matches your life.",
+      image: "/brand/how-it-works-2.jpg",
+    },
+    {
+      title: "Generate and refine",
+      description:
+        "The AI suggests the full session (warm-up, main block, cooldown). Regenerate, tweak the blocks, or keep the version you like.",
+      image: "/brand/how-it-works-3.jpg",
+    },
+    {
+      title: "Sync and go",
+      description:
+        "Push the workout to Garmin and start training. After each session we adapt the next recommendations to your current form.",
+      image: "/brand/how-it-works-4.jpg",
+    },
+  ],
+  ctaTag: "Take action",
+  ctaTitle: "Ready to try Adapt2Life?",
+  ctaDescription: "Connect your account, generate an AI plan and sync it directly to Garmin Connect.",
+  primaryAction: { label: "Start now", href: "/handler/sign-in?redirect=/generateur-entrainement" },
+  secondaryAction: { label: "Talk to the team", href: "/contact" },
+  faqTag: "FAQ",
+  faqTitle: "Before your first session",
+  faqItems: [
+    {
+      question: "How long does it take to generate a workout?",
+      answer: "A few seconds for a standard plan. More complex Garmin conversions can take 1–2 minutes depending on load.",
+    },
+    {
+      question: "Can I regenerate or edit the workout before sending it?",
+      answer:
+        "Yes. Regenerate as many times as you want, adjust blocks or intensities before pushing the final version to Garmin Connect.",
+    },
+    {
+      question: "What if my watch or Garmin is unavailable?",
+      answer:
+        "Keep the workout in text form, send it later when you’re ready. The AI remembers your brief to generate an alternative.",
+    },
+  ],
 };
 
 const HOW_IT_WORKS_COPY: Record<Locale, HowItWorksCopy> = {
-  fr: sharedCopy,
-  en: sharedCopy,
+  fr: frCopy,
+  en: enCopy,
 };
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://adapt2life.app";
@@ -174,7 +230,7 @@ export function HowItWorksPage({ locale }: HowItWorksPageProps) {
           <li key={step.title} className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-card/80 p-6 shadow-lg md:flex-row">
             <div className="space-y-2 md:w-2/3">
               <p className="text-xs uppercase tracking-[0.2em] text-primary/80">
-                Étape {index + 1}
+                {copy.stepLabel} {index + 1}
               </p>
               <h2 className="text-2xl font-heading">{step.title}</h2>
               <p className="text-sm text-muted-foreground">{step.description}</p>
