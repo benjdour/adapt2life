@@ -93,7 +93,7 @@ export function GarminTrainerGenerator({ sourcePlan, locale = DEFAULT_LOCALE }: 
   const handleGenerateWorkout = async () => {
     const trimmedExample = conversionInput.trim();
     if (!trimmedExample) {
-      const descriptor = getErrorDescriptor("garmin-trainer/no-source-plan");
+      const descriptor = getErrorDescriptor("garmin-trainer/no-source-plan", undefined, locale);
       toast.error(descriptor.title, { description: descriptor.description });
       return;
     }
@@ -148,7 +148,7 @@ export function GarminTrainerGenerator({ sourcePlan, locale = DEFAULT_LOCALE }: 
         description: "La version technique du plan est prête à être vérifiée avant envoi à Garmin.",
       });
     } catch (generationError) {
-      const descriptor = describeAppError(generationError, "garmin-trainer/request-failed");
+      const descriptor = describeAppError(generationError, "garmin-trainer/request-failed", locale);
       toast.error(descriptor.title, { description: descriptor.description });
     } finally {
       setIsLoading(false);
@@ -229,7 +229,7 @@ export function GarminTrainerGenerator({ sourcePlan, locale = DEFAULT_LOCALE }: 
         setPushDetails(JSON.stringify(payload.garminResponse, null, 2));
       }
     } catch (pushErrorInstance) {
-      const descriptor = describeAppError(pushErrorInstance, "garmin-trainer/push-failed");
+      const descriptor = describeAppError(pushErrorInstance, "garmin-trainer/push-failed", locale);
       toast.error(descriptor.title, { description: descriptor.description });
     } finally {
       setIsPushing(false);

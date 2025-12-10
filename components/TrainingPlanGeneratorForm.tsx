@@ -227,7 +227,7 @@ export function TrainingPlanGeneratorForm({
 
     const trimmedPrompt = prompt.trim();
     if (!trimmedPrompt) {
-      const descriptor = getErrorDescriptor("training-plan/empty-brief");
+      const descriptor = getErrorDescriptor("training-plan/empty-brief", undefined, locale);
       toast.error(descriptor.title, { description: descriptor.description });
       return;
     }
@@ -286,7 +286,7 @@ export function TrainingPlanGeneratorForm({
         description: copy.planGenerated.description,
       });
     } catch (submissionError) {
-      const descriptor = describeAppError(submissionError, "training-plan/request-failed");
+      const descriptor = describeAppError(submissionError, "training-plan/request-failed", locale);
       toast.error(descriptor.title, { description: descriptor.description });
       onPlanGenerated?.(null);
       setPlanCompatibility({ isGarminCompatible: true, blocker: null, sportLabel: null, sportId: null });
@@ -340,7 +340,7 @@ export function TrainingPlanGeneratorForm({
       });
       setPendingToastId(toastId);
     } catch (error) {
-      const descriptor = describeAppError(error, "garmin-trainer/push-failed");
+      const descriptor = describeAppError(error, "garmin-trainer/push-failed", locale);
       toast.error(descriptor.title, { description: descriptor.description });
       setIsSending(false);
     } finally {
