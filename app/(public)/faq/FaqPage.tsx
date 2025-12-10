@@ -24,7 +24,7 @@ type FaqCopy = {
   };
 };
 
-const sharedFaqItems: FaqItem[] = [
+const faqItemsFr: FaqItem[] = [
   {
     question: "Qu’est-ce qu’Adapt2Life ?",
     answer:
@@ -132,25 +132,136 @@ const sharedFaqItems: FaqItem[] = [
   },
 ];
 
-const sharedCopy: Omit<FaqCopy, "faqItems"> = {
-  heroTag: "FAQ",
-  heroTitle: "Tout savoir sur Adapt2Life",
-  heroDescription:
-    "Nous avons compilé les questions les plus fréquentes sur la génération IA, l’intégration Garmin et la sécurité de tes données.",
-  helpTag: "Besoin d’aide",
-  helpTitle: "Tu n’as pas trouvé ta réponse ?",
-  helpDescription: "Contacte notre équipe ou rejoins la communauté pour échanger avec d’autres athlètes Adapt2Life.",
-  helpAction: { label: "Contacter l’équipe", href: "/contact" },
-};
+const faqItemsEn: FaqItem[] = [
+  {
+    question: "What is Adapt2Life?",
+    answer:
+      "Adapt2Life is an AI coach that generates tailored sessions from your feeling, constraints, and Garmin data so your training matches real life.",
+  },
+  {
+    question: "How does the AI customize a workout?",
+    answer:
+      "Describe how you feel, your goals, and available gear. The AI blends that with your history to craft a coherent session (warm-up, main block, cooldown).",
+  },
+  {
+    question: "Can I send workouts to my Garmin watch?",
+    answer:
+      "Yes. Once generated, Adapt2Life converts the session into Garmin’s expected format and pushes it to your Garmin Connect calendar.",
+  },
+  {
+    question: "Which sports are supported right now?",
+    answer:
+      "We currently support cycling, running, swimming, triathlon, and general strength. More disciplines are progressively added.",
+  },
+  {
+    question: "How long does it take to generate a session?",
+    answer:
+      "Usually just a few seconds. Reasoning models used for Garmin conversions can take up to two minutes for complex requests.",
+  },
+  {
+    question: "Are the workouts suitable for beginners?",
+    answer:
+      "Yes. The AI accounts for your level, available volume, and writes clear cues even if you are just starting.",
+  },
+  {
+    question: "I don’t own a power meter—does that matter?",
+    answer:
+      "Not at all. Mention that you train by feel or heart rate; the AI adapts targets and indicators accordingly.",
+  },
+  {
+    question: "Can I regenerate a workout if I dislike it?",
+    answer:
+      "Absolutely. Relaunch the generator as many times as needed or tweak your brief to be more specific.",
+  },
+  {
+    question: "How does Adapt2Life use my Garmin data?",
+    answer:
+      "We only use it to personalize sessions (load, recent history). Data is stored securely and you can revoke access anytime.",
+  },
+  {
+    question: "Can I use Adapt2Life without a connected watch?",
+    answer:
+      "Yes. You can generate plans based solely on your feeling. Garmin data simply adds extra context.",
+  },
+  {
+    question: "Is there any commitment or long-term contract?",
+    answer:
+      "No. Plans are monthly, cancellable whenever you want, and every subscription starts with its full quota on the billing date.",
+  },
+  {
+    question: "When do my quotas reset?",
+    answer:
+      "Generation and conversion quotas automatically reset on the first of every month, regardless of your active plan.",
+  },
+  {
+    question: "How does the trial work?",
+    answer:
+      "Create your account, optionally connect Garmin, and generate several workouts for free before picking a subscription.",
+  },
+  {
+    question: "Can I follow a multi-week structured plan?",
+    answer:
+      "We provide a day-by-day generator, but you can save workouts and organize them in Garmin. A multi-week planner is in development.",
+  },
+  {
+    question: "How do you handle recovery and rest days?",
+    answer:
+      "The AI suggests lighter days or active recovery sessions whenever your metrics show fatigue.",
+  },
+  {
+    question: "Does the AI consider injuries or medical constraints?",
+    answer:
+      "Add any restriction to your brief (e.g., no jumps, no standing climbs). The AI adapts accordingly, but it’s not a medical opinion.",
+  },
+  {
+    question: "How do you ensure workouts respect Garmin standards?",
+    answer:
+      "Every workout passes internal checks to comply with Garmin rules, then gets cleaned automatically (targets, durations, segments) before sending.",
+  },
+  {
+    question: "Can I share sessions with my human coach?",
+    answer:
+      "Yes. Export the text version, retrieve the Garmin format, or simply share the generated Garmin Connect link.",
+  },
+  {
+    question: "What happens if the Garmin conversion fails?",
+    answer:
+      "You’re notified immediately and your quota is restored automatically (missing data, Garmin downtime, etc.). You can regenerate or send the plan later.",
+  },
+  {
+    question: "Does Adapt2Life work offline?",
+    answer:
+      "No. Generations rely on our servers and partner APIs, so you need an Internet connection to create or send workouts.",
+  },
+  {
+    question: "How can I contact the team?",
+    answer:
+      "Use the contact form, email support@adapt2life.app, or join the Discord community to chat directly with the team.",
+  },
+];
 
 const FAQ_COPY: Record<Locale, FaqCopy> = {
   fr: {
-    ...sharedCopy,
-    faqItems: sharedFaqItems,
+    heroTag: "FAQ",
+    heroTitle: "Tout savoir sur Adapt2Life",
+    heroDescription:
+      "Nous avons compilé les questions les plus fréquentes sur la génération IA, l’intégration Garmin et la sécurité de tes données.",
+    helpTag: "Besoin d’aide",
+    helpTitle: "Tu n’as pas trouvé ta réponse ?",
+    helpDescription: "Contacte notre équipe ou rejoins la communauté pour échanger avec d’autres athlètes Adapt2Life.",
+    helpAction: { label: "Contacter l’équipe", href: "/contact" },
+    faqItems: faqItemsFr,
   },
   en: {
-    ...sharedCopy,
-    faqItems: sharedFaqItems,
+    heroTag: "FAQ",
+    heroTitle: "Everything about Adapt2Life",
+    heroDescription:
+      "We collected the most common questions about AI generation, Garmin integration, and how we keep your data safe.",
+    helpTag: "Need help",
+    helpTitle: "Still need an answer?",
+    helpDescription: "Reach our team or join the community to chat with other Adapt2Life athletes.",
+    helpAction: { label: "Contact the team", href: "/contact" },
+    faqItems: faqItemsEn,
   },
 };
 
