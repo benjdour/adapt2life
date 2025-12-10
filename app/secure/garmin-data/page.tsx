@@ -12,7 +12,7 @@ import { stackServerApp } from "@/stack/server";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { hasStackSessionCookie } from "@/lib/stack/sessionCookies";
 import { getRequestLocale } from "@/lib/i18n/request";
-import { buildLocalePath } from "@/lib/i18n/routing";
+import { buildLocalePath, buildSignInUrl } from "@/lib/i18n/routing";
 import { Locale } from "@/lib/i18n/locales";
 
 type GarminDataPageCopy = {
@@ -155,10 +155,8 @@ async function GarminDataPanel({ localUserId, gender, copy }: GarminDataPanelPro
 export default async function GarminDataPage() {
   const locale = await getRequestLocale();
   const copy = copyByLocale[locale];
-  const signInPath = "/handler/sign-in";
-  const garminDataPath = buildLocalePath(locale, "/secure/garmin-data");
   if (!(await hasStackSessionCookie())) {
-    redirect(`${signInPath}?redirect=${encodeURIComponent(garminDataPath)}`);
+    redirect(buildSignInUrl(locale, "/secure/garmin-data"));
   }
 
   const stackUserPromise = stackServerApp.getUser({ or: "return-null", tokenStore: "nextjs-cookie" });
@@ -166,7 +164,7 @@ export default async function GarminDataPage() {
   const stackUser = await stackUserPromise;
 
   if (!stackUser) {
-    redirect(`${signInPath}?redirect=${encodeURIComponent(garminDataPath)}`);
+    redirect(buildSignInUrl(locale, "/secure/garmin-data"));
   }
 
   const [localUser] = await db

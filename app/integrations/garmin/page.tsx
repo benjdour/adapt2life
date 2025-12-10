@@ -12,7 +12,7 @@ import { DashboardGrid } from "@/components/ui/dashboard-grid";
 import { GarminIntegrationActions } from "./garmin-integration-actions";
 import { DEFAULT_USER_PLAN, getUserPlanConfig } from "@/lib/constants/userPlans";
 import { getRequestLocale } from "@/lib/i18n/request";
-import { buildLocalePath } from "@/lib/i18n/routing";
+import { buildLocalePath, buildSignInUrl } from "@/lib/i18n/routing";
 import { Locale } from "@/lib/i18n/locales";
 
 type ActionStatusMessage = {
@@ -296,13 +296,12 @@ export default async function GarminIntegrationPage({ searchParams }: PageProps)
 
   const locale = await getRequestLocale();
   const copy = copyByLocale[locale];
-  const signInPath = "/handler/sign-in";
   const integrationPath = buildLocalePath(locale, "/integrations/garmin");
 
   const stackUser = await stackServerApp.getUser({ or: "return-null", tokenStore: "nextjs-cookie" });
 
   if (!stackUser) {
-    redirect(`${signInPath}?redirect=${encodeURIComponent(integrationPath)}`);
+    redirect(buildSignInUrl(locale, "/integrations/garmin"));
   }
 
   const [existingUser] = await db

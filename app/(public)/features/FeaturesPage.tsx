@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Locale } from "@/lib/i18n/locales";
-import { buildLocalePath } from "@/lib/i18n/routing";
+import { buildLocalePath, buildSignInUrl } from "@/lib/i18n/routing";
 
 type FeatureCard = {
   title: string;
@@ -198,9 +198,7 @@ export function FeaturesPage({ locale }: FeaturesPageProps) {
     const [base, search] = href.split("?");
     if (base === "/handler/sign-in") {
       const redirectParam = search?.replace("redirect=", "") ?? "/generateur-entrainement";
-      const localizedSignIn = buildLocalePath(locale, base);
-      const localizedRedirect = buildLocalePath(locale, redirectParam);
-      return `${localizedSignIn}?redirect=${encodeURIComponent(localizedRedirect)}`;
+      return buildSignInUrl(locale, redirectParam);
     }
     const localizedBase = buildLocalePath(locale, base);
     return search ? `${localizedBase}?${search}` : localizedBase;

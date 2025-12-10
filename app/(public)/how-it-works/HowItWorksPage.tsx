@@ -4,7 +4,7 @@ import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { Locale } from "@/lib/i18n/locales";
-import { buildLocalePath } from "@/lib/i18n/routing";
+import { buildLocalePath, buildSignInUrl } from "@/lib/i18n/routing";
 
 type Step = {
   title: string;
@@ -205,9 +205,7 @@ const localizeHref = (locale: Locale, href: string) => {
   const [pathname, search] = href.split("?");
   if (pathname === "/handler/sign-in") {
     const redirectParam = search?.replace("redirect=", "") ?? "/";
-    const localizedSignIn = buildLocalePath(locale, pathname);
-    const localizedRedirect = buildLocalePath(locale, redirectParam);
-    return `${localizedSignIn}?redirect=${encodeURIComponent(localizedRedirect)}`;
+    return buildSignInUrl(locale, redirectParam);
   }
   const localized = buildLocalePath(locale, pathname);
   return search ? `${localized}?${search}` : localized;

@@ -5,7 +5,7 @@ import { TrainingGeneratorsSection } from "@/components/TrainingGeneratorsSectio
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { hasStackSessionCookie } from "@/lib/stack/sessionCookies";
 import { getRequestLocale } from "@/lib/i18n/request";
-import { buildLocalePath } from "@/lib/i18n/routing";
+import { buildSignInUrl } from "@/lib/i18n/routing";
 import { Locale } from "@/lib/i18n/locales";
 
 type GeneratorPageCopy = {
@@ -53,10 +53,8 @@ function TrainingGeneratorSkeleton() {
 export default async function TrainingGeneratorPage() {
   const locale = await getRequestLocale();
   const copy = copyByLocale[locale] ?? copyByLocale.fr;
-  const signInPath = "/handler/sign-in";
-  const generatorPath = buildLocalePath(locale, "/generateur-entrainement");
   if (!(await hasStackSessionCookie())) {
-    redirect(`${signInPath}?redirect=${encodeURIComponent(generatorPath)}`);
+    redirect(buildSignInUrl(locale, "/generateur-entrainement"));
   }
 
   return (

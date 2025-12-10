@@ -54,3 +54,8 @@ export type LocaleParam = { locale: Locale };
 
 export const buildStaticLocaleParams = (): LocaleParam[] =>
   LOCALES.map((locale) => ({ locale }));
+
+export const buildSignInUrl = (locale: Locale, redirectPath = "/"): string => {
+  const redirectTarget = buildLocalePath(locale, redirectPath);
+  return `/handler/sign-in?locale=${locale}&redirect=${encodeURIComponent(redirectTarget)}`;
+};

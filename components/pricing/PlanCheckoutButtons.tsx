@@ -5,7 +5,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { buildLocalePath } from "@/lib/i18n/routing";
+import { buildSignInUrl } from "@/lib/i18n/routing";
 import { Locale } from "@/lib/i18n/locales";
 
 export type PublicPlanId = "free" | "paid_light" | "paid" | "paid_full";
@@ -49,10 +49,7 @@ const BUTTON_COPY: Record<
   },
 };
 
-const buildSignInHref = (locale: Locale, redirect: string) => {
-  const redirectPath = buildLocalePath(locale, redirect);
-  return `/handler/sign-in?redirect=${encodeURIComponent(redirectPath)}`;
-};
+const buildSignInHref = (locale: Locale, redirect: string) => buildSignInUrl(locale, redirect);
 
 export function PlanCheckoutButtons({ planId, price, disabled, isAuthenticated, locale }: PlanCheckoutButtonsProps) {
   const resolvedLocale: Locale = locale ?? "fr";

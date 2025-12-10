@@ -17,7 +17,7 @@ import { DEFAULT_USER_PLAN, getUserPlanConfig } from "@/lib/constants/userPlans"
 import { ManageSubscriptionButton } from "@/components/profile/ManageSubscriptionButton";
 import { PlanDowngradeToast } from "@/components/profile/PlanDowngradeToast";
 import { getRequestLocale } from "@/lib/i18n/request";
-import { buildLocalePath } from "@/lib/i18n/routing";
+import { buildLocalePath, buildSignInUrl } from "@/lib/i18n/routing";
 import { Locale } from "@/lib/i18n/locales";
 
 const userSelection = {
@@ -231,9 +231,7 @@ async function updateProfile(formData: FormData) {
 
   if (!stackUser) {
     const locale = await getRequestLocale();
-    const signInPath = "/handler/sign-in";
-    const profilePath = buildLocalePath(locale, "/secure/user-information");
-    redirect(`${signInPath}?redirect=${encodeURIComponent(profilePath)}`);
+    redirect(buildSignInUrl(locale, "/secure/user-information"));
   }
 
   const firstName = getNullableText(formData.get("firstName"));
@@ -491,13 +489,10 @@ const copyByLocale = {
 export default async function UserInformationPage({ searchParams }: PageProps) {
   const locale = await getRequestLocale();
   const copy = copyByLocale[locale];
-  const signInPath = "/handler/sign-in";
-  const profilePath = buildLocalePath(locale, "/secure/user-information");
-
   const stackUser = await stackServerApp.getUser({ or: "return-null", tokenStore: "nextjs-cookie" });
 
   if (!stackUser) {
-    redirect(`${signInPath}?redirect=${encodeURIComponent(profilePath)}`);
+    redirect(buildSignInUrl(locale, "/secure/user-information"));
   }
 
   const [maybeLocalUser] = await db

@@ -1,5 +1,5 @@
 import { DEFAULT_LOCALE, Locale } from "./locales";
-import { buildLocalePath } from "./routing";
+import { buildLocalePath, buildSignInUrl } from "./routing";
 
 export type NavLink = {
   label: string;
@@ -79,10 +79,7 @@ const legalLinks = (locale: Locale): FooterLink[] => [
   },
 ];
 
-const buildLocaleAwareRedirect = (locale: Locale, targetPath: string) => {
-  const redirectTarget = buildLocalePath(locale, targetPath);
-  return `/handler/sign-in?redirect=${encodeURIComponent(redirectTarget)}`;
-};
+const buildLocaleAwareRedirect = (locale: Locale, targetPath: string) => buildSignInUrl(locale, targetPath);
 
 const toggleFactory = (currentLocale: Locale, targetLocale: Locale): LanguageToggle => ({
   label: targetLocale.toUpperCase(),

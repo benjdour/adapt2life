@@ -5,7 +5,7 @@ import { enforceRateLimit } from "@/lib/security/rateLimiter";
 import { stackServerApp } from "@/stack/server";
 import { deriveLocaleFromPathname, stripLocaleFromPath } from "@/lib/i18n/routing";
 import { LOCALE_HEADER_NAME } from "@/lib/i18n/request";
-import type { Locale } from "@/lib/i18n/locales";
+import { DEFAULT_LOCALE, type Locale, isLocale } from "@/lib/i18n/locales";
 
 type RoutePolicy = {
   pattern: RegExp;
@@ -72,6 +72,34 @@ const buildRedirectUrl = (request: NextRequest, basePath: string) => new URL(bas
 
 const isPublicApiRoute = (pathname: string) => PUBLIC_API_PATTERNS.some((pattern) => pattern.test(pathname));
 
+const decodeRedirectLocale = (raw: string | null): Locale | null => {
+  if (!raw) return null;
+  try {
+    const decoded = decodeURIComponent(raw);
+    const locale = deriveLocaleFromPathname(decoded);
+    return locale !== DEFAULT_LOCALE ? locale : null;
+  } catch {
+    const locale = deriveLocaleFromPathname(raw);
+    return locale !== DEFAULT_LOCALE ? locale : null;
+  }
+};
+
+const resolveRequestLocale = (request: NextRequest, pathname: string): Locale => {
+  const localeFromPath = deriveLocaleFromPathname(pathname);
+  if (localeFromPath !== DEFAULT_LOCALE) {
+    return localeFromPath;
+  }
+  const queryLocale = request.nextUrl.searchParams.get("locale");
+  if (queryLocale && isLocale(queryLocale)) {
+    return queryLocale;
+  }
+  const redirectLocale = decodeRedirectLocale(request.nextUrl.searchParams.get("redirect"));
+  if (redirectLocale) {
+    return redirectLocale;
+  }
+  return DEFAULT_LOCALE;
+};
+
 const applyLocaleHeaders = (request: NextRequest, locale: Locale) => {
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set(LOCALE_HEADER_NAME, locale);
@@ -84,7 +112,7 @@ const forwardWithLocale = (request: NextRequest, locale: Locale) =>
 
 export async function proxy(request: NextRequest) {
   const originalPathname = request.nextUrl.pathname;
-  const locale = deriveLocaleFromPathname(originalPathname);
+  const locale = resolveRequestLocale(request, originalPathname);
   const pathname = stripLocaleFromPath(originalPathname);
   const isApiRoute = pathname.startsWith("/api/");
 
@@ -112,6 +140,7 @@ export async function proxy(request: NextRequest) {
     }
     const signInUrl = buildRedirectUrl(request, "/handler/sign-in");
     const returnTo = `${request.nextUrl.pathname}${request.nextUrl.search}`;
+    signInUrl.searchParams.set("locale", locale);
     signInUrl.searchParams.set("redirect", returnTo || "/");
     const response = NextResponse.redirect(signInUrl);
     response.headers.set(LOCALE_HEADER_NAME, locale);

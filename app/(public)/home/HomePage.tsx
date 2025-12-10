@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { Locale } from "@/lib/i18n/locales";
-import { buildLocalePath } from "@/lib/i18n/routing";
+import { buildLocalePath, buildSignInUrl } from "@/lib/i18n/routing";
 
 type HomeCta = {
   label: string;
@@ -49,12 +49,9 @@ const localizeHref = (locale: Locale, href: string) => {
   const [pathname, search] = href.split("?");
   if (pathname === "/handler/sign-in") {
     const redirectPart =
-      search && search.startsWith("redirect=")
-        ? search.replace("redirect=", "")
-        : null;
-    const localizedRedirect = redirectPart ? buildLocalePath(locale, redirectPart) : buildLocalePath(locale, "/");
-    const localizedSignIn = buildLocalePath(locale, pathname);
-    return `${localizedSignIn}?redirect=${encodeURIComponent(localizedRedirect)}`;
+      search && search.startsWith("redirect=") ? search.replace("redirect=", "") : null;
+    const target = redirectPart && redirectPart.length > 0 ? redirectPart : "/";
+    return buildSignInUrl(locale, target);
   }
   const localized = buildLocalePath(locale, pathname);
   return search ? `${localized}?${search}` : localized;
