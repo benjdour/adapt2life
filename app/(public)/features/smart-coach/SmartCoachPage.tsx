@@ -309,122 +309,7 @@ const faqItemsByLocale: Record<Locale, FaqItem[]> = {
     },
   ],
 };
-  {
-    title: "Lecture intelligente des métriques",
-    description: "Charge, sommeil, stress, Body Battery… l’IA identifie instantanément les signaux forts pour personnaliser ton prochain entraînement.",
-  },
-  {
-    title: "Brief naturel, sortie structurée",
-    description: "Tu décris ton contexte en langage courant, Adapt2Life génère un bloc détaillé avec zones, intensités et consignes.",
-  },
-  {
-    title: "Respect du format Garmin",
-    description: "Chaque séance est vérifiée automatiquement avant d’être envoyée dans ton agenda Garmin.",
-  },
-  {
-    title: "Boucle d’amélioration continue",
-    description: "Les séances réalisées enrichissent ton profil pour affiner les recommandations suivantes : progression, fatigue, préférences.",
-  },
-];
-
-const sharedSteps: SimpleBlock[] = [
-  {
-    title: "1. Synchronisation & diagnostic",
-    description:
-      "Tu connectes Garmin Connect ; nous analysons automatiquement les 30 derniers jours pour comprendre ton volume, ton intensité et tes tendances de récupération.",
-  },
-  {
-    title: "2. Brief IA",
-    description:
-      "Tu expliques ta forme du jour, tes contraintes de temps ou de matériel. L’IA traduit ces signaux en un cahier de charges précis.",
-  },
-  {
-    title: "3. Génération & validation",
-    description:
-      "Adapt2Life compose la séance (échauffement, blocs principaux, récupérations), vérifie la cohérence des zones, puis la convertit dans le format officiel Garmin.",
-  },
-  {
-    title: "4. Envoi & suivi",
-    description:
-      "En un clic, la séance est poussée dans ton calendrier Garmin. Après exécution, nous analysons la réalité vs. la cible pour ajuster la suite.",
-  },
-];
-
-const sharedUseCases: SimpleBlock[] = [
-  {
-    title: "Triathlètes & multi-sportifs",
-    description:
-      "Planifie natation, vélo, course avec une charge maîtrisée et des séances croisées adaptées à ta semaine.",
-  },
-  {
-    title: "Coureurs route / trail",
-    description:
-      "Prépare 10 km, marathon ou ultra avec des blocs spécifiques (VDOT, rando-course, seuil) et des rappels de gestion d’allure.",
-  },
-  {
-    title: "Cyclistes connectés",
-    description:
-      "Structure tes sorties home-trainer ou outdoor avec puissance, cadence et consignes nutritionnelles.",
-  },
-  {
-    title: "Retour de blessure",
-    description:
-      "Mentionne tes restrictions : l’IA propose du renfo ciblé, de l’endurance douce ou du travail technique sécurisé.",
-  },
-];
-
-const sharedComparison: ComparisonRow[] = [
-  {
-    criterion: "Analyse des données en temps réel",
-    adapt2life: "Oui — connexion native Garmin + signaux IA",
-    generic: "Non — séances statiques",
-    coach: "Oui, mais revue manuelle hebdo",
-  },
-  {
-    criterion: "Temps de réponse",
-    adapt2life: "Instantané (quelques secondes)",
-    generic: "Immédiat mais non personnalisé",
-    coach: "24-72h selon disponibilité",
-  },
-  {
-    criterion: "Coût mensuel",
-    adapt2life: "Accessible (offre mensuelle/annuelle)",
-    generic: "Variable, souvent gratuit mais limité",
-    coach: "150€+ / mois",
-  },
-  {
-    criterion: "Envoi automatique sur Garmin",
-    adapt2life: "Oui, validé et suivi",
-    generic: "Non, export manuel",
-    coach: "Parfois (selon outils)",
-  },
-];
-
-const sharedResources: ResourceLink[] = [
-  { label: "Découvrir toutes les fonctionnalités", href: "/features" },
-  { label: "Comprendre l’intégration Garmin", href: "/integrations/garmin" },
-  { label: "Étapes du générateur IA", href: "/how-it-works" },
-];
-
-const sharedFaq: FaqItem[] = [
-  {
-    question: "Pourquoi relier Adapt2Life à Garmin plutôt qu’à une autre plateforme ?",
-    answer:
-      "Garmin fournit les métriques les plus complètes (charge, HRV, Body Battery). Adapt2Life se branche à ces signaux pour comprendre ta récupération et envoyer la séance directement dans ton calendrier Garmin Connect.",
-  },
-  {
-    question: "Ai-je besoin d’un coach humain en plus de l’IA ?",
-    answer:
-      "Selon ton besoin d’accompagnement. Notre IA couvre la personnalisation quotidienne et l’envoi automatique. Tu peux partager les séances avec un coach humain si tu veux un suivi hybride.",
-  },
-  {
-    question: "Que se passe-t-il si je n’ai pas mes capteurs (puissance, FC) ?",
-    answer:
-      "Tu précises dans le brief que tu t’entraînes à la sensation ou à l’allure. L’IA adapte les consignes en RPE ou en tempo pour que la séance reste exploitable sur ta montre.",
-  },
-];
-
-const copyByLocale: Record<Locale, SmartCoachCopy> = {
+const SMART_COACH_COPY: Record<Locale, SmartCoachCopy> = {
   fr: {
     heroTag: "Présentation complète",
     heroTitle: "Smart Coach : la méthode Adapt2Life pour des entraînements toujours alignés sur ta réalité.",
@@ -625,6 +510,7 @@ export function SmartCoachPage({ locale }: SmartCoachPageProps) {
   const articleJsonLd = buildArticleJsonLd(locale, copy);
   const breadcrumbJsonLd = buildBreadcrumbJsonLd(locale, copy);
   const faqJsonLd = buildFaqJsonLd(copy);
+  const comparisonHeaders = copy.comparisonHeaders;
 
   return (
     <main className="mx-auto flex max-w-6xl flex-col gap-12 px-6 py-12 text-foreground">
@@ -724,10 +610,10 @@ export function SmartCoachPage({ locale }: SmartCoachPageProps) {
           <table className="w-full min-w-[640px] text-sm">
             <thead>
               <tr className="text-left text-muted-foreground">
-                <th className="p-3 font-semibold">Critère</th>
-                <th className="p-3 font-semibold text-primary">Adapt2Life</th>
-                <th className="p-3 font-semibold">Plan générique</th>
-                <th className="p-3 font-semibold">Coach humain</th>
+                <th className="p-3 font-semibold">{comparisonHeaders.criterion}</th>
+                <th className="p-3 font-semibold text-primary">{comparisonHeaders.adapt2life}</th>
+                <th className="p-3 font-semibold">{comparisonHeaders.generic}</th>
+                <th className="p-3 font-semibold">{comparisonHeaders.coach}</th>
               </tr>
             </thead>
             <tbody>
@@ -752,16 +638,16 @@ export function SmartCoachPage({ locale }: SmartCoachPageProps) {
         </header>
         <div className="grid gap-4 md:grid-cols-3">
           {copy.resources.map((resource) => (
-            <Card key={resource.href} className="border-white/10 bg-card/80">
-              <CardHeader>
-                <CardTitle>{resource.label}</CardTitle>
-                <CardDescription>
-                  <Link href={localizeHref(locale, resource.href)} className="font-semibold text-primary hover:underline">
-                    Lire la ressource →
-                  </Link>
-                </CardDescription>
-              </CardHeader>
-            </Card>
+                <Card key={resource.href} className="border-white/10 bg-card/80">
+                  <CardHeader>
+                    <CardTitle>{resource.label}</CardTitle>
+                    <CardDescription>
+                      <Link href={localizeHref(locale, resource.href)} className="font-semibold text-primary hover:underline">
+                        {copy.resourcesLinkLabel}
+                      </Link>
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
           ))}
         </div>
       </section>
