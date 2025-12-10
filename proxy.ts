@@ -131,5 +131,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/secure/:path*", "/generateur-entrainement", "/garmin-trainer/:path*", "/integrations/garmin", "/api/:path*"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };
