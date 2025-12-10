@@ -164,15 +164,16 @@ export function GarminIntegrationActions({
                 }
               })
             }
-            className="w-full sm:w-auto"
+            className="w-full whitespace-normal leading-tight sm:w-auto"
             disabled={isPending || isDisconnecting}
             isLoading={isDisconnecting}
           >
-            {copy.disconnectLabel}
+            <span className="inline-block text-center">{copy.disconnectLabel}</span>
           </Button>
           {maskedGarminUserId ? (
-            <span className="inline-flex flex-1 items-center justify-center break-all rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-center text-xs font-mono text-muted-foreground">
-              {copy.maskedUserLabel}&nbsp;{maskedGarminUserId}
+            <span className="inline-flex flex-1 flex-col items-start rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-mono text-muted-foreground">
+              <span className="text-muted-foreground/70">{copy.maskedUserLabel}</span>
+              <span className="break-all text-foreground">{maskedGarminUserId}</span>
             </span>
           ) : null}
         </div>
