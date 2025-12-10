@@ -91,15 +91,22 @@ const toggleFactory = (currentLocale: Locale, targetLocale: Locale): LanguageTog
   fallbackHref: targetLocale === DEFAULT_LOCALE ? "/" : `/${targetLocale}`,
 });
 
+const buildFooterNavigationLinks = (locale: Locale): FooterLink[] => [
+  { label: locale === "en" ? "Home" : "Accueil", href: buildLocalePath(locale, "/") },
+  { label: locale === "en" ? "Features" : "Fonctionnalités", href: buildLocalePath(locale, "/features") },
+  { label: "Smart Coach", href: buildLocalePath(locale, "/features/smart-coach") },
+  { label: locale === "en" ? "Pricing" : "Tarifs", href: buildLocalePath(locale, "/pricing") },
+  { label: locale === "en" ? "About" : "À propos", href: buildLocalePath(locale, "/about") },
+  { label: locale === "en" ? "How it works" : "Comment ça marche", href: buildLocalePath(locale, "/how-it-works") },
+  { label: "FAQ", href: buildLocalePath(locale, "/faq") },
+  { label: "Contact", href: buildLocalePath(locale, "/contact") },
+];
+
 const buildFooter = (locale: Locale): NavigationFooter => ({
   navigationTitle: locale === "en" ? "Navigation" : "Navigation",
   legalTitle: locale === "en" ? "Legal" : "Mentions légales",
   socialTitle: locale === "en" ? "Follow us" : "Suivez-nous",
-  navigationLinks: [
-    ...buildGuestLinks(locale),
-    { label: locale === "en" ? "About" : "À propos", href: buildLocalePath(locale, "/about") },
-    { label: locale === "en" ? "Pricing" : "Tarifs", href: buildLocalePath(locale, "/pricing") },
-  ],
+  navigationLinks: buildFooterNavigationLinks(locale),
   legalLinks: legalLinks(locale),
   socialLinks: socials,
   copyright:
