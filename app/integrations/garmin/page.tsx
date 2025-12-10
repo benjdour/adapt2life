@@ -119,7 +119,7 @@ const copyByLocale: Record<Locale, IntegrationCopy> = {
     actions: {
       connectLabel: "Connecter Garmin",
       reconnectLabel: "Reconnecter Garmin",
-      disconnectLabel: "Déconnecter Garmin",
+      disconnectLabel: "Déconnecter\nGarmin",
       alreadyConnectedToast: "Garmin déjà connecté.",
       reassignToast: "Garmin relié à ce compte.",
       successToast: "Garmin connecté !",
@@ -218,7 +218,7 @@ const copyByLocale: Record<Locale, IntegrationCopy> = {
     actions: {
       connectLabel: "Connect Garmin",
       reconnectLabel: "Reconnect Garmin",
-      disconnectLabel: "Disconnect Garmin",
+      disconnectLabel: "Disconnect\nGarmin",
       alreadyConnectedToast: "Garmin already connected.",
       reassignToast: "Garmin linked to this account.",
       successToast: "Garmin connected!",
