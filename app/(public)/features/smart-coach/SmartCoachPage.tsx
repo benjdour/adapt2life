@@ -36,11 +36,13 @@ type SmartCoachCopy = {
   useCases: SimpleBlock[];
   comparisonTag: string;
   comparisonTitle: string;
+  comparisonHeaders: { criterion: string; adapt2life: string; generic: string; coach: string };
   comparisonRows: ComparisonRow[];
   resourcesTag: string;
   resourcesTitle: string;
   resourcesDescription: string;
   resources: ResourceLink[];
+  resourcesLinkLabel: string;
   faqTag: string;
   faqTitle: string;
   faqMore: {
@@ -61,13 +63,252 @@ type SmartCoachCopy = {
   };
 };
 
-const sharedStats: HeroStat[] = [
-  { label: "Séances générées / mois", value: "12 000+" },
-  { label: "Taux d’envoi Garmin", value: "98,5 %" },
-  { label: "Temps moyen de génération", value: "< 30 s" },
-];
+const heroStatsByLocale: Record<Locale, HeroStat[]> = {
+  fr: [
+    { label: "Séances générées / mois", value: "12 000+" },
+    { label: "Taux d’envoi Garmin", value: "98,5 %" },
+    { label: "Temps moyen de génération", value: "< 30 s" },
+  ],
+  en: [
+    { label: "Workouts generated / month", value: "12,000+" },
+    { label: "Garmin delivery success", value: "98.5%" },
+    { label: "Average generation time", value: "< 30 s" },
+  ],
+};
 
-const sharedBenefits: SimpleBlock[] = [
+const benefitsByLocale: Record<Locale, SimpleBlock[]> = {
+  fr: [
+    {
+      title: "Lecture intelligente des métriques",
+      description:
+        "Charge, sommeil, stress, Body Battery… l’IA identifie instantanément les signaux forts pour personnaliser ton prochain entraînement.",
+    },
+    {
+      title: "Brief naturel, sortie structurée",
+      description: "Tu décris ton contexte en langage courant, Adapt2Life génère un bloc détaillé avec zones, intensités et consignes.",
+    },
+    {
+      title: "Respect du format Garmin",
+      description: "Chaque séance est vérifiée automatiquement avant d’être envoyée dans ton agenda Garmin.",
+    },
+    {
+      title: "Boucle d’amélioration continue",
+      description: "Les séances réalisées enrichissent ton profil pour affiner les recommandations suivantes : progression, fatigue, préférences.",
+    },
+  ],
+  en: [
+    {
+      title: "Smart metric reading",
+      description: "Load, sleep, stress, Body Battery… the AI instantly spots the strongest signals to personalize your next workout.",
+    },
+    {
+      title: "Natural brief, structured output",
+      description: "Describe your context plainly and Adapt2Life returns a detailed block with zones, intensities, and cues.",
+    },
+    {
+      title: "Garmin-compliant format",
+      description: "Each workout is validated automatically before landing in your Garmin calendar.",
+    },
+    {
+      title: "Continuous improvement loop",
+      description: "Completed sessions enrich your profile to refine subsequent recommendations: progress, fatigue, preferences.",
+    },
+  ],
+};
+
+const stepsByLocale: Record<Locale, SimpleBlock[]> = {
+  fr: [
+    {
+      title: "1. Synchronisation & diagnostic",
+      description:
+        "Tu connectes Garmin Connect ; nous analysons automatiquement les 30 derniers jours pour comprendre ton volume, ton intensité et tes tendances de récupération.",
+    },
+    {
+      title: "2. Brief IA",
+      description:
+        "Tu expliques ta forme du jour, tes contraintes de temps ou de matériel. L’IA traduit ces signaux en un cahier de charges précis.",
+    },
+    {
+      title: "3. Génération & validation",
+      description:
+        "Adapt2Life compose la séance (échauffement, blocs principaux, récupérations), vérifie la cohérence des zones, puis la convertit dans le format officiel Garmin.",
+    },
+    {
+      title: "4. Envoi & suivi",
+      description:
+        "En un clic, la séance est poussée dans ton calendrier Garmin. Après exécution, nous analysons la réalité vs. la cible pour ajuster la suite.",
+    },
+  ],
+  en: [
+    {
+      title: "1. Sync & diagnose",
+      description:
+        "Connect Garmin Connect; we automatically parse the last 30 days to capture your volume, intensity, and recovery trends.",
+    },
+    {
+      title: "2. AI brief",
+      description: "Explain how you feel, your time or equipment constraints. The AI turns those signals into a precise spec sheet.",
+    },
+    {
+      title: "3. Generation & validation",
+      description:
+        "Adapt2Life builds the session (warm-up, main blocks, cooldown), checks zone coherence, then converts it into the official Garmin format.",
+    },
+    {
+      title: "4. Delivery & follow-up",
+      description:
+        "In one tap, the session hits your Garmin calendar. After execution, we analyze real vs. target to adjust the next suggestions.",
+    },
+  ],
+};
+
+const useCasesByLocale: Record<Locale, SimpleBlock[]> = {
+  fr: [
+    {
+      title: "Triathlètes & multi-sportifs",
+      description:
+        "Planifie natation, vélo, course avec une charge maîtrisée et des séances croisées adaptées à ta semaine.",
+    },
+    {
+      title: "Coureurs route / trail",
+      description:
+        "Prépare 10 km, marathon ou ultra avec des blocs spécifiques (VDOT, rando-course, seuil) et des rappels de gestion d’allure.",
+    },
+    {
+      title: "Cyclistes connectés",
+      description:
+        "Structure tes sorties home-trainer ou outdoor avec puissance, cadence et consignes nutritionnelles.",
+    },
+    {
+      title: "Retour de blessure",
+      description:
+        "Mentionne tes restrictions : l’IA propose du renfo ciblé, de l’endurance douce ou du travail technique sécurisé.",
+    },
+  ],
+  en: [
+    {
+      title: "Triathletes & multisport profiles",
+      description: "Plan swim, bike, run with controlled load and cross-discipline sessions matched to your week.",
+    },
+    {
+      title: "Road / trail runners",
+      description: "Prepare 10K, marathon, or ultras with custom blocks (VDOT, hike-run, threshold) and pacing reminders.",
+    },
+    {
+      title: "Connected cyclists",
+      description: "Structure indoor or outdoor rides with power, cadence, and fueling cues.",
+    },
+    {
+      title: "Returning from injury",
+      description: "Mention restrictions; the AI suggests focused strength, easy endurance, or safe technique work.",
+    },
+  ],
+};
+
+const comparisonRowsByLocale: Record<Locale, ComparisonRow[]> = {
+  fr: [
+    {
+      criterion: "Analyse des données en temps réel",
+      adapt2life: "Oui — connexion native Garmin + signaux IA",
+      generic: "Non — séances statiques",
+      coach: "Oui, mais revue manuelle hebdo",
+    },
+    {
+      criterion: "Temps de réponse",
+      adapt2life: "Instantané (quelques secondes)",
+      generic: "Immédiat mais non personnalisé",
+      coach: "24-72h selon disponibilité",
+    },
+    {
+      criterion: "Coût mensuel",
+      adapt2life: "Accessible (offre mensuelle/annuelle)",
+      generic: "Variable, souvent gratuit mais limité",
+      coach: "150€+ / mois",
+    },
+    {
+      criterion: "Envoi automatique sur Garmin",
+      adapt2life: "Oui, validé et suivi",
+      generic: "Non, export manuel",
+      coach: "Parfois (selon outils)",
+    },
+  ],
+  en: [
+    {
+      criterion: "Real-time data analysis",
+      adapt2life: "Yes — native Garmin link + AI signals",
+      generic: "No — static workouts",
+      coach: "Yes, but manual weekly review",
+    },
+    {
+      criterion: "Response time",
+      adapt2life: "Instant (seconds)",
+      generic: "Immediate but not personal",
+      coach: "24–72h depending on availability",
+    },
+    {
+      criterion: "Monthly cost",
+      adapt2life: "Accessible (monthly/annual options)",
+      generic: "Varies, often free but limited",
+      coach: "€150+ / month",
+    },
+    {
+      criterion: "Automatic Garmin delivery",
+      adapt2life: "Yes, validated and tracked",
+      generic: "No, manual export",
+      coach: "Sometimes (depends on tools)",
+    },
+  ],
+};
+
+const resourcesByLocale: Record<Locale, ResourceLink[]> = {
+  fr: [
+    { label: "Découvrir toutes les fonctionnalités", href: "/features" },
+    { label: "Comprendre l’intégration Garmin", href: "/integrations/garmin" },
+    { label: "Étapes du générateur IA", href: "/how-it-works" },
+  ],
+  en: [
+    { label: "See every feature", href: "/features" },
+    { label: "Learn the Garmin integration", href: "/integrations/garmin" },
+    { label: "Explore the AI generator steps", href: "/how-it-works" },
+  ],
+};
+
+const faqItemsByLocale: Record<Locale, FaqItem[]> = {
+  fr: [
+    {
+      question: "Pourquoi relier Adapt2Life à Garmin plutôt qu’à une autre plateforme ?",
+      answer:
+        "Garmin fournit les métriques les plus complètes (charge, HRV, Body Battery). Adapt2Life se branche à ces signaux pour comprendre ta récupération et envoyer la séance directement dans ton calendrier Garmin Connect.",
+    },
+    {
+      question: "Ai-je besoin d’un coach humain en plus de l’IA ?",
+      answer:
+        "Selon ton besoin d’accompagnement. Notre IA couvre la personnalisation quotidienne et l’envoi automatique. Tu peux partager les séances avec un coach humain si tu veux un suivi hybride.",
+    },
+    {
+      question: "Que se passe-t-il si je n’ai pas mes capteurs (puissance, FC) ?",
+      answer:
+        "Tu précises dans le brief que tu t’entraînes à la sensation ou à l’allure. L’IA adapte les consignes en RPE ou en tempo pour que la séance reste exploitable sur ta montre.",
+    },
+  ],
+  en: [
+    {
+      question: "Why connect Adapt2Life to Garmin instead of another platform?",
+      answer:
+        "Garmin delivers the most complete signals (load, HRV, Body Battery). Adapt2Life taps into them to understand recovery and push the session straight into Garmin Connect.",
+    },
+    {
+      question: "Do I still need a human coach?",
+      answer:
+        "It depends on your preferred guidance. The AI takes care of daily personalization and automatic delivery. You can still share sessions with a human coach for a hybrid setup.",
+    },
+    {
+      question: "What if I don’t have sensors like power or HR?",
+      answer:
+        "Mention in the brief that you train by feel or pace. The AI adapts cues in RPE or tempo so the workout remains actionable on your watch.",
+    },
+  ],
+};
   {
     title: "Lecture intelligente des métriques",
     description: "Charge, sommeil, stress, Body Battery… l’IA identifie instantanément les signaux forts pour personnaliser ton prochain entraînement.",
@@ -183,52 +424,50 @@ const sharedFaq: FaqItem[] = [
   },
 ];
 
-const sharedCopy: Omit<SmartCoachCopy, "breadcrumb" | "article"> = {
-  heroTag: "Présentation complète",
-  heroTitle: "Smart Coach : la méthode Adapt2Life pour des entraînements toujours alignés sur ta réalité.",
-  heroDescription:
-    "Relie tes données, décris ton contexte et laisse l’IA composer, valider et envoyer tes séances directement sur ton calendrier Garmin. Pensé pour les athlètes connectés qui n’ont pas de temps à perdre.",
-  heroImageAlt: "Interface Adapt2Life et données Garmin",
-  heroStats: sharedStats,
-  heroPrimaryAction: { label: "Tester gratuitement", href: "/handler/sign-in?redirect=/generateur-entrainement" },
-  heroSecondaryAction: { label: "Parler à un expert", href: "/contact" },
-  whyTag: "Pourquoi Adapt2Life",
-  whyTitle: "L’IA qui comprend vraiment tes données Garmin",
-  whyDescription:
-    "Au-delà des séances “standards”, on lit tes métriques quotidiennes pour générer des recommandations exploitables et prêtes à être synchronisées.",
-  benefits: sharedBenefits,
-  methodologyTag: "Méthodologie",
-  methodologyTitle: "Comment fonctionne le coaching IA connecté à Garmin ?",
-  methodologyDescription: "Chaque étape est automatisée mais contrôlée : diagnostic, brief, génération, conversion puis envoi.",
-  steps: sharedSteps,
-  useCaseTag: "Cas d’usage",
-  useCaseTitle: "Pensé pour tous les profils connectés",
-  useCases: sharedUseCases,
-  comparisonTag: "Comparatif",
-  comparisonTitle: "Pourquoi l’IA Adapt2Life fait la différence",
-  comparisonRows: sharedComparison,
-  resourcesTag: "Ressources",
-  resourcesTitle: "Aller plus loin avec Adapt2Life",
-  resourcesDescription: "Guide complet, fonctionnement détaillé et intégration Garmin sont à portée de clic.",
-  resources: sharedResources,
-  faqTag: "Questions fréquentes",
-  faqTitle: "Tout savoir sur le coach IA Garmin",
-  faqMore: {
-    beforeLink: "Encore une question ? Consulte la",
-    linkLabel: "FAQ complète",
-    afterLink: "ou contacte-nous.",
-  },
-  faqItems: sharedFaq,
-  actionTag: "Passe à l’action",
-  actionTitle: "Prêt à connecter Adapt2Life et ta montre Garmin ?",
-  actionDescription: "Lance le générateur IA, teste plusieurs séances gratuites et envoie-les dans Garmin en quelques secondes.",
-  actionPrimary: { label: "Commencer", href: "/handler/sign-in?redirect=/generateur-entrainement" },
-  actionSecondary: { label: "Planifier une démo", href: "/contact" },
-};
-
-const SMART_COACH_COPY: Record<Locale, SmartCoachCopy> = {
+const copyByLocale: Record<Locale, SmartCoachCopy> = {
   fr: {
-    ...sharedCopy,
+    heroTag: "Présentation complète",
+    heroTitle: "Smart Coach : la méthode Adapt2Life pour des entraînements toujours alignés sur ta réalité.",
+    heroDescription:
+      "Relie tes données, décris ton contexte et laisse l’IA composer, valider et envoyer tes séances directement sur ton calendrier Garmin. Pensé pour les athlètes connectés qui n’ont pas de temps à perdre.",
+    heroImageAlt: "Interface Adapt2Life et données Garmin",
+    heroStats: heroStatsByLocale.fr,
+    heroPrimaryAction: { label: "Tester gratuitement", href: "/handler/sign-in?redirect=/generateur-entrainement" },
+    heroSecondaryAction: { label: "Parler à un expert", href: "/contact" },
+    whyTag: "Pourquoi Adapt2Life",
+    whyTitle: "L’IA qui comprend vraiment tes données Garmin",
+    whyDescription:
+      "Au-delà des séances “standards”, on lit tes métriques quotidiennes pour générer des recommandations exploitables et prêtes à être synchronisées.",
+    benefits: benefitsByLocale.fr,
+    methodologyTag: "Méthodologie",
+    methodologyTitle: "Comment fonctionne le coaching IA connecté à Garmin ?",
+    methodologyDescription: "Chaque étape est automatisée mais contrôlée : diagnostic, brief, génération, conversion puis envoi.",
+    steps: stepsByLocale.fr,
+    useCaseTag: "Cas d’usage",
+    useCaseTitle: "Pensé pour tous les profils connectés",
+    useCases: useCasesByLocale.fr,
+    comparisonTag: "Comparatif",
+    comparisonTitle: "Pourquoi l’IA Adapt2Life fait la différence",
+    comparisonHeaders: { criterion: "Critère", adapt2life: "Adapt2Life", generic: "Plan générique", coach: "Coach humain" },
+    comparisonRows: comparisonRowsByLocale.fr,
+    resourcesTag: "Ressources",
+    resourcesTitle: "Aller plus loin avec Adapt2Life",
+    resourcesDescription: "Guide complet, fonctionnement détaillé et intégration Garmin sont à portée de clic.",
+    resources: resourcesByLocale.fr,
+    resourcesLinkLabel: "Lire la ressource →",
+    faqTag: "Questions fréquentes",
+    faqTitle: "Tout savoir sur le coach IA Garmin",
+    faqMore: {
+      beforeLink: "Encore une question ? Consulte la",
+      linkLabel: "FAQ complète",
+      afterLink: "ou contacte-nous.",
+    },
+    faqItems: faqItemsByLocale.fr,
+    actionTag: "Passe à l’action",
+    actionTitle: "Prêt à connecter Adapt2Life et ta montre Garmin ?",
+    actionDescription: "Lance le générateur IA, teste plusieurs séances gratuites et envoie-les dans Garmin en quelques secondes.",
+    actionPrimary: { label: "Commencer", href: "/handler/sign-in?redirect=/generateur-entrainement" },
+    actionSecondary: { label: "Planifier une démo", href: "/contact" },
     breadcrumb: { home: "Accueil", features: "Fonctionnalités", current: "Smart Coach" },
     article: {
       headline: "Smart Coach — Guide complet Adapt2Life",
@@ -237,7 +476,47 @@ const SMART_COACH_COPY: Record<Locale, SmartCoachCopy> = {
     },
   },
   en: {
-    ...sharedCopy,
+    heroTag: "Deep dive",
+    heroTitle: "Smart Coach: Adapt2Life’s method for workouts that match reality.",
+    heroDescription:
+      "Connect your data, describe your context, and let the AI craft, validate, and send workouts straight to your Garmin calendar.",
+    heroImageAlt: "Adapt2Life interface and Garmin data",
+    heroStats: heroStatsByLocale.en,
+    heroPrimaryAction: { label: "Start for free", href: "/handler/sign-in?redirect=/generateur-entrainement" },
+    heroSecondaryAction: { label: "Talk to an expert", href: "/contact" },
+    whyTag: "Why Adapt2Life",
+    whyTitle: "The AI that truly understands your Garmin data",
+    whyDescription: "Beyond “standard” workouts, we read your daily metrics to generate actionable, ready-to-sync recommendations.",
+    benefits: benefitsByLocale.en,
+    methodologyTag: "Methodology",
+    methodologyTitle: "How Garmin-connected AI coaching works",
+    methodologyDescription: "Every step is automated yet supervised: diagnostic, brief, generation, conversion, delivery.",
+    steps: stepsByLocale.en,
+    useCaseTag: "Use cases",
+    useCaseTitle: "Designed for every connected athlete",
+    useCases: useCasesByLocale.en,
+    comparisonTag: "Comparison",
+    comparisonTitle: "Why Adapt2Life AI stands out",
+    comparisonHeaders: { criterion: "Criterion", adapt2life: "Adapt2Life", generic: "Generic plan", coach: "Human coach" },
+    comparisonRows: comparisonRowsByLocale.en,
+    resourcesTag: "Resources",
+    resourcesTitle: "Go further with Adapt2Life",
+    resourcesDescription: "Full guide, how it works, and Garmin integration at your fingertips.",
+    resources: resourcesByLocale.en,
+    resourcesLinkLabel: "Read the resource →",
+    faqTag: "FAQ",
+    faqTitle: "All about the Garmin AI coach",
+    faqMore: {
+      beforeLink: "Still curious? Visit the",
+      linkLabel: "full FAQ",
+      afterLink: "or reach out.",
+    },
+    faqItems: faqItemsByLocale.en,
+    actionTag: "Take action",
+    actionTitle: "Ready to connect Adapt2Life and your Garmin watch?",
+    actionDescription: "Launch the AI generator, test several free sessions, and push them to Garmin in seconds.",
+    actionPrimary: { label: "Get started", href: "/handler/sign-in?redirect=/generateur-entrainement" },
+    actionSecondary: { label: "Book a demo", href: "/contact" },
     breadcrumb: { home: "Home", features: "Features", current: "Smart Coach" },
     article: {
       headline: "Smart Coach — Adapt2Life overview",
