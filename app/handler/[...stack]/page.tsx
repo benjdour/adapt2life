@@ -13,6 +13,8 @@ type HandlerCopy = {
   heroDescription: string;
   bullets: string[];
   contactLabel: string;
+  contactLinkLabel: string;
+  contactSuffix: string;
   authCardTitle: string;
   authCardDescription: string;
 };
@@ -29,6 +31,8 @@ const copyByLocale: Record<Locale, HandlerCopy> = {
       "• Plans recalculés selon ton énergie, ton sommeil et tes contraintes",
     ],
     contactLabel: "Besoin d’aide ?",
+    contactLinkLabel: "Contacte-nous",
+    contactSuffix: " en 1 clic.",
     authCardTitle: "Connexion / Inscription",
     authCardDescription: "Identifie-toi pour continuer vers l’espace sécurisé.",
   },
@@ -43,6 +47,8 @@ const copyByLocale: Record<Locale, HandlerCopy> = {
       "• Plans recalculated based on energy, sleep and constraints",
     ],
     contactLabel: "Need help?",
+    contactLinkLabel: "Contact us",
+    contactSuffix: " in one click.",
     authCardTitle: "Sign in / Register",
     authCardDescription: "Authenticate to continue to the secure area.",
   },
@@ -50,7 +56,7 @@ const copyByLocale: Record<Locale, HandlerCopy> = {
 
 export default async function Handler(props: unknown) {
   const locale = await getRequestLocale();
-  const copy = copyByLocale[locale];
+  const copy = copyByLocale[locale] ?? copyByLocale.fr;
   const contactHref = buildLocalePath(locale, "/contact");
   return (
     <main className="mx-auto flex h-full w-full max-w-5xl flex-col gap-10 px-6 py-12 text-foreground">
@@ -67,9 +73,9 @@ export default async function Handler(props: unknown) {
           <p className="text-sm text-muted-foreground">
             {copy.contactLabel}{" "}
             <Link href={contactHref} className="underline">
-              Contacte-nous
+              {copy.contactLinkLabel}
             </Link>{" "}
-            en 1 clic.
+            {copy.contactSuffix}
           </p>
         </section>
 
