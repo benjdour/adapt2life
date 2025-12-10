@@ -27,6 +27,8 @@ const PUBLIC_API_PATTERNS = [
 ];
 
 const FORBIDDEN_REDIRECT = "/?auth=unauthorized";
+const LOCALE_COOKIE_NAME = "adapt2life-locale";
+const LOCALE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 
 const coerceRoleList = (value: unknown): string[] => {
   if (!value) return [];
@@ -97,6 +99,10 @@ const resolveRequestLocale = (request: NextRequest, pathname: string): Locale =>
   if (redirectLocale) {
     return redirectLocale;
   }
+  const cookieLocale = request.cookies.get(LOCALE_COOKIE_NAME)?.value;
+  if (cookieLocale && isLocale(cookieLocale)) {
+    return cookieLocale;
+  }
   return DEFAULT_LOCALE;
 };
 
@@ -107,8 +113,18 @@ const applyLocaleHeaders = (request: NextRequest, locale: Locale) => {
   return requestHeaders;
 };
 
-const forwardWithLocale = (request: NextRequest, locale: Locale) =>
-  NextResponse.next({ request: { headers: applyLocaleHeaders(request, locale) } });
+const forwardWithLocale = (request: NextRequest, locale: Locale) => {
+  const response = NextResponse.next({ request: { headers: applyLocaleHeaders(request, locale) } });
+  response.headers.set(LOCALE_HEADER_NAME, locale);
+  response.cookies.set(LOCALE_COOKIE_NAME, locale, { path: "/", maxAge: LOCALE_COOKIE_MAX_AGE });
+  return response;
+};
+
+const attachLocale = (response: NextResponse, locale: Locale) => {
+  response.headers.set(LOCALE_HEADER_NAME, locale);
+  response.cookies.set(LOCALE_COOKIE_NAME, locale, { path: "/", maxAge: LOCALE_COOKIE_MAX_AGE });
+  return response;
+};
 
 export async function proxy(request: NextRequest) {
   const originalPathname = request.nextUrl.pathname;
@@ -143,8 +159,7 @@ export async function proxy(request: NextRequest) {
     signInUrl.searchParams.set("locale", locale);
     signInUrl.searchParams.set("redirect", returnTo || "/");
     const response = NextResponse.redirect(signInUrl);
-    response.headers.set(LOCALE_HEADER_NAME, locale);
-    return response;
+    return attachLocale(response, locale);
   }
 
   if (policy.allowedRoles && policy.allowedRoles.length > 0) {
@@ -152,8 +167,7 @@ export async function proxy(request: NextRequest) {
     const isAuthorized = policy.allowedRoles.some((role) => userRoles.includes(role));
     if (!isAuthorized) {
       const redirectResponse = NextResponse.redirect(buildRedirectUrl(request, FORBIDDEN_REDIRECT));
-      redirectResponse.headers.set(LOCALE_HEADER_NAME, locale);
-      return redirectResponse;
+      return attachLocale(redirectResponse, locale);
     }
   }
 

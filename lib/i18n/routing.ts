@@ -55,7 +55,29 @@ export type LocaleParam = { locale: Locale };
 export const buildStaticLocaleParams = (): LocaleParam[] =>
   LOCALES.map((locale) => ({ locale }));
 
+const ensureLocaleSearchParam = (path: string, locale: Locale): string => {
+  if (locale === DEFAULT_LOCALE) {
+    return path;
+  }
+
+  try {
+    const url = new URL(path, "https://adapt2life.local");
+
+    if (!url.searchParams.has("locale")) {
+      url.searchParams.set("locale", locale);
+    }
+
+    const pathname = url.pathname || "/";
+    const search = url.search ? `?${url.searchParams.toString()}` : "";
+    const hash = url.hash ?? "";
+    return `${pathname}${search}${hash}`;
+  } catch {
+    const separator = path.includes("?") ? "&" : "?";
+    return `${path}${separator}locale=${locale}`;
+  }
+};
+
 export const buildSignInUrl = (locale: Locale, redirectPath = "/"): string => {
-  const redirectTarget = buildLocalePath(locale, redirectPath);
+  const redirectTarget = ensureLocaleSearchParam(buildLocalePath(locale, redirectPath), locale);
   return `/handler/sign-in?locale=${locale}&redirect=${encodeURIComponent(redirectTarget)}`;
 };
