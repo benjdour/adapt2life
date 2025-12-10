@@ -95,9 +95,62 @@ const frCopy: FeaturesCopy = {
   tertiaryAction: { label: "Voir les tarifs", href: "/pricing" },
 };
 
+const enCopy: FeaturesCopy = {
+  heroTag: "Features",
+  heroTitle: "AI built around you",
+  heroDescription:
+    "Adapt2Life analyzes your metrics, anticipates recovery, and builds workouts that match your reality.",
+  featureCards: [
+    {
+      title: "AI Ultra Coach",
+      description: "Your AI coach that suggests tailored sessions based on your form, schedule, and available gear.",
+      image: "/brand/feature-coach.jpg",
+    },
+    {
+      title: "Native Garmin connection",
+      description: "Connect Garmin once to read your signals and push validated workouts without any manual steps.",
+      image: "/brand/feature-garmin.jpg",
+    },
+    {
+      title: "Adaptive AI",
+      description: "We follow sleep, stress, and recovery to tell you when to push and when to lift the pressure.",
+      image: "/brand/feature-adaptive.jpg",
+    },
+  ],
+  faqTag: "FAQ",
+  faqTitle: "Everything about our AI features",
+  faqItems: [
+    {
+      question: "Can Adapt2Life generate a Garmin workout automatically?",
+      answer:
+        "Yes. Adapt2Life crafts a personalized session, converts it into Garmin’s required format, and drops it directly into your Garmin Connect calendar.",
+    },
+    {
+      question: "Does the AI adapt training using Body Battery?",
+      answer:
+        "Absolutely. We combine Body Battery, HRV, and training load to adjust recommended intensity and avoid overreaching.",
+    },
+    {
+      question: "Which sports are supported?",
+      answer:
+        "Road running, trail, cycling, triathlon, and at-home strength. You can specify equipment, constraints, or focus.",
+    },
+  ],
+  guideTag: "Deep dive",
+  guideTitle: "Smart Coach: understand it in 5 minutes",
+  guideDescription: "Learn how Adapt2Life reads Garmin data, generates sessions, and sends them automatically to your watch.",
+  guideAction: { label: "Read the full guide", href: "/features/smart-coach" },
+  actionTag: "Take action",
+  actionTitle: "Ready to try Adapt2Life?",
+  actionDescription: "Connect your account, launch the AI generator, and sync your next workout to Garmin in a few clicks.",
+  primaryAction: { label: "Start now", href: "/handler/sign-in?redirect=/generateur-entrainement" },
+  secondaryAction: { label: "Talk to the team", href: "/contact" },
+  tertiaryAction: { label: "See pricing", href: "/pricing" },
+};
+
 const FEATURES_COPY: Record<Locale, FeaturesCopy> = {
   fr: frCopy,
-  en: frCopy,
+  en: enCopy,
 };
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://adapt2life.app";
