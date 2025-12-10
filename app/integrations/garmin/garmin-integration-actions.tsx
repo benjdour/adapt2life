@@ -23,7 +23,7 @@ type GarminIntegrationActionsCopy = {
   disconnectError: string;
   genericError: string;
   maskedUserLabel: string;
-  tokenValidUntil: (formattedDate: string) => string;
+  tokenValidUntilLabel: string;
   statusMessages: Record<string, ActionStatusMessage>;
 };
 
@@ -119,7 +119,7 @@ export function GarminIntegrationActions({
   const nextExpiryLabel = useMemo(() => {
     if (!accessTokenExpiresAt) return null;
     const date = new Date(accessTokenExpiresAt);
-    return copy.tokenValidUntil(dateFormatter.format(date));
+    return `${copy.tokenValidUntilLabel} ${dateFormatter.format(date)}`;
   }, [accessTokenExpiresAt, copy, dateFormatter]);
 
   return (

@@ -62,7 +62,7 @@ type IntegrationCopy = {
     disconnectError: string;
     genericError: string;
     maskedUserLabel: string;
-    tokenValidUntil: (formattedDate: string) => string;
+    tokenValidUntilLabel: string;
     statusMessages: Record<string, ActionStatusMessage>;
   };
 };
@@ -127,7 +127,7 @@ const copyByLocale: Record<Locale, IntegrationCopy> = {
       disconnectError: "Impossible de se déconnecter de Garmin.",
       genericError: "Connexion Garmin échouée.",
       maskedUserLabel: "userId :",
-      tokenValidUntil: (value) => `Token valide jusqu'au : ${value}`,
+      tokenValidUntilLabel: "Token valide jusqu'au :",
       statusMessages: {
         authorization_declined: {
           title: "Connexion annulée.",
@@ -226,7 +226,7 @@ const copyByLocale: Record<Locale, IntegrationCopy> = {
       disconnectError: "Unable to disconnect Garmin.",
       genericError: "Garmin connection failed.",
       maskedUserLabel: "userId:",
-      tokenValidUntil: (value) => `Token valid until: ${value}`,
+      tokenValidUntilLabel: "Token valid until:",
       statusMessages: {
         authorization_declined: {
           title: "Authorization canceled.",
