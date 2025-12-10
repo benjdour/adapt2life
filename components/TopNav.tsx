@@ -26,11 +26,25 @@ const buildAuthenticatedLinks = (navigation: NavigationConfig, locale: Locale, s
   return links;
 };
 
-const buildLanguageToggleHref = (targetLocale: Locale, fallbackHref: string, pathname: string | null, search: string | null) => {
+const buildLanguageToggleHref = (
+  targetLocale: Locale,
+  fallbackHref: string,
+  pathname: string | null,
+  search: string | null,
+) => {
   if (!pathname) return fallbackHref;
   const basePath = stripLocaleFromPath(pathname) || "/";
-  const localizedPath = buildLocalePath(targetLocale, basePath);
-  return search ? `${localizedPath}?${search}` : localizedPath;
+  const params = new URLSearchParams(search ?? "");
+  let localizedPath: string;
+  if (basePath === "/handler/sign-in") {
+    localizedPath = "/handler/sign-in";
+    params.set("locale", targetLocale);
+  } else {
+    localizedPath = buildLocalePath(targetLocale, basePath);
+    params.delete("locale");
+  }
+  const queryString = params.toString();
+  return queryString ? `${localizedPath}?${queryString}` : localizedPath;
 };
 
 export const TopNav = ({ isAuthenticated, showAdminLink = false, navigation, locale }: TopNavProps) => {
