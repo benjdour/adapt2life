@@ -6,9 +6,9 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { NavigationConfig } from "@/lib/i18n/navigation";
-import { buildLocalePath, stripLocaleFromPath } from "@/lib/i18n/routing";
-import { Locale } from "@/lib/i18n/locales";
+import { NavigationConfig, getNavigationConfig } from "@/lib/i18n/navigation";
+import { buildLocalePath, deriveLocaleFromPathname, stripLocaleFromPath } from "@/lib/i18n/routing";
+import { DEFAULT_LOCALE, Locale } from "@/lib/i18n/locales";
 import { cn } from "@/lib/utils";
 
 type TopNavProps = {
@@ -38,14 +38,35 @@ export const TopNav = ({ isAuthenticated, showAdminLink = false, navigation, loc
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const searchString = searchParams?.toString() ?? null;
+  const [currentLocale, setCurrentLocale] = useState<Locale>(locale);
+  const [currentNavigation, setCurrentNavigation] = useState<NavigationConfig>(navigation);
+
+  useEffect(() => {
+    setCurrentLocale(locale);
+  }, [locale]);
+
+  useEffect(() => {
+    setCurrentNavigation(navigation);
+  }, [navigation]);
+
+  useEffect(() => {
+    if (!pathname) {
+      return;
+    }
+    const derivedLocale = deriveLocaleFromPathname(pathname) ?? DEFAULT_LOCALE;
+    if (derivedLocale !== currentLocale) {
+      setCurrentLocale(derivedLocale);
+      setCurrentNavigation(getNavigationConfig(derivedLocale));
+    }
+  }, [pathname, currentLocale]);
 
   const links = useMemo(() => {
-    return isAuthenticated ? buildAuthenticatedLinks(navigation, locale, showAdminLink) : navigation.guestLinks;
-  }, [isAuthenticated, navigation, locale, showAdminLink]);
+    return isAuthenticated ? buildAuthenticatedLinks(currentNavigation, currentLocale, showAdminLink) : currentNavigation.guestLinks;
+  }, [isAuthenticated, currentNavigation, currentLocale, showAdminLink]);
 
   const languageToggleHref = buildLanguageToggleHref(
-    navigation.languageToggle.targetLocale,
-    navigation.languageToggle.fallbackHref,
+    currentNavigation.languageToggle.targetLocale,
+    currentNavigation.languageToggle.fallbackHref,
     pathname,
     searchString,
   );
@@ -58,7 +79,7 @@ export const TopNav = ({ isAuthenticated, showAdminLink = false, navigation, loc
     const redirectInput = document.createElement("input");
     redirectInput.type = "hidden";
     redirectInput.name = "redirect";
-    redirectInput.value = navigation.signOutRedirect;
+    redirectInput.value = currentNavigation.signOutRedirect;
     form.appendChild(redirectInput);
 
     document.body.appendChild(form);
@@ -68,7 +89,7 @@ export const TopNav = ({ isAuthenticated, showAdminLink = false, navigation, loc
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-background/80 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
-        <Link href={navigation.logoHref} className="flex items-center gap-3 text-sm font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+        <Link href={currentNavigation.logoHref} className="flex items-center gap-3 text-sm font-semibold uppercase tracking-[0.2em] text-muted-foreground">
           <Image src="/brand/logo-main.png" alt="Adapt2Life" width={36} height={36} className="h-9 w-9 rounded-full" />
           <span>Adapt2Life</span>
         </Link>
@@ -87,17 +108,17 @@ export const TopNav = ({ isAuthenticated, showAdminLink = false, navigation, loc
 
         <div className="hidden items-center gap-3 md:flex">
           <Button asChild variant="ghost" className="border border-white/10">
-            <Link href={languageToggleHref} title={navigation.languageToggle.title} aria-label={navigation.languageToggle.title}>
-              {navigation.languageToggle.label}
+            <Link href={languageToggleHref} title={currentNavigation.languageToggle.title} aria-label={currentNavigation.languageToggle.title}>
+              {currentNavigation.languageToggle.label}
             </Link>
           </Button>
           {isAuthenticated ? (
             <Button variant="ghost" onClick={handleSignOut}>
-              {navigation.signOutLabel}
+              {currentNavigation.signOutLabel}
             </Button>
           ) : (
             <Button asChild variant="ghost">
-              <Link href={navigation.signInHref}>{navigation.signInLabel}</Link>
+              <Link href={currentNavigation.signInHref}>{currentNavigation.signInLabel}</Link>
             </Button>
           )}
         </div>
@@ -137,14 +158,14 @@ export const TopNav = ({ isAuthenticated, showAdminLink = false, navigation, loc
             ))}
           </nav>
           <div className="flex flex-col gap-3">
-            <Button
-              asChild
-              variant="ghost"
-              className="w-full"
-              onClick={() => setIsOpen(false)}
-            >
-              <Link href={languageToggleHref} title={navigation.languageToggle.title}>
-                {navigation.languageToggle.label}
+          <Button
+            asChild
+            variant="ghost"
+            className="w-full"
+            onClick={() => setIsOpen(false)}
+          >
+            <Link href={languageToggleHref} title={currentNavigation.languageToggle.title}>
+              {currentNavigation.languageToggle.label}
               </Link>
             </Button>
             {isAuthenticated ? (
@@ -156,7 +177,7 @@ export const TopNav = ({ isAuthenticated, showAdminLink = false, navigation, loc
                   handleSignOut();
                 }}
               >
-                {navigation.signOutLabel}
+                {currentNavigation.signOutLabel}
               </Button>
             ) : (
               <Button
@@ -167,7 +188,7 @@ export const TopNav = ({ isAuthenticated, showAdminLink = false, navigation, loc
                   setIsOpen(false);
                 }}
               >
-                <Link href={navigation.signInHref}>{navigation.signInLabel}</Link>
+                <Link href={currentNavigation.signInHref}>{currentNavigation.signInLabel}</Link>
               </Button>
             )}
           </div>

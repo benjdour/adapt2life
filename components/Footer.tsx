@@ -1,6 +1,12 @@
-import Link from "next/link";
+"use client";
 
-import { NavigationConfig } from "@/lib/i18n/navigation";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
+
+import { NavigationConfig, getNavigationConfig } from "@/lib/i18n/navigation";
+import { deriveLocaleFromPathname } from "@/lib/i18n/routing";
+import { DEFAULT_LOCALE, Locale } from "@/lib/i18n/locales";
 
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
   <div>
@@ -14,7 +20,27 @@ type FooterProps = {
 };
 
 export const Footer = ({ navigation }: FooterProps) => {
-  const footer = navigation.footer;
+  const pathname = usePathname();
+  const [currentLocale, setCurrentLocale] = useState<Locale>(() =>
+    pathname ? deriveLocaleFromPathname(pathname) : DEFAULT_LOCALE,
+  );
+  const [currentNavigation, setCurrentNavigation] = useState<NavigationConfig>(navigation);
+
+  useEffect(() => {
+    setCurrentNavigation(navigation);
+  }, [navigation]);
+
+  useEffect(() => {
+    if (pathname) {
+      const derived = deriveLocaleFromPathname(pathname);
+      if (derived !== currentLocale) {
+        setCurrentLocale(derived);
+        setCurrentNavigation(getNavigationConfig(derived));
+      }
+    }
+  }, [pathname, currentLocale]);
+
+  const footer = currentNavigation.footer;
   return (
     <footer className="border-t border-white/10 bg-background/70 py-12 text-sm text-muted-foreground">
       <div className="mx-auto grid w-full max-w-6xl gap-8 px-6 md:grid-cols-3">
