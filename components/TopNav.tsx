@@ -8,7 +8,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { NavigationConfig, getNavigationConfig } from "@/lib/i18n/navigation";
 import { buildLocalePath, deriveLocaleFromPathname, stripLocaleFromPath } from "@/lib/i18n/routing";
-import { DEFAULT_LOCALE, Locale } from "@/lib/i18n/locales";
+import { Locale } from "@/lib/i18n/locales";
 import { cn } from "@/lib/utils";
 
 type TopNavProps = {
@@ -64,15 +64,15 @@ export const TopNav = ({ isAuthenticated, showAdminLink = false, navigation, loc
   }, [navigation]);
 
   useEffect(() => {
-    if (!pathname) {
+    const derivedLocale = pathname ? deriveLocaleFromPathname(pathname) : locale;
+    if (!derivedLocale) {
       return;
     }
-    const derivedLocale = deriveLocaleFromPathname(pathname) ?? DEFAULT_LOCALE;
     if (derivedLocale !== currentLocale) {
       setCurrentLocale(derivedLocale);
       setCurrentNavigation(getNavigationConfig(derivedLocale));
     }
-  }, [pathname, currentLocale]);
+  }, [pathname, currentLocale, locale, searchString]);
 
   const links = useMemo(() => {
     return isAuthenticated ? buildAuthenticatedLinks(currentNavigation, currentLocale, showAdminLink) : currentNavigation.guestLinks;

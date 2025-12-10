@@ -31,14 +31,12 @@ export const Footer = ({ navigation }: FooterProps) => {
   }, [navigation]);
 
   useEffect(() => {
-    if (pathname) {
-      const derived = deriveLocaleFromPathname(pathname);
-      if (derived !== currentLocale) {
-        setCurrentLocale(derived);
-        setCurrentNavigation(getNavigationConfig(derived));
-      }
+    const derived = pathname ? deriveLocaleFromPathname(pathname) : currentLocale;
+    if (derived && derived !== currentLocale) {
+      setCurrentLocale(derived);
+      setCurrentNavigation(getNavigationConfig(derived));
     }
-  }, [pathname, currentLocale]);
+  }, [pathname, currentLocale, navigation]);
 
   const footer = currentNavigation.footer;
   return (
