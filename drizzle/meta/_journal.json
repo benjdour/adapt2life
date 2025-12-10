@@ -148,6 +148,13 @@
       "when": 1764800000001,
       "tag": "0020_plan_usage_counters",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1764981000000,
+      "tag": "0021_garmin_oauth_sessions",
+      "breakpoints": true
     }
   ]
 }

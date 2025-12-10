@@ -134,7 +134,7 @@ Les dossiers `tests/app`, `tests/components` et `tests/lib` couvrent respectivem
 
 1. `GET /api/garmin/oauth/start`  
    - Vérifie la session Stack Auth et prépare le couple PKCE.  
-   - Écrit un cookie HttpOnly `garmin_oauth_state` (10 minutes) contenant l’état et le `code_verifier`.
+   - Persiste un ticket éphémère (10 minutes) dans `garmin_oauth_sessions` avec `state`, `code_verifier` et l’identité utilisateur.
 2. Redirection vers `https://connect.garmin.com/oauth2Confirm`.
 3. `GET /api/garmin/oauth/callback`  
    - Valide les paramètres, échange le code contre des tokens, récupère le `userId` Garmin.  

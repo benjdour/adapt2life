@@ -1,21 +1,13 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { eq } from "drizzle-orm";
+import { eq, lt } from "drizzle-orm";
 
 import { db } from "@/db";
-import { garminConnections, users } from "@/db/schema";
+import { garminConnections, garminOauthSessions, users } from "@/db/schema";
 import { GarminOAuthError, exchangeAuthorizationCode, fetchGarminUserId } from "@/lib/adapters/garmin";
 import { encryptSecret } from "@/lib/crypto";
 import { stackServerApp } from "@/stack/server";
 
 const OAUTH_COOKIE = "garmin_oauth_state";
-
-type OAuthCookiePayload = {
-  state: string;
-  codeVerifier: string;
-  userId: number;
-  stackUserId: string;
-};
 
 const redirectWithCleanup = (url: URL) => {
   const response = NextResponse.redirect(url);
@@ -26,15 +18,6 @@ const redirectWithCleanup = (url: URL) => {
     path: "/",
   });
   return response;
-};
-
-const decodeCookie = (value: string): OAuthCookiePayload | null => {
-  try {
-    const json = Buffer.from(value, "base64url").toString("utf8");
-    return JSON.parse(json) as OAuthCookiePayload;
-  } catch {
-    return null;
-  }
 };
 
 export async function GET(request: Request) {
@@ -79,28 +62,36 @@ export async function GET(request: Request) {
     return redirectWithCleanup(buildResultUrl("error", "missing_parameters"));
   }
 
-  const cookieStore = await cookies();
-  const storedCookie = cookieStore.get(OAUTH_COOKIE);
+  const now = new Date();
+  await db.delete(garminOauthSessions).where(lt(garminOauthSessions.expiresAt, now));
+  const [oauthSession] = await db
+    .select({
+      id: garminOauthSessions.id,
+      state: garminOauthSessions.state,
+      codeVerifier: garminOauthSessions.codeVerifier,
+      userId: garminOauthSessions.userId,
+      stackUserId: garminOauthSessions.stackUserId,
+      expiresAt: garminOauthSessions.expiresAt,
+    })
+    .from(garminOauthSessions)
+    .where(eq(garminOauthSessions.state, stateParam))
+    .limit(1);
 
-  if (!storedCookie) {
-    console.error("Garmin callback without stored oauth cookie");
+  if (!oauthSession) {
+    console.error("Garmin callback without stored oauth session");
     return redirectWithCleanup(buildResultUrl("error", "invalid_session"));
   }
 
-  const cookiePayload = decodeCookie(storedCookie.value);
-  if (!cookiePayload) {
-    console.error("Garmin callback unable to decode oauth cookie");
-    return redirectWithCleanup(buildResultUrl("error", "invalid_session"));
-  }
+  await db.delete(garminOauthSessions).where(eq(garminOauthSessions.id, oauthSession.id));
 
-  if (cookiePayload.state !== stateParam) {
-    console.error("Garmin callback state mismatch");
-    return redirectWithCleanup(buildResultUrl("error", "invalid_state"));
+  if (oauthSession.expiresAt <= now) {
+    console.error("Garmin callback session expired");
+    return redirectWithCleanup(buildResultUrl("error", "invalid_session"));
   }
 
   try {
     const stackUser = await stackServerApp.getUser({ tokenStore: request });
-    if (!stackUser || stackUser.id !== cookiePayload.stackUserId) {
+    if (!stackUser || stackUser.id !== oauthSession.stackUserId) {
       console.error("Garmin callback stack user mismatch or missing");
       return redirectWithCleanup(buildResultUrl("error", "unauthorized"));
     }
@@ -111,11 +102,11 @@ export async function GET(request: Request) {
         stackId: users.stackId,
       })
       .from(users)
-      .where(eq(users.id, cookiePayload.userId))
+      .where(eq(users.id, oauthSession.userId))
       .limit(1);
 
     if (!localUser) {
-      console.error("Garmin callback unable to find local user", { userId: cookiePayload.userId });
+      console.error("Garmin callback unable to find local user", { userId: oauthSession.userId });
       return redirectWithCleanup(buildResultUrl("error", "user_not_found"));
     }
 
@@ -129,7 +120,7 @@ export async function GET(request: Request) {
 
     const tokens = await exchangeAuthorizationCode({
       code,
-      codeVerifier: cookiePayload.codeVerifier,
+      codeVerifier: oauthSession.codeVerifier,
     });
 
     const garminUserId = await fetchGarminUserId(tokens.accessToken);

@@ -11,6 +11,7 @@ import {
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -75,6 +76,25 @@ export const garminConnections = pgTable(
   (table) => ({
     userIdUnique: uniqueIndex("garmin_connections_user_id_unique").on(table.userId),
     garminUserUnique: uniqueIndex("garmin_connections_garmin_user_id_unique").on(table.garminUserId),
+  }),
+);
+
+export const garminOauthSessions = pgTable(
+  "garmin_oauth_sessions",
+  {
+    id: serial("id").primaryKey(),
+    state: text("state").notNull(),
+    codeVerifier: text("code_verifier").notNull(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    stackUserId: text("stack_user_id").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).default(sql`now()`),
+  },
+  (table) => ({
+    stateUnique: uniqueIndex("garmin_oauth_sessions_state_unique").on(table.state),
+    expiresIdx: index("garmin_oauth_sessions_expires_idx").on(table.expiresAt),
   }),
 );
 

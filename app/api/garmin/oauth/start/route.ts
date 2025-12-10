@@ -1,14 +1,13 @@
 import { NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
+import { eq, lt, or } from "drizzle-orm";
 
 import { db } from "@/db";
-import { garminConnections, users } from "@/db/schema";
+import { garminConnections, garminOauthSessions, users } from "@/db/schema";
 import { buildAuthorizationUrl, generatePkcePair, generateState } from "@/lib/adapters/garmin";
 import { stackServerApp } from "@/stack/server";
 import { DEFAULT_USER_PLAN, getUserPlanConfig } from "@/lib/constants/userPlans";
 
-const OAUTH_COOKIE = "garmin_oauth_state";
-const COOKIE_MAX_AGE_SECONDS = 10 * 60;
+const OAUTH_SESSION_TTL_SECONDS = 10 * 60;
 
 const buildIntegrationUrl = (requestUrl: URL, params?: Record<string, string | undefined>) => {
   const base = new URL("/integrations/garmin", requestUrl.origin);
@@ -77,26 +76,24 @@ export async function GET(request: Request) {
     const state = generateState();
     const authorizationUrl = buildAuthorizationUrl({ state, codeChallenge });
 
-    const cookiePayload = {
+    const expiresAt = new Date(Date.now() + OAUTH_SESSION_TTL_SECONDS * 1000);
+    const now = new Date();
+
+    await db
+      .delete(garminOauthSessions)
+      .where(
+        or(eq(garminOauthSessions.userId, localUser.id), lt(garminOauthSessions.expiresAt, now)),
+      );
+
+    await db.insert(garminOauthSessions).values({
       state,
       codeVerifier,
       userId: localUser.id,
       stackUserId: stackUser.id,
-    };
-    const cookieValue = Buffer.from(JSON.stringify(cookiePayload)).toString("base64url");
-
-    const response = NextResponse.redirect(authorizationUrl);
-    response.cookies.set({
-      name: OAUTH_COOKIE,
-      value: cookieValue,
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      maxAge: COOKIE_MAX_AGE_SECONDS,
-      path: "/",
+      expiresAt,
     });
 
-    return response;
+    return NextResponse.redirect(authorizationUrl);
   } catch (error) {
     console.error("Garmin OAuth start failed", error);
     return NextResponse.json({ error: "Garmin authorization failed" }, { status: 500 });
