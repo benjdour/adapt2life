@@ -50,9 +50,8 @@ const BUTTON_COPY: Record<
 };
 
 const buildSignInHref = (locale: Locale, redirect: string) => {
-  const signInPath = buildLocalePath(locale, "/handler/sign-in");
   const redirectPath = buildLocalePath(locale, redirect);
-  return `${signInPath}?redirect=${encodeURIComponent(redirectPath)}`;
+  return `/handler/sign-in?redirect=${encodeURIComponent(redirectPath)}`;
 };
 
 export function PlanCheckoutButtons({ planId, price, disabled, isAuthenticated, locale }: PlanCheckoutButtonsProps) {

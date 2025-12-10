@@ -81,7 +81,7 @@ const legalLinks = (locale: Locale): FooterLink[] => [
 
 const buildLocaleAwareRedirect = (locale: Locale, targetPath: string) => {
   const redirectTarget = buildLocalePath(locale, targetPath);
-  return `${buildLocalePath(locale, "/handler/sign-in")}?redirect=${encodeURIComponent(redirectTarget)}`;
+  return `/handler/sign-in?redirect=${encodeURIComponent(redirectTarget)}`;
 };
 
 const toggleFactory = (currentLocale: Locale, targetLocale: Locale): LanguageToggle => ({

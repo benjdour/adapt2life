@@ -231,7 +231,7 @@ async function updateProfile(formData: FormData) {
 
   if (!stackUser) {
     const locale = await getRequestLocale();
-    const signInPath = buildLocalePath(locale, "/handler/sign-in");
+    const signInPath = "/handler/sign-in";
     const profilePath = buildLocalePath(locale, "/secure/user-information");
     redirect(`${signInPath}?redirect=${encodeURIComponent(profilePath)}`);
   }
@@ -491,7 +491,7 @@ const copyByLocale = {
 export default async function UserInformationPage({ searchParams }: PageProps) {
   const locale = await getRequestLocale();
   const copy = copyByLocale[locale];
-  const signInPath = buildLocalePath(locale, "/handler/sign-in");
+  const signInPath = "/handler/sign-in";
   const profilePath = buildLocalePath(locale, "/secure/user-information");
 
   const stackUser = await stackServerApp.getUser({ or: "return-null", tokenStore: "nextjs-cookie" });

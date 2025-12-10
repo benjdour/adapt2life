@@ -53,7 +53,7 @@ function TrainingGeneratorSkeleton() {
 export default async function TrainingGeneratorPage() {
   const locale = await getRequestLocale();
   const copy = copyByLocale[locale] ?? copyByLocale.fr;
-  const signInPath = buildLocalePath(locale, "/handler/sign-in");
+  const signInPath = "/handler/sign-in";
   const generatorPath = buildLocalePath(locale, "/generateur-entrainement");
   if (!(await hasStackSessionCookie())) {
     redirect(`${signInPath}?redirect=${encodeURIComponent(generatorPath)}`);

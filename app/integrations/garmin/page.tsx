@@ -296,7 +296,7 @@ export default async function GarminIntegrationPage({ searchParams }: PageProps)
 
   const locale = await getRequestLocale();
   const copy = copyByLocale[locale];
-  const signInPath = buildLocalePath(locale, "/handler/sign-in");
+  const signInPath = "/handler/sign-in";
   const integrationPath = buildLocalePath(locale, "/integrations/garmin");
 
   const stackUser = await stackServerApp.getUser({ or: "return-null", tokenStore: "nextjs-cookie" });

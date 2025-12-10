@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 
 import { enforceRateLimit } from "@/lib/security/rateLimiter";
 import { stackServerApp } from "@/stack/server";
-import { buildLocalePath, deriveLocaleFromPathname, stripLocaleFromPath } from "@/lib/i18n/routing";
+import { deriveLocaleFromPathname, stripLocaleFromPath } from "@/lib/i18n/routing";
 import { LOCALE_HEADER_NAME } from "@/lib/i18n/request";
 import type { Locale } from "@/lib/i18n/locales";
 
@@ -110,7 +110,7 @@ export async function proxy(request: NextRequest) {
     if (isApiRoute) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    const signInUrl = buildRedirectUrl(request, buildLocalePath(locale, "/handler/sign-in"));
+    const signInUrl = buildRedirectUrl(request, "/handler/sign-in");
     const returnTo = `${request.nextUrl.pathname}${request.nextUrl.search}`;
     signInUrl.searchParams.set("redirect", returnTo || "/");
     const response = NextResponse.redirect(signInUrl);

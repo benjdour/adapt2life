@@ -155,7 +155,7 @@ async function GarminDataPanel({ localUserId, gender, copy }: GarminDataPanelPro
 export default async function GarminDataPage() {
   const locale = await getRequestLocale();
   const copy = copyByLocale[locale];
-  const signInPath = buildLocalePath(locale, "/handler/sign-in");
+  const signInPath = "/handler/sign-in";
   const garminDataPath = buildLocalePath(locale, "/secure/garmin-data");
   if (!(await hasStackSessionCookie())) {
     redirect(`${signInPath}?redirect=${encodeURIComponent(garminDataPath)}`);
