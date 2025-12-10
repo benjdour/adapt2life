@@ -90,9 +90,66 @@ const frCopy: AboutCopy = {
   ],
 };
 
+const enCopy: AboutCopy = {
+  heroTag: "About Adapt2Life",
+  heroTitle: "About Adapt2Life",
+  introHeading: "👋 Hi, I’m Benjamin",
+  introParagraphs: [
+    {
+      text: "A passionate athlete for more than 20 years: triathlete, multiple Ironman finisher, marathon runner, ultratrailer, digital project lead, and dad in my forties.",
+      emphasize: true,
+    },
+    {
+      text: "I created Adapt2Life to solve a challenge most amateur athletes face: how do you keep training seriously, progressing, and chasing ambitious goals while fully honoring family life, work, and daily responsibilities?",
+    },
+    {
+      text: "Sport has always been part of my life, but never at the expense of my family or balance. Yet no traditional training plan ever helped me reconcile those two worlds in a realistic way.",
+    },
+  ],
+  missionTitle: "🎯 Why Adapt2Life exists",
+  missionIntro:
+    "With more than 20 years of endurance experience—triathlons, several Ironman races, marathons, long distance events, and ultratrails—I observed a simple reality: life never follows a rigid training plan.",
+  missionListIntro: "One day everything is perfect. The next day it’s:",
+  missionList: ["a short night,", "a sick child,", "a schedule meltdown,", "energy levels crashing,", "or a last-minute surprise."],
+  missionQuote: "Discipline isn’t the issue. The issue is that plans don’t adapt to real life.",
+  visionTitle: "🔥 The Adapt2Life vision",
+  visionIntro: "One idea powers the entire app:",
+  visionStatement: "👉 Training must adapt to you—never the other way around.",
+  visionListIntro: "Adapt2Life looks at:",
+  visionList: [
+    "your energy level,",
+    "your recovery,",
+    "your sleep,",
+    "your stress,",
+    "your recent load,",
+    "your available time,",
+    "your family and work context,",
+  ],
+  visionParagraph:
+    "…and generates the best possible session for you, today, in real life. No rigidity. No guilt. Just smart, sustainable progress.",
+  trustTitle: "🧠 Why trust this approach?",
+  trustParagraphs: [
+    "Because I live the exact same reality as Adapt2Life athletes. I train for demanding challenges—triathlons, Ironman races, marathons, ultratrails—but I’m also a parent, a partner, and a full-time professional.",
+    "I know busy days, accumulated fatigue, sessions that need to be adapted or shortened. Adapt2Life isn’t just theory: it’s a personal need turned into a concrete solution.",
+  ],
+  howTitle: "⚙️ How Adapt2Life works",
+  howIntro: "Adapt2Life combines:",
+  howList: ["your Garmin data,", "your current state,", "the science of progression,", "and the adaptability of AI,"],
+  howParagraph:
+    "…to create the perfect session for your energy, time, and context. Open the app. Request your workout. Train. Move forward—at your pace, but always in the right direction.",
+  valuesTitle: "🤝 Our values",
+  valuesIntro: "Sport must fit into life, never crush it.",
+  values: ["Adaptation", "Kindness", "Simplicity", "Sustainable progress", "Humanity"],
+  outroTitle: "🌱 A broader vision",
+  outroParagraphs: [
+    "Adapt2Life solves a personal need… but above all a universal need: helping everyone keep sport in their life in a realistic, balanced, motivating way.",
+    "We don’t need more training plans. We need plans that respect the person behind the athlete. That’s the promise of Adapt2Life. And it’s only the beginning.",
+  ],
+};
+
 const ABOUT_COPY: Record<Locale, AboutCopy> = {
   fr: frCopy,
-  en: frCopy,
+  en: enCopy,
 };
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://adapt2life.app";
