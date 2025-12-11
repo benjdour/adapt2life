@@ -99,10 +99,6 @@ const resolveRequestLocale = (request: NextRequest, pathname: string): Locale =>
   if (redirectLocale) {
     return redirectLocale;
   }
-  const cookieLocale = request.cookies.get(LOCALE_COOKIE_NAME)?.value;
-  if (cookieLocale && isLocale(cookieLocale)) {
-    return cookieLocale;
-  }
   return DEFAULT_LOCALE;
 };
 
