@@ -322,7 +322,8 @@ export async function POST(request: NextRequest) {
         ? trainingGoal
         : "Non précisé (identifie un objectif cohérent avec le contexte fourni).";
 
-    const languageInstruction = "Analyse la langue utilisée par l’utilisateur et réponds dans cette langue.";
+    const languageInstruction =
+      "Langue de réponse attendue : détecte la langue utilisée par l’utilisateur dans la section ci-dessous et rédige la séance entièrement dans cette même langue (ex. utilisateur en anglais → réponse en anglais, utilisateur en allemand → réponse en allemand). Ne traduis jamais vers une autre langue. / Response language: detect the language used by the user in the prompt below and write the entire session strictly in that language. Do not translate to another language.";
 
     const normalizedConstraints = constraints?.trim().length ? constraints : "Aucune précisée.";
     const normalizedAvailability = availability?.trim().length ? availability : "Non précisées.";
