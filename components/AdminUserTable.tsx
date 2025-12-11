@@ -37,7 +37,6 @@ const ADMIN_USER_COPY = {
     deletingLabel: "Suppression...",
     quotasLabel: { training: "G", conversion: "C" },
     infinityLabel: "∞",
-    actions: "Actions",
   },
   en: {
     confirmDelete: "Permanently delete this user and all their data?",
@@ -49,7 +48,6 @@ const ADMIN_USER_COPY = {
     deletingLabel: "Deleting...",
     quotasLabel: { training: "G", conversion: "C" },
     infinityLabel: "∞",
-    actions: "Actions",
   },
 } satisfies Record<Locale, {
   confirmDelete: string;
