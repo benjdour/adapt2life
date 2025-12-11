@@ -11,6 +11,7 @@ import { buildLocalePath, deriveLocaleFromPathname, stripLocaleFromPath } from "
 import { DEFAULT_LOCALE, Locale, isLocale } from "@/lib/i18n/locales";
 import { cn } from "@/lib/utils";
 import { stackClientApp } from "@/stack/client";
+import { translateLegalPath } from "@/lib/legal/content";
 
 type TopNavProps = {
   isAuthenticated: boolean;
@@ -41,7 +42,9 @@ const buildLanguageToggleHref = (
     localizedPath = "/handler/sign-in";
     params.set("locale", targetLocale);
   } else {
-    localizedPath = buildLocalePath(targetLocale, basePath);
+    const translated = translateLegalPath(basePath, targetLocale);
+    const effectivePath = translated ?? basePath;
+    localizedPath = buildLocalePath(targetLocale, effectivePath);
     params.delete("locale");
   }
   const queryString = params.toString();
