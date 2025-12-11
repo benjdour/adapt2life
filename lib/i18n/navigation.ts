@@ -49,6 +49,7 @@ const buildGuestLinks = (locale: Locale): NavLink[] => [
   { label: locale === "en" ? "Features" : "Fonctionnalités", href: buildLocalePath(locale, "/features") },
   { label: "Smart Coach", href: buildLocalePath(locale, "/features/smart-coach") },
   { label: locale === "en" ? "How it works" : "Comment ça marche", href: buildLocalePath(locale, "/how-it-works") },
+  { label: "Blog", href: buildLocalePath(locale, "/blog") },
   { label: "FAQ", href: buildLocalePath(locale, "/faq") },
   { label: "Contact", href: buildLocalePath(locale, "/contact") },
 ];
@@ -59,6 +60,7 @@ const buildAuthenticatedLinks = (locale: Locale): NavLink[] => [
   { label: locale === "en" ? "Garmin data" : "Données Garmin", href: buildLocalePath(locale, "/secure/garmin-data") },
   { label: locale === "en" ? "Profile" : "Profil", href: buildLocalePath(locale, "/secure/user-information") },
   { label: locale === "en" ? "Garmin integration" : "Intégration Garmin", href: buildLocalePath(locale, "/integrations/garmin") },
+  { label: "Blog", href: buildLocalePath(locale, "/blog") },
 ];
 
 const socials: FooterLink[] = [
@@ -121,6 +123,7 @@ const buildFooterNavigationLinks = (locale: Locale): FooterLink[] => [
   { label: locale === "en" ? "Pricing" : "Tarifs", href: buildLocalePath(locale, "/pricing") },
   { label: locale === "en" ? "About" : "À propos", href: buildLocalePath(locale, "/about") },
   { label: locale === "en" ? "How it works" : "Comment ça marche", href: buildLocalePath(locale, "/how-it-works") },
+  { label: "Blog", href: buildLocalePath(locale, "/blog") },
   { label: "FAQ", href: buildLocalePath(locale, "/faq") },
   { label: "Contact", href: buildLocalePath(locale, "/contact") },
 ];
