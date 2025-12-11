@@ -1,5 +1,7 @@
 "use client";
 
+import { Locale } from "@/lib/i18n/locales";
+
 type AdminGarminJob = {
   id: number;
   userEmail: string | null;
@@ -13,31 +15,45 @@ type AdminGarminJob = {
 
 type AdminGarminJobsTableProps = {
   jobs: AdminGarminJob[];
+  locale: Locale;
 };
 
-const formatDate = (value: string | null) => {
+const formatDate = (value: string | null, locale: Locale) => {
   if (!value) {
     return "—";
   }
   try {
-    return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+    const formatter = locale === "fr" ? "fr-FR" : "en-US";
+    return new Intl.DateTimeFormat(formatter, { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
   } catch {
     return value;
   }
 };
 
-export function AdminGarminJobsTable({ jobs }: AdminGarminJobsTableProps) {
+const GARMIN_JOBS_COPY = {
+  fr: {
+    headers: ["Job", "Utilisateur", "Phase", "Statut", "Modèle IA", "Dernière maj"],
+    empty: "Aucun job récent.",
+  },
+  en: {
+    headers: ["Job", "User", "Phase", "Status", "AI model", "Last update"],
+    empty: "No recent jobs.",
+  },
+} satisfies Record<Locale, { headers: string[]; empty: string }>;
+
+export function AdminGarminJobsTable({ jobs, locale }: AdminGarminJobsTableProps) {
+  const copy = GARMIN_JOBS_COPY[locale] ?? GARMIN_JOBS_COPY.fr;
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[640px] text-left text-sm">
         <thead className="border-b border-white/10 text-xs uppercase tracking-wide text-muted-foreground">
           <tr>
-            <th className="py-2 pr-4">Job</th>
-            <th className="py-2 pr-4">Utilisateur</th>
-            <th className="py-2 pr-4">Phase</th>
-            <th className="py-2 pr-4">Statut</th>
-            <th className="py-2 pr-4">Modèle IA</th>
-            <th className="py-2 pr-4">Dernière maj</th>
+            <th className="py-2 pr-4">{copy.headers[0]}</th>
+            <th className="py-2 pr-4">{copy.headers[1]}</th>
+            <th className="py-2 pr-4">{copy.headers[2]}</th>
+            <th className="py-2 pr-4">{copy.headers[3]}</th>
+            <th className="py-2 pr-4">{copy.headers[4]}</th>
+            <th className="py-2 pr-4">{copy.headers[5]}</th>
           </tr>
         </thead>
         <tbody>
@@ -59,12 +75,12 @@ export function AdminGarminJobsTable({ jobs }: AdminGarminJobsTableProps) {
                 ) : null}
               </td>
               <td className="py-2 pr-4 font-mono text-xs text-muted-foreground">{job.aiModelId ?? "—"}</td>
-              <td className="py-2 pr-4 text-muted-foreground">{formatDate(job.updatedAt ?? job.createdAt)}</td>
+              <td className="py-2 pr-4 text-muted-foreground">{formatDate(job.updatedAt ?? job.createdAt, locale)}</td>
             </tr>
           ))}
         </tbody>
       </table>
-      {jobs.length === 0 ? <p className="py-4 text-muted-foreground">Aucun job récent.</p> : null}
+      {jobs.length === 0 ? <p className="py-4 text-muted-foreground">{copy.empty}</p> : null}
     </div>
   );
 }

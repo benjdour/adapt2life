@@ -20,6 +20,7 @@ const adminCopyByLocale = (locale: Locale) =>
         heroTitle: "Espace Admin",
         heroDescription: "Outils internes réservés au staff Adapt2Life.",
         welcome: "Bienvenue",
+        fallbackUser: "Utilisateur",
         intro: [
           "Utilise les sélecteurs ci-dessous pour choisir les modèles IA utilisés par chaque fonctionnalité clé.",
           "Le changement est immédiat et s’applique à la prochaine requête utilisateur.",
@@ -37,6 +38,7 @@ const adminCopyByLocale = (locale: Locale) =>
         heroTitle: "Admin area",
         heroDescription: "Internal tools reserved for the Adapt2Life staff.",
         welcome: "Welcome",
+        fallbackUser: "User",
         intro: [
           "Use the selectors below to pick which AI models back each core feature.",
           "Changes apply instantly and affect the very next user request.",
@@ -114,7 +116,7 @@ export default async function AdminPage({ params }: { params: Promise<{ locale: 
         </CardHeader>
         <CardContent className="space-y-4 text-sm text-muted-foreground">
           <p>
-            {copy.welcome} {user.displayName ?? user.primaryEmail ?? "User"}.
+            {copy.welcome} {user.displayName ?? user.primaryEmail ?? copy.fallbackUser}.
           </p>
           {copy.intro.map((paragraph) => (
             <p key={paragraph}>{paragraph}</p>
@@ -130,7 +132,7 @@ export default async function AdminPage({ params }: { params: Promise<{ locale: 
           <CardDescription>{copy.usersCard.description}</CardDescription>
         </CardHeader>
         <CardContent>
-          <AdminUserTable users={adminUsers} />
+          <AdminUserTable users={adminUsers} locale={locale} />
         </CardContent>
       </Card>
 
@@ -140,7 +142,7 @@ export default async function AdminPage({ params }: { params: Promise<{ locale: 
           <CardDescription>{copy.jobsCard.description}</CardDescription>
         </CardHeader>
         <CardContent>
-          <AdminGarminJobsTable jobs={recentJobs} />
+          <AdminGarminJobsTable jobs={recentJobs} locale={locale} />
         </CardContent>
       </Card>
     </div>

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { DEFAULT_USER_PLAN, USER_PLAN_OPTIONS, getUserPlanConfig } from "@/lib/constants/userPlans";
+import { Locale } from "@/lib/i18n/locales";
 
 type AdminUser = {
   id: number;
@@ -22,16 +23,55 @@ type AdminUser = {
 
 type AdminUserTableProps = {
   users: AdminUser[];
+  locale: Locale;
 };
 
-export function AdminUserTable({ users }: AdminUserTableProps) {
+const ADMIN_USER_COPY = {
+  fr: {
+    confirmDelete: "Supprimer définitivement cet utilisateur et toutes ses données ?",
+    deleteError: "Impossible de supprimer l’utilisateur.",
+    updatePlanError: "Impossible de mettre à jour le plan.",
+    networkError: "Erreur réseau.",
+    headers: ["Nom", "Prénom", "Email", "Plan", "G / C", "Inscription", "Actions"],
+    deleteLabel: "Supprimer",
+    deletingLabel: "Suppression...",
+    quotasLabel: { training: "G", conversion: "C" },
+    infinityLabel: "∞",
+    actions: "Actions",
+  },
+  en: {
+    confirmDelete: "Permanently delete this user and all their data?",
+    deleteError: "Unable to delete the user.",
+    updatePlanError: "Unable to update the plan.",
+    networkError: "Network error.",
+    headers: ["Last name", "First name", "Email", "Plan", "G / C", "Sign-up", "Actions"],
+    deleteLabel: "Delete",
+    deletingLabel: "Deleting...",
+    quotasLabel: { training: "G", conversion: "C" },
+    infinityLabel: "∞",
+    actions: "Actions",
+  },
+} satisfies Record<Locale, {
+  confirmDelete: string;
+  deleteError: string;
+  updatePlanError: string;
+  networkError: string;
+  headers: string[];
+  deleteLabel: string;
+  deletingLabel: string;
+  quotasLabel: { training: string; conversion: string };
+  infinityLabel: string;
+}>;
+
+export function AdminUserTable({ users, locale }: AdminUserTableProps) {
+  const copy = ADMIN_USER_COPY[locale] ?? ADMIN_USER_COPY.fr;
   const router = useRouter();
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [planUpdatingId, setPlanUpdatingId] = useState<number | null>(null);
 
   const handleDelete = async (userId: number) => {
-    if (!window.confirm("Supprimer définitivement cet utilisateur et toutes ses données ?")) {
+    if (!window.confirm(copy.confirmDelete)) {
       return;
     }
     setError(null);
@@ -40,13 +80,13 @@ export function AdminUserTable({ users }: AdminUserTableProps) {
       const response = await fetch(`/api/admin/users/${userId}`, { method: "DELETE" });
       if (!response.ok) {
         const payload = await response.json().catch(() => null);
-        const message = typeof payload?.error === "string" ? payload.error : "Impossible de supprimer l’utilisateur.";
+        const message = typeof payload?.error === "string" ? payload.error : copy.deleteError;
         setError(message);
         return;
       }
       router.refresh();
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Erreur réseau.");
+      setError(requestError instanceof Error ? requestError.message : copy.networkError);
     } finally {
       setDeletingId(null);
     }
@@ -57,7 +97,8 @@ export function AdminUserTable({ users }: AdminUserTableProps) {
       return "—";
     }
     try {
-      return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(isoDate));
+      const localeFormatter = locale === "fr" ? "fr-FR" : "en-US";
+      return new Intl.DateTimeFormat(localeFormatter, { dateStyle: "medium", timeStyle: "short" }).format(new Date(isoDate));
     } catch {
       return isoDate;
     }
@@ -76,13 +117,13 @@ export function AdminUserTable({ users }: AdminUserTableProps) {
       });
       if (!response.ok) {
         const payload = await response.json().catch(() => null);
-        const message = typeof payload?.error === "string" ? payload.error : "Impossible de mettre à jour le plan.";
+        const message = typeof payload?.error === "string" ? payload.error : copy.updatePlanError;
         setError(message);
         return;
       }
       router.refresh();
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Erreur réseau.");
+      setError(requestError instanceof Error ? requestError.message : copy.networkError);
     } finally {
       setPlanUpdatingId(null);
     }
@@ -95,13 +136,13 @@ export function AdminUserTable({ users }: AdminUserTableProps) {
         <table className="w-full min-w-[520px] text-left text-sm">
           <thead className="border-b border-white/10 text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
-              <th className="py-2 pr-4">Nom</th>
-              <th className="py-2 pr-4">Prénom</th>
-              <th className="py-2 pr-4">Email</th>
-              <th className="py-2 pr-4">Plan</th>
-              <th className="py-2 pr-4 text-center">G / C</th>
-              <th className="py-2 pr-4">Inscription</th>
-              <th className="py-2 pr-4 text-right">Actions</th>
+              <th className="py-2 pr-4">{copy.headers[0]}</th>
+              <th className="py-2 pr-4">{copy.headers[1]}</th>
+              <th className="py-2 pr-4">{copy.headers[2]}</th>
+              <th className="py-2 pr-4">{copy.headers[3]}</th>
+              <th className="py-2 pr-4 text-center">{copy.headers[4]}</th>
+              <th className="py-2 pr-4">{copy.headers[5]}</th>
+              <th className="py-2 pr-4 text-right">{copy.headers[6]}</th>
             </tr>
           </thead>
           <tbody>
@@ -146,16 +187,17 @@ export function AdminUserTable({ users }: AdminUserTableProps) {
                   </td>
                   <td className="py-2 pr-4 text-center text-xs font-semibold">
                     <div className="text-primary">
-                      G {trainingCap === null ? `${trainingUsed} / ∞` : `${trainingUsed}/${trainingCap}`}
+                      {copy.quotasLabel.training} {trainingCap === null ? `${trainingUsed} / ${copy.infinityLabel}` : `${trainingUsed}/${trainingCap}`}
                     </div>
                     <div className="text-secondary">
-                      C {conversionCap === null ? `${conversionsUsed} / ∞` : `${conversionsUsed}/${conversionCap}`}
+                      {copy.quotasLabel.conversion}{" "}
+                      {conversionCap === null ? `${conversionsUsed} / ${copy.infinityLabel}` : `${conversionsUsed}/${conversionCap}`}
                     </div>
                   </td>
                   <td className="py-2 pr-4 text-muted-foreground">{formatDate(user.createdAt)}</td>
                   <td className="py-2 pr-0 text-right">
                     <Button variant="error" size="sm" disabled={deletingId === user.id} onClick={() => handleDelete(user.id)}>
-                      {deletingId === user.id ? "Suppression..." : "Supprimer"}
+                      {deletingId === user.id ? copy.deletingLabel : copy.deleteLabel}
                     </Button>
                   </td>
                 </tr>
