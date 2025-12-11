@@ -160,7 +160,7 @@ export default async function AdminPage() {
           <CardDescription>{copy.usersCard.description}</CardDescription>
         </CardHeader>
         <CardContent>
-          <AdminUserTable users={adminUsers} />
+          <AdminUserTable users={adminUsers} locale={locale} />
         </CardContent>
       </Card>
 
@@ -170,7 +170,7 @@ export default async function AdminPage() {
           <CardDescription>{copy.jobsCard.description}</CardDescription>
         </CardHeader>
         <CardContent>
-          <AdminGarminJobsTable jobs={recentJobs} />
+          <AdminGarminJobsTable jobs={recentJobs} locale={locale} />
         </CardContent>
       </Card>
     </div>
