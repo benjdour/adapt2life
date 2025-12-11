@@ -64,6 +64,7 @@ const buildAuthenticatedLinks = (locale: Locale): NavLink[] => [
 const socials: FooterLink[] = [
   { label: "LinkedIn", href: "https://www.linkedin.com/company/adapt2life" },
   { label: "Instagram", href: "https://www.instagram.com/adapt2life.app" },
+  { label: "YouTube", href: "https://www.youtube.com/@adapt2life" },
 ];
 
 const LEGAL_LINKS_DEFINITION: Array<{
