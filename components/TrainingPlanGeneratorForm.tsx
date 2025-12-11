@@ -13,6 +13,7 @@ import { AppError, describeAppError, getErrorDescriptor } from "@/lib/errors";
 import { downloadPlanPdf } from "@/lib/utils/pdf";
 import { detectPlanSport, evaluatePlanCompatibility, isGarminSportSupported } from "@/lib/utils/garminCompatibility";
 import { DEFAULT_LOCALE, Locale } from "@/lib/i18n/locales";
+import { LOCALE_HEADER_NAME } from "@/lib/i18n/constants";
 
 export type GeneratedPlanPayload = {
   plan: string;
@@ -239,6 +240,8 @@ export function TrainingPlanGeneratorForm({
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          [LOCALE_HEADER_NAME]: locale,
+          "accept-language": locale,
         },
         body: JSON.stringify({
           goal: trimmedPrompt,

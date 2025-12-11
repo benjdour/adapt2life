@@ -12,6 +12,7 @@ import { saveTrainingPlanForUser } from "@/lib/services/userGeneratedArtifacts";
 import { reserveTrainingGenerationCredit, refundTrainingGenerationCredit } from "@/lib/services/userCredits";
 import { getAiModelCandidates } from "@/lib/services/aiModelConfig";
 import { DEFAULT_USER_PLAN, getUserPlanConfig } from "@/lib/constants/userPlans";
+import { LOCALE_HEADER_NAME } from "@/lib/i18n/constants";
 
 const MAX_TEXT_LENGTH = 2000;
 
@@ -136,33 +137,35 @@ const LANGUAGE_LABELS: Record<string, string> = {
   pt: "portugais",
 };
 
-const resolvePreferredLanguage = (
-  header: string | null,
-): {
-  tag: string | null;
-  label: string | null;
-} => {
-  if (!header) {
-    return { tag: null, label: null };
-  }
+type LanguagePreference = { tag: string | null; label: string | null };
 
-  const [rawFirst] = header
+const mapLocaleToLanguage = (locale: string | null): LanguagePreference | null => {
+  if (!locale) return null;
+  const normalized = locale.toLowerCase();
+  const base = normalized.split("-")[0] ?? normalized;
+  const label = LANGUAGE_LABELS[base];
+  if (!label) return null;
+  return { tag: base, label };
+};
+
+const mapAcceptLanguageHeader = (header: string | null): LanguagePreference | null => {
+  if (!header) return null;
+  const candidates = header
     .split(",")
     .map((segment) => segment.trim())
     .filter(Boolean);
-
-  if (!rawFirst) {
-    return { tag: null, label: null };
+  for (const candidate of candidates) {
+    const [tag] = candidate.split(";").map((segment) => segment.trim());
+    const mapped = mapLocaleToLanguage(tag);
+    if (mapped) {
+      return mapped;
+    }
   }
+  return null;
+};
 
-  const [tag] = rawFirst.split(";").map((segment) => segment.trim());
-  if (!tag) {
-    return { tag: null, label: null };
-  }
-
-  const normalized = tag.toLowerCase();
-  const base = normalized.split("-")[0] ?? normalized;
-  return { tag, label: LANGUAGE_LABELS[base] ?? null };
+const resolvePreferredLanguage = (localeOverride: string | null, fallbackHeader: string | null): LanguagePreference => {
+  return mapLocaleToLanguage(localeOverride) ?? mapAcceptLanguageHeader(fallbackHeader) ?? { tag: null, label: null };
 };
 
 async function ensureLocalUser(stackUser: NonNullable<Awaited<ReturnType<typeof stackServerApp.getUser>>>) {
@@ -347,6 +350,7 @@ export async function POST(request: NextRequest) {
     const profileLines = profileParts.filter(Boolean).join("\n");
 
     const { tag: preferredLanguageTag, label: preferredLanguageLabel } = resolvePreferredLanguage(
+      request.headers.get(LOCALE_HEADER_NAME),
       request.headers.get("accept-language"),
     );
 
