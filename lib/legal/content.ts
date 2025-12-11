@@ -341,9 +341,16 @@ export const LEGAL_PAGES: LegalPageConfig[] = [
           {
             title: "2. Data we collect",
             content: [
-              "Direct data: email, name, messages sent to support, selected plan and remaining quotas.",
-              "Garmin data (via API): activity type, duration, distance, heart rate, Body Battery, HRV, sleep, stress and related metrics.",
-              "Technical data: IP address, device identifiers, visited pages, feature usage.",
+              "2.1 Direct data:",
+              "- Account data: email address and name when creating an account or getting in touch with us.",
+              "- Communication data: content of messages sent to customer support.",
+              "- Subscription data: plan type (Starter, Momentum, Peak, Elite, Ultra), remaining quotas and technical identifiers tied to your subscription.",
+              "2.2 Garmin data collected via the API:",
+              "- Activity data: activity type (run, ride, etc.), start/end date and time, duration, distance, pace, calories, heart rate, GPS traces and elevation.",
+              "- Health & wellness data: sleep, stress levels, heart rate variability (HRV), Body Battery score, menstrual cycle tracking (if enabled).",
+              "2.3 Automatically collected data:",
+              "- Technical information: IP address, device identifiers, operating system, browser type.",
+              "- Usage information: visited pages, frequency of use, features accessed.",
             ],
           },
           {
