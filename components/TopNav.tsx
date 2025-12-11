@@ -87,19 +87,21 @@ export const TopNav = ({ isAuthenticated, showAdminLink = false, navigation, loc
     searchString,
   );
 
-  const handleSignOut = () => {
-    const form = document.createElement("form");
-    form.method = "post";
-    form.action = "/handler/sign-out";
-
-    const redirectInput = document.createElement("input");
-    redirectInput.type = "hidden";
-    redirectInput.name = "redirect";
-    redirectInput.value = currentNavigation.signOutRedirect;
-    form.appendChild(redirectInput);
-
-    document.body.appendChild(form);
-    form.submit();
+  const handleSignOut = async () => {
+    try {
+      await fetch("/handler/sign-out", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams(),
+      });
+    } catch (error) {
+      console.error("Sign-out failed", error);
+    } finally {
+      window.location.href = currentNavigation.signOutRedirect;
+    }
   };
 
   return (
@@ -129,7 +131,12 @@ export const TopNav = ({ isAuthenticated, showAdminLink = false, navigation, loc
             </Link>
           </Button>
           {isAuthenticated ? (
-            <Button variant="ghost" onClick={handleSignOut}>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                void handleSignOut();
+              }}
+            >
               {currentNavigation.signOutLabel}
             </Button>
           ) : (
@@ -190,7 +197,7 @@ export const TopNav = ({ isAuthenticated, showAdminLink = false, navigation, loc
                 className="w-full"
                 onClick={() => {
                   setIsOpen(false);
-                  handleSignOut();
+                  void handleSignOut();
                 }}
               >
                 {currentNavigation.signOutLabel}

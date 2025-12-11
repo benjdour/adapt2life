@@ -5,7 +5,12 @@ import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Locale } from "@/lib/i18n/locales";
-import { buildLocalePath, buildSignInUrl } from "@/lib/i18n/routing";
+import {
+  AFTER_AUTH_RETURN_QUERY_PARAM,
+  buildLocalePath,
+  buildSignInUrl,
+  extractAfterAuthReturnTarget,
+} from "@/lib/i18n/routing";
 
 type FeatureCard = {
   title: string;
@@ -42,6 +47,8 @@ type FeaturesCopy = {
   secondaryAction: CallToAction;
   tertiaryAction: CallToAction;
 };
+
+const GENERATOR_SIGN_IN_HREF = `/handler/sign-in?${AFTER_AUTH_RETURN_QUERY_PARAM}=/generateur-entrainement`;
 
 const frCopy: FeaturesCopy = {
   heroTag: "Fonctionnalités",
@@ -90,7 +97,7 @@ const frCopy: FeaturesCopy = {
   actionTag: "Passe à l’action",
   actionTitle: "Prêt à tester Adapt2Life ?",
   actionDescription: "Connecte ton compte, lance le générateur IA et envoie ta prochaine séance sur Garmin en quelques clics.",
-  primaryAction: { label: "Commencer maintenant", href: "/handler/sign-in?redirect=/generateur-entrainement" },
+  primaryAction: { label: "Commencer maintenant", href: GENERATOR_SIGN_IN_HREF },
   secondaryAction: { label: "Parler à l’équipe", href: "/contact" },
   tertiaryAction: { label: "Voir les tarifs", href: "/pricing" },
 };
@@ -143,7 +150,7 @@ const enCopy: FeaturesCopy = {
   actionTag: "Take action",
   actionTitle: "Ready to try Adapt2Life?",
   actionDescription: "Connect your account, launch the AI generator, and sync your next workout to Garmin in a few clicks.",
-  primaryAction: { label: "Start now", href: "/handler/sign-in?redirect=/generateur-entrainement" },
+  primaryAction: { label: "Start now", href: GENERATOR_SIGN_IN_HREF },
   secondaryAction: { label: "Talk to the team", href: "/contact" },
   tertiaryAction: { label: "See pricing", href: "/pricing" },
 };
@@ -197,7 +204,7 @@ export function FeaturesPage({ locale }: FeaturesPageProps) {
     if (/^(https?:)?\/\//.test(href)) return href;
     const [base, search] = href.split("?");
     if (base === "/handler/sign-in") {
-      const redirectParam = search?.replace("redirect=", "") ?? "/generateur-entrainement";
+      const redirectParam = extractAfterAuthReturnTarget(search, "/generateur-entrainement");
       return buildSignInUrl(locale, redirectParam);
     }
     const localizedBase = buildLocalePath(locale, base);

@@ -3,7 +3,12 @@ import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { Locale } from "@/lib/i18n/locales";
-import { buildLocalePath, buildSignInUrl } from "@/lib/i18n/routing";
+import {
+  AFTER_AUTH_RETURN_QUERY_PARAM,
+  buildLocalePath,
+  buildSignInUrl,
+  extractAfterAuthReturnTarget,
+} from "@/lib/i18n/routing";
 
 type HomeCta = {
   label: string;
@@ -25,7 +30,10 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
     title: "Qui s’adapte à ta vie.",
     description: "Des séances personnalisées, générées en temps réel selon ta forme, tes objectifs et tes contraintes quotidiennes.",
     heroAlt: "Interface Adapt2Life et athlètes connectés",
-    primaryCta: { label: "Découvrir ton potentiel", href: "/handler/sign-in?redirect=/generateur-entrainement" },
+    primaryCta: {
+      label: "Découvrir ton potentiel",
+      href: `/handler/sign-in?${AFTER_AUTH_RETURN_QUERY_PARAM}=/generateur-entrainement`,
+    },
     secondaryCta: { label: "Voir les tarifs", href: "/pricing" },
   },
   en: {
@@ -33,7 +41,10 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
     title: "Built around your reality.",
     description: "Personalized sessions generated in real time from your form, goals, and daily constraints.",
     heroAlt: "Adapt2Life interface and connected athletes",
-    primaryCta: { label: "Start for free", href: "/handler/sign-in?redirect=/generateur-entrainement" },
+    primaryCta: {
+      label: "Start for free",
+      href: `/handler/sign-in?${AFTER_AUTH_RETURN_QUERY_PARAM}=/generateur-entrainement`,
+    },
     secondaryCta: { label: "See pricing", href: "/pricing" },
   },
 };
@@ -48,9 +59,7 @@ const localizeHref = (locale: Locale, href: string) => {
   if (isAbsoluteHref(href)) return href;
   const [pathname, search] = href.split("?");
   if (pathname === "/handler/sign-in") {
-    const redirectPart =
-      search && search.startsWith("redirect=") ? search.replace("redirect=", "") : null;
-    const target = redirectPart && redirectPart.length > 0 ? redirectPart : "/";
+    const target = extractAfterAuthReturnTarget(search);
     return buildSignInUrl(locale, target);
   }
   const localized = buildLocalePath(locale, pathname);

@@ -1,5 +1,8 @@
 import { DEFAULT_LOCALE, LOCALES, Locale, isLocale } from "./locales";
 
+export const AFTER_AUTH_RETURN_QUERY_PARAM = "after_auth_return_to";
+type SearchParamsSource = string | URLSearchParams | null | undefined;
+
 const ensureLeadingSlash = (value: string): string => {
   if (!value) return "/";
   return value.startsWith("/") ? value : `/${value}`;
@@ -77,7 +80,26 @@ const ensureLocaleSearchParam = (path: string, locale: Locale): string => {
   }
 };
 
+const normalizeSearchParams = (source: SearchParamsSource): URLSearchParams => {
+  if (!source) {
+    return new URLSearchParams();
+  }
+  if (typeof source === "string") {
+    const trimmed = source.startsWith("?") ? source.slice(1) : source;
+    return new URLSearchParams(trimmed);
+  }
+  return new URLSearchParams(source.toString());
+};
+
+export const extractAfterAuthReturnTarget = (source?: SearchParamsSource, fallbackTarget = "/"): string => {
+  const params = normalizeSearchParams(source);
+  return params.get(AFTER_AUTH_RETURN_QUERY_PARAM) ?? fallbackTarget;
+};
+
 export const buildSignInUrl = (locale: Locale, redirectPath = "/"): string => {
   const redirectTarget = ensureLocaleSearchParam(buildLocalePath(locale, redirectPath), locale);
-  return `/handler/sign-in?locale=${locale}&redirect=${encodeURIComponent(redirectTarget)}`;
+  const params = new URLSearchParams();
+  params.set("locale", locale);
+  params.set(AFTER_AUTH_RETURN_QUERY_PARAM, redirectTarget);
+  return `/handler/sign-in?${params.toString()}`;
 };

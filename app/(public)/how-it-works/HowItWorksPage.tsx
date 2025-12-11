@@ -4,7 +4,12 @@ import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { Locale } from "@/lib/i18n/locales";
-import { buildLocalePath, buildSignInUrl } from "@/lib/i18n/routing";
+import {
+  AFTER_AUTH_RETURN_QUERY_PARAM,
+  buildLocalePath,
+  buildSignInUrl,
+  extractAfterAuthReturnTarget,
+} from "@/lib/i18n/routing";
 
 type Step = {
   title: string;
@@ -32,6 +37,8 @@ type HowItWorksCopy = {
   faqTitle: string;
   faqItems: FaqItem[];
 };
+
+const GENERATOR_SIGN_IN_HREF = `/handler/sign-in?${AFTER_AUTH_RETURN_QUERY_PARAM}=/generateur-entrainement`;
 
 const frCopy: HowItWorksCopy = {
   heroTag: "Comment ça marche",
@@ -68,7 +75,7 @@ const frCopy: HowItWorksCopy = {
   ctaTag: "Passe à l’action",
   ctaTitle: "Envie d’essayer Adapt2Life ?",
   ctaDescription: "Connecte ton compte, génère un plan IA et synchronise-le directement avec Garmin Connect.",
-  primaryAction: { label: "Commencer maintenant", href: "/handler/sign-in?redirect=/generateur-entrainement" },
+  primaryAction: { label: "Commencer maintenant", href: GENERATOR_SIGN_IN_HREF },
   secondaryAction: { label: "Parler à l’équipe", href: "/contact" },
   faqTag: "Questions fréquentes",
   faqTitle: "Avant de lancer ta première séance",
@@ -126,7 +133,7 @@ const enCopy: HowItWorksCopy = {
   ctaTag: "Take action",
   ctaTitle: "Ready to try Adapt2Life?",
   ctaDescription: "Connect your account, generate an AI plan and sync it directly to Garmin Connect.",
-  primaryAction: { label: "Start now", href: "/handler/sign-in?redirect=/generateur-entrainement" },
+  primaryAction: { label: "Start now", href: GENERATOR_SIGN_IN_HREF },
   secondaryAction: { label: "Talk to the team", href: "/contact" },
   faqTag: "FAQ",
   faqTitle: "Before your first session",
@@ -204,7 +211,7 @@ const localizeHref = (locale: Locale, href: string) => {
   if (isAbsolute(href)) return href;
   const [pathname, search] = href.split("?");
   if (pathname === "/handler/sign-in") {
-    const redirectParam = search?.replace("redirect=", "") ?? "/";
+    const redirectParam = extractAfterAuthReturnTarget(search, "/");
     return buildSignInUrl(locale, redirectParam);
   }
   const localized = buildLocalePath(locale, pathname);

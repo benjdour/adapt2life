@@ -5,7 +5,12 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Locale } from "@/lib/i18n/locales";
-import { buildLocalePath, buildSignInUrl } from "@/lib/i18n/routing";
+import {
+  AFTER_AUTH_RETURN_QUERY_PARAM,
+  buildLocalePath,
+  buildSignInUrl,
+  extractAfterAuthReturnTarget,
+} from "@/lib/i18n/routing";
 
 type HeroStat = { label: string; value: string };
 type SimpleBlock = { title: string; description: string };
@@ -309,6 +314,8 @@ const faqItemsByLocale: Record<Locale, FaqItem[]> = {
     },
   ],
 };
+const GENERATOR_SIGN_IN_HREF = `/handler/sign-in?${AFTER_AUTH_RETURN_QUERY_PARAM}=/generateur-entrainement`;
+
 const SMART_COACH_COPY: Record<Locale, SmartCoachCopy> = {
   fr: {
     heroTag: "Présentation complète",
@@ -317,7 +324,7 @@ const SMART_COACH_COPY: Record<Locale, SmartCoachCopy> = {
       "Relie tes données, décris ton contexte et laisse l’IA composer, valider et envoyer tes séances directement sur ton calendrier Garmin. Pensé pour les athlètes connectés qui n’ont pas de temps à perdre.",
     heroImageAlt: "Interface Adapt2Life et données Garmin",
     heroStats: heroStatsByLocale.fr,
-    heroPrimaryAction: { label: "Tester gratuitement", href: "/handler/sign-in?redirect=/generateur-entrainement" },
+    heroPrimaryAction: { label: "Tester gratuitement", href: GENERATOR_SIGN_IN_HREF },
     heroSecondaryAction: { label: "Parler à un expert", href: "/contact" },
     whyTag: "Pourquoi Adapt2Life",
     whyTitle: "L’IA qui comprend vraiment tes données Garmin",
@@ -351,7 +358,7 @@ const SMART_COACH_COPY: Record<Locale, SmartCoachCopy> = {
     actionTag: "Passe à l’action",
     actionTitle: "Prêt à connecter Adapt2Life et ta montre Garmin ?",
     actionDescription: "Lance le générateur IA, teste plusieurs séances gratuites et envoie-les dans Garmin en quelques secondes.",
-    actionPrimary: { label: "Commencer", href: "/handler/sign-in?redirect=/generateur-entrainement" },
+    actionPrimary: { label: "Commencer", href: GENERATOR_SIGN_IN_HREF },
     actionSecondary: { label: "Planifier une démo", href: "/contact" },
     breadcrumb: { home: "Accueil", features: "Fonctionnalités", current: "Smart Coach" },
     article: {
@@ -367,7 +374,7 @@ const SMART_COACH_COPY: Record<Locale, SmartCoachCopy> = {
       "Connect your data, describe your context, and let the AI craft, validate, and send workouts straight to your Garmin calendar.",
     heroImageAlt: "Adapt2Life interface and Garmin data",
     heroStats: heroStatsByLocale.en,
-    heroPrimaryAction: { label: "Start for free", href: "/handler/sign-in?redirect=/generateur-entrainement" },
+    heroPrimaryAction: { label: "Start for free", href: GENERATOR_SIGN_IN_HREF },
     heroSecondaryAction: { label: "Talk to an expert", href: "/contact" },
     whyTag: "Why Adapt2Life",
     whyTitle: "The AI that truly understands your Garmin data",
@@ -400,7 +407,7 @@ const SMART_COACH_COPY: Record<Locale, SmartCoachCopy> = {
     actionTag: "Take action",
     actionTitle: "Ready to connect Adapt2Life and your Garmin watch?",
     actionDescription: "Launch the AI generator, test several free sessions, and push them to Garmin in seconds.",
-    actionPrimary: { label: "Get started", href: "/handler/sign-in?redirect=/generateur-entrainement" },
+    actionPrimary: { label: "Get started", href: GENERATOR_SIGN_IN_HREF },
     actionSecondary: { label: "Book a demo", href: "/contact" },
     breadcrumb: { home: "Home", features: "Features", current: "Smart Coach" },
     article: {
@@ -453,7 +460,7 @@ const localizeHref = (locale: Locale, href: string) => {
   if (isAbsoluteHref(href)) return href;
   const [pathname, search] = href.split("?");
   if (pathname === "/handler/sign-in") {
-    const redirectParam = search?.replace("redirect=", "") ?? "/";
+    const redirectParam = extractAfterAuthReturnTarget(search, "/");
     return buildSignInUrl(locale, redirectParam);
   }
   const localized = buildLocalePath(locale, pathname);

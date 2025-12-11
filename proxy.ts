@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 
 import { enforceRateLimit } from "@/lib/security/rateLimiter";
 import { stackServerApp } from "@/stack/server";
-import { deriveLocaleFromPathname, stripLocaleFromPath } from "@/lib/i18n/routing";
+import { AFTER_AUTH_RETURN_QUERY_PARAM, deriveLocaleFromPathname, stripLocaleFromPath } from "@/lib/i18n/routing";
 import { LOCALE_HEADER_NAME } from "@/lib/i18n/request";
 import { DEFAULT_LOCALE, type Locale, isLocale } from "@/lib/i18n/locales";
 
@@ -157,7 +157,7 @@ export async function proxy(request: NextRequest) {
     const signInUrl = buildRedirectUrl(request, "/handler/sign-in");
     const returnTo = `${request.nextUrl.pathname}${request.nextUrl.search}`;
     signInUrl.searchParams.set("locale", locale);
-    signInUrl.searchParams.set("redirect", returnTo || "/");
+    signInUrl.searchParams.set(AFTER_AUTH_RETURN_QUERY_PARAM, returnTo || "/");
     const response = NextResponse.redirect(signInUrl);
     return attachLocale(response, locale);
   }
