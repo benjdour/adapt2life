@@ -12,16 +12,50 @@ import { garminTrainerJobs, users } from "@/db/schema";
 import { AdminUserTable } from "@/components/AdminUserTable";
 import { AdminGarminJobsTable } from "@/components/AdminGarminJobsTable";
 import { buildLocalePath, resolveLocaleFromParams } from "@/lib/i18n/routing";
+import { Locale } from "@/lib/i18n/locales";
 
-export default async function AdminPage({
-  params,
-}: {
-  params: Promise<{ locale: string }>;
-}) {
+const adminCopyByLocale = (locale: Locale) =>
+  locale === "fr"
+    ? {
+        heroTitle: "Espace Admin",
+        heroDescription: "Outils internes réservés au staff Adapt2Life.",
+        welcome: "Bienvenue",
+        intro: [
+          "Utilise les sélecteurs ci-dessous pour choisir les modèles IA utilisés par chaque fonctionnalité clé.",
+          "Le changement est immédiat et s’applique à la prochaine requête utilisateur.",
+        ],
+        usersCard: {
+          title: "Utilisateurs",
+          description: "Liste des comptes Adapt2Life (nom, prénom, email).",
+        },
+        jobsCard: {
+          title: "Jobs Garmin Trainer",
+          description: "Statut des 20 derniers jobs (phase, modèle IA, mise à jour).",
+        },
+      }
+    : {
+        heroTitle: "Admin area",
+        heroDescription: "Internal tools reserved for the Adapt2Life staff.",
+        welcome: "Welcome",
+        intro: [
+          "Use the selectors below to pick which AI models back each core feature.",
+          "Changes apply instantly and affect the very next user request.",
+        ],
+        usersCard: {
+          title: "Users",
+          description: "List of Adapt2Life accounts (name, surname, email).",
+        },
+        jobsCard: {
+          title: "Garmin Trainer jobs",
+          description: "Status of the latest 20 jobs (phase, AI model, updated at).",
+        },
+      };
+
+export default async function AdminPage({ params }: { params: Promise<{ locale: string }> }) {
   const locale = await resolveLocaleFromParams(params);
+  const copy = adminCopyByLocale(locale);
   const fallbackPath = buildLocalePath(locale, "/");
   const user = await stackServerApp.getUser({ or: "return-null", tokenStore: "nextjs-cookie" });
-
   if (!user || !canAccessAdminArea(user.id)) {
     redirect(fallbackPath);
   }
@@ -75,13 +109,16 @@ export default async function AdminPage({
     <div className="mx-auto max-w-5xl space-y-8 px-4 py-10">
       <Card>
         <CardHeader>
-          <CardTitle>Espace Admin</CardTitle>
-          <CardDescription>Outils internes réservés au staff Adapt2Life.</CardDescription>
+          <CardTitle>{copy.heroTitle}</CardTitle>
+          <CardDescription>{copy.heroDescription}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 text-sm text-muted-foreground">
-          <p>Bienvenue {user.displayName ?? user.primaryEmail ?? "Utilisateur"}.</p>
-          <p>Utilise les sélecteurs ci-dessous pour choisir les modèles IA utilisés par chaque fonctionnalité clé.</p>
-          <p>Le changement est immédiat et s’applique à la prochaine requête utilisateur.</p>
+          <p>
+            {copy.welcome} {user.displayName ?? user.primaryEmail ?? "User"}.
+          </p>
+          {copy.intro.map((paragraph) => (
+            <p key={paragraph}>{paragraph}</p>
+          ))}
         </CardContent>
       </Card>
 
@@ -89,8 +126,8 @@ export default async function AdminPage({
 
       <Card>
         <CardHeader>
-          <CardTitle>Utilisateurs</CardTitle>
-          <CardDescription>Liste des comptes Adapt2Life (nom, prénom, email).</CardDescription>
+          <CardTitle>{copy.usersCard.title}</CardTitle>
+          <CardDescription>{copy.usersCard.description}</CardDescription>
         </CardHeader>
         <CardContent>
           <AdminUserTable users={adminUsers} />
@@ -99,8 +136,8 @@ export default async function AdminPage({
 
       <Card>
         <CardHeader>
-          <CardTitle>Jobs Garmin Trainer</CardTitle>
-          <CardDescription>Statut des 20 derniers jobs (phase, modèle IA, mise à jour).</CardDescription>
+          <CardTitle>{copy.jobsCard.title}</CardTitle>
+          <CardDescription>{copy.jobsCard.description}</CardDescription>
         </CardHeader>
         <CardContent>
           <AdminGarminJobsTable jobs={recentJobs} />
