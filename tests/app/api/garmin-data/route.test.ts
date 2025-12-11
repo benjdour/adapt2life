@@ -9,6 +9,7 @@ const selectBuilder = {
 const mockDbSelect = vi.fn(() => selectBuilder);
 const mockFetchGarminData = vi.fn();
 const mockTrainingGauge = { mock: "gauge" };
+const mockGetRequestLocale = vi.fn(async () => "fr");
 
 vi.mock("@/stack/server", () => ({
   stackServerApp: {
@@ -32,6 +33,10 @@ vi.mock("@/lib/garminData", () => ({
 
 vi.mock("@/lib/trainingScore", () => ({
   mockGarminData: () => mockTrainingGauge,
+}));
+
+vi.mock("@/lib/i18n/request", () => ({
+  getRequestLocale: mockGetRequestLocale,
 }));
 
 vi.mock("server-only", () => ({}));
@@ -74,6 +79,7 @@ describe("GET /api/garmin-data", () => {
   it("returns synced Garmin data for authenticated users with a local profile", async () => {
     mockGetUser.mockResolvedValueOnce({ id: "stack-user-42" });
     selectBuilder.limit.mockResolvedValueOnce([{ id: 99, gender: "femme" }]);
+    mockGetRequestLocale.mockResolvedValueOnce("en");
     const garminData = {
       connection: { garminUserId: "abc" },
       sections: [],
@@ -87,7 +93,7 @@ describe("GET /api/garmin-data", () => {
     const payload = await response.json();
 
     expect(response.status).toBe(200);
-    expect(mockFetchGarminData).toHaveBeenCalledWith(99, { gender: "femme" });
+    expect(mockFetchGarminData).toHaveBeenCalledWith(99, { gender: "femme", locale: "en" });
     expect(payload).toEqual(garminData);
   });
 });

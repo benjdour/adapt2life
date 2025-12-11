@@ -370,7 +370,7 @@ export async function HomeRoute({ locale }: HomeRouteProps) {
   let heroScore: number | null = null;
   let heroTrend: "up" | "down" | "stable" | null = null;
   if (user && localUser) {
-    garminData = await getCachedGarminData(localUser.id, { gender: localUser.gender });
+    garminData = await getCachedGarminData(localUser.id, { gender: localUser.gender, locale });
     const trainingGaugeData = garminData?.trainingGaugeData ?? mockGarminData();
     heroScore = Math.min(100, Math.max(0, computeTrainingScore(trainingGaugeData)));
     heroTrend = heroScore >= 80 ? "up" : heroScore >= 60 ? "stable" : "down";

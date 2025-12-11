@@ -7,6 +7,8 @@ import type { TouchEvent } from "react";
 import TrainingScoreGauge from "@/components/TrainingScoreGauge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { GarminActivityHighlight, GarminDataBundle, GarminSection } from "@/lib/garminData";
+import type { Locale } from "@/lib/i18n/locales";
+import { LOCALE_HEADER_NAME } from "@/lib/i18n/constants";
 
 export type GarminDataClientCopy = {
   waitingSyncLabel: string;
@@ -44,6 +46,7 @@ export type GarminDataClientCopy = {
 type GarminDataClientProps = {
   initialData: GarminDataBundle;
   copy: GarminDataClientCopy;
+  locale: Locale;
 };
 
 const ActivityCarousel = ({
@@ -155,7 +158,7 @@ const ActivityCarousel = ({
   );
 };
 
-const GarminDataClient = ({ initialData, copy }: GarminDataClientProps) => {
+const GarminDataClient = ({ initialData, copy, locale }: GarminDataClientProps) => {
   const [data, setData] = useState<GarminDataBundle>(initialData);
   const hasShownErrorRef = useRef(false);
 
@@ -168,6 +171,9 @@ const GarminDataClient = ({ initialData, copy }: GarminDataClientProps) => {
           method: "GET",
           cache: "no-store",
           credentials: "include",
+          headers: {
+            [LOCALE_HEADER_NAME]: locale,
+          },
         });
         if (!response.ok) {
           if (!hasShownErrorRef.current) {
@@ -205,7 +211,7 @@ const GarminDataClient = ({ initialData, copy }: GarminDataClientProps) => {
       cancelled = true;
       clearInterval(interval);
     };
-  }, [copy]);
+  }, [copy, locale]);
 
   const sections: GarminSection[] = useMemo(() => data.sections ?? [], [data.sections]);
   const hasSyncedOnce = data.hasSyncedOnce;

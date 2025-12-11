@@ -113,6 +113,7 @@ export async function generateMetadata(): Promise<Metadata> {
 type GarminDataPanelProps = {
   localUserId: number;
   gender: string | null;
+  locale: Locale;
   copy: GarminDataClientCopy;
 };
 
@@ -132,9 +133,9 @@ function GarminDataSkeleton() {
   );
 }
 
-async function GarminDataPanel({ localUserId, gender, copy }: GarminDataPanelProps) {
+async function GarminDataPanel({ localUserId, gender, locale, copy }: GarminDataPanelProps) {
   const data =
-    (await getCachedGarminData(localUserId, { gender })) ??
+    (await getCachedGarminData(localUserId, { gender, locale })) ??
     {
       connection: null,
       sections: [],
@@ -146,7 +147,7 @@ async function GarminDataPanel({ localUserId, gender, copy }: GarminDataPanelPro
   return (
     <Card className="overflow-hidden">
       <CardContent className="p-0">
-        <GarminDataClient initialData={data} copy={copy} />
+        <GarminDataClient initialData={data} copy={copy} locale={locale} />
       </CardContent>
     </Card>
   );
@@ -188,7 +189,12 @@ export default async function GarminDataPage() {
       </Card>
 
       <Suspense fallback={<GarminDataSkeleton />}>
-        <GarminDataPanel localUserId={localUser.id} gender={localUser.gender} copy={copy.client} />
+        <GarminDataPanel
+          localUserId={localUser.id}
+          gender={localUser.gender}
+          locale={locale}
+          copy={copy.client}
+        />
       </Suspense>
     </div>
   );

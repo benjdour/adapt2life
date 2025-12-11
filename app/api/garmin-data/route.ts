@@ -6,8 +6,10 @@ import { fetchGarminData } from "@/lib/garminData";
 import { mockGarminData } from "@/lib/trainingScore";
 import { eq } from "drizzle-orm";
 import { stackServerApp } from "@/stack/server";
+import { getRequestLocale } from "@/lib/i18n/request";
 
 export async function GET() {
+  const locale = await getRequestLocale();
   const stackUser = await stackServerApp.getUser({ or: "return-null", tokenStore: "nextjs-cookie" });
 
   if (!stackUser) {
@@ -30,6 +32,6 @@ export async function GET() {
     });
   }
 
-  const data = await fetchGarminData(localUser.id, { gender: localUser.gender });
+  const data = await fetchGarminData(localUser.id, { gender: localUser.gender, locale });
   return NextResponse.json(data);
 }

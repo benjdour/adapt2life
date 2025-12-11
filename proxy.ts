@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { enforceRateLimit } from "@/lib/security/rateLimiter";
 import { stackServerApp } from "@/stack/server";
 import { AFTER_AUTH_RETURN_QUERY_PARAM, deriveLocaleFromPathname, stripLocaleFromPath } from "@/lib/i18n/routing";
-import { LOCALE_HEADER_NAME } from "@/lib/i18n/request";
+import { LOCALE_HEADER_NAME } from "@/lib/i18n/constants";
 import { DEFAULT_LOCALE, type Locale, isLocale } from "@/lib/i18n/locales";
 
 type RoutePolicy = {
