@@ -7,6 +7,7 @@ import {
   garminWebhookEvents,
 } from "@/db/schema";
 import { TrainingScoreData, mockGarminData } from "@/lib/trainingScore";
+import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n/locales";
 
 type GarminWebhookEventRow = {
   payload: unknown;
@@ -62,6 +63,250 @@ export type GarminDataBundle = {
 
 type FetchGarminDataOptions = {
   gender?: string | null;
+  locale?: Locale;
+};
+
+type GarminLocaleText = {
+  fallbackActivity: string;
+  activityHighlight: {
+    cadenceUnit: string;
+  };
+  cycle: {
+    dayLabel: string;
+    dayAbbr: string;
+    observedLabel: string;
+    predictedLabel: string;
+    customLengthLabel: string;
+    customPeriodLabel: string;
+    yesLabel: string;
+    noLabel: string;
+  };
+  stressLevels: { low: string; medium: string; high: string };
+  sleepPhases: { deep: string; rem: string; light: string };
+  bodyComposition: { fat: string; muscle: string; hydration: string };
+  sections: {
+    recovery: {
+      title: string;
+      items: {
+        bodyBattery: string;
+        sleepDuration: string;
+        sleepScore: string;
+        sleepPhases: string;
+        sleepSchedule: string;
+        restingHr: string;
+      };
+    };
+    stress: {
+      title: string;
+      items: {
+        stressAverage: string;
+        stressDurations: string;
+        hrv: string;
+      };
+    };
+    activity: {
+      title: string;
+      items: {
+        steps: string;
+        activeMinutes: string;
+        totalCalories: string;
+        activeTime: string;
+      };
+    };
+    physio: {
+      title: string;
+      items: {
+        spo2: string;
+        tempDeviation: string;
+        bodyWeight: string;
+        bodyComposition: string;
+        hydration: string;
+        respiration: string;
+      };
+    };
+    womenHealth: {
+      title: string;
+      items: {
+        currentPhase: string;
+        dayInCycle: string;
+        cycleLength: string;
+        customDurations: string;
+      };
+    };
+    activityMeta: {
+      title: string;
+      description: string;
+      items: {
+        lastActivityDate: string;
+        activityType: string;
+        durationIntensity: string;
+        lastActivityCalories: string;
+      };
+    };
+  };
+};
+
+const GARMIN_LOCALE_TEXT: Record<Locale, GarminLocaleText> = {
+  fr: {
+    fallbackActivity: "Activité",
+    activityHighlight: {
+      cadenceUnit: "cad.",
+    },
+    cycle: {
+      dayLabel: "Jour",
+      dayAbbr: "j",
+      observedLabel: "Observé",
+      predictedLabel: "Prévu",
+      customLengthLabel: "Cycle personnalisé",
+      customPeriodLabel: "Règles personnalisées",
+      yesLabel: "Oui",
+      noLabel: "Non",
+    },
+    stressLevels: { low: "Faible", medium: "Moyen", high: "Élevé" },
+    sleepPhases: { deep: "Profond", rem: "Paradoxal", light: "Léger" },
+    bodyComposition: { fat: "Graisse", muscle: "Muscle", hydration: "Hydratation" },
+    sections: {
+      recovery: {
+        title: "🧠 RÉCUPÉRATION & ÉNERGIE",
+        items: {
+          bodyBattery: "Body Battery (actuel / chargé / dépensé)",
+          sleepDuration: "Sommeil — durée totale",
+          sleepScore: "Sommeil — score",
+          sleepPhases: "Sommeil — phases (profond, paradoxal, léger)",
+          sleepSchedule: "Sommeil — coucher / lever",
+          restingHr: "Fréquence cardiaque au repos (RHR)",
+        },
+      },
+      stress: {
+        title: "⚡ STRESS & SYSTÈME NERVEUX",
+        items: {
+          stressAverage: "Stress moyen de la journée",
+          stressDurations: "Durée en stress faible / moyen / élevé",
+          hrv: "HRV (corrélé au stress)",
+        },
+      },
+      activity: {
+        title: "🚶‍♂️ ACTIVITÉ GÉNÉRALE",
+        items: {
+          steps: "Nombre total de pas",
+          activeMinutes: "Minutes actives",
+          totalCalories: "Calories totales brûlées",
+          activeTime: "Temps actif cumulé",
+        },
+      },
+      physio: {
+        title: "🩸 INDICATEURS PHYSIOLOGIQUES AVANCÉS",
+        items: {
+          spo2: "SpO₂ moyen",
+          tempDeviation: "Variation de température corporelle",
+          bodyWeight: "Poids corporel",
+          bodyComposition: "Composition corporelle (masse grasse, musculaire, hydratation)",
+          hydration: "Hydratation estimée",
+          respiration: "Respiration moyenne (brpm)",
+        },
+      },
+      womenHealth: {
+        title: "🌸 SANTÉ FÉMININE",
+        items: {
+          currentPhase: "Phase actuelle",
+          dayInCycle: "Jour dans le cycle",
+          cycleLength: "Durée du cycle observée/prévue",
+          customDurations: "Durées personnalisées fournies",
+        },
+      },
+      activityMeta: {
+        title: "🕒 MÉTADONNÉES D’ACTIVITÉ",
+        description:
+          "Balaye horizontalement (ou utilise les boutons sur desktop) pour parcourir les 5 dernières activités synchronisées.",
+        items: {
+          lastActivityDate: "Dernière activité — date & heure",
+          activityType: "Type d’activité",
+          durationIntensity: "Durée & intensité (HR, puissance, cadence)",
+          lastActivityCalories: "Calories de la dernière activité",
+        },
+      },
+    },
+  },
+  en: {
+    fallbackActivity: "Activity",
+    activityHighlight: {
+      cadenceUnit: "rpm",
+    },
+    cycle: {
+      dayLabel: "Day",
+      dayAbbr: "d",
+      observedLabel: "Observed",
+      predictedLabel: "Predicted",
+      customLengthLabel: "Custom cycle",
+      customPeriodLabel: "Custom period",
+      yesLabel: "Yes",
+      noLabel: "No",
+    },
+    stressLevels: { low: "Low", medium: "Medium", high: "High" },
+    sleepPhases: { deep: "Deep", rem: "REM", light: "Light" },
+    bodyComposition: { fat: "Fat", muscle: "Muscle", hydration: "Hydration" },
+    sections: {
+      recovery: {
+        title: "🧠 RECOVERY & ENERGY",
+        items: {
+          bodyBattery: "Body Battery (current / charged / drained)",
+          sleepDuration: "Sleep — total duration",
+          sleepScore: "Sleep — score",
+          sleepPhases: "Sleep — phases (deep, REM, light)",
+          sleepSchedule: "Sleep — bedtime / wake-up",
+          restingHr: "Resting heart rate (RHR)",
+        },
+      },
+      stress: {
+        title: "⚡ STRESS & NERVOUS SYSTEM",
+        items: {
+          stressAverage: "Average daily stress",
+          stressDurations: "Time in low / medium / high stress",
+          hrv: "HRV (linked to stress)",
+        },
+      },
+      activity: {
+        title: "🚶‍♂️ OVERALL ACTIVITY",
+        items: {
+          steps: "Total steps",
+          activeMinutes: "Active minutes",
+          totalCalories: "Total calories burned",
+          activeTime: "Cumulative active time",
+        },
+      },
+      physio: {
+        title: "🩸 ADVANCED PHYSIOLOGY MARKERS",
+        items: {
+          spo2: "Average SpO₂",
+          tempDeviation: "Body temperature variation",
+          bodyWeight: "Body weight",
+          bodyComposition: "Body composition (fat, muscle, hydration)",
+          hydration: "Estimated hydration",
+          respiration: "Average respiration (brpm)",
+        },
+      },
+      womenHealth: {
+        title: "🌸 WOMEN’S HEALTH",
+        items: {
+          currentPhase: "Current phase",
+          dayInCycle: "Day in cycle",
+          cycleLength: "Observed / predicted cycle length",
+          customDurations: "Custom durations provided",
+        },
+      },
+      activityMeta: {
+        title: "🕒 ACTIVITY METADATA",
+        description:
+          "Swipe horizontally (or use the buttons on desktop) to review the last five synced activities.",
+        items: {
+          lastActivityDate: "Last activity — date & time",
+          activityType: "Activity type",
+          durationIntensity: "Duration & intensity (HR, power, cadence)",
+          lastActivityCalories: "Last activity calories",
+        },
+      },
+    },
+  },
 };
 
 const toNumber = (value: unknown): number | null => {
@@ -306,11 +551,14 @@ const formatMinutes = (seconds: number | null | undefined): string | null => {
 const formatDateTime = (
   seconds: number | null | undefined,
   offsetSeconds: number | null | undefined = 0,
+  localeTag: string,
 ): string | null => {
   if (seconds === null || seconds === undefined) return null;
   const offset = offsetSeconds ?? 0;
   try {
-    return new Date((seconds + offset) * 1000).toLocaleString("fr-FR", { hour12: false });
+    return new Date((seconds + offset) * 1000).toLocaleString(localeTag, {
+      hour12: localeTag.startsWith("en"),
+    });
   } catch {
     return null;
   }
@@ -321,9 +569,9 @@ const formatPercentage = (value: number | null | undefined, fractionDigits = 1):
   return `${value.toFixed(fractionDigits)} %`;
 };
 
-const formatKcal = (value: number | null | undefined): string | null => {
+const formatKcal = (value: number | null | undefined, localeTag: string): string | null => {
   if (value === null || value === undefined) return null;
-  return `${Math.round(value).toLocaleString("fr-FR")} kcal`;
+  return `${Math.round(value).toLocaleString(localeTag)} kcal`;
 };
 
 const formatBpm = (value: number | null | undefined): string | null => {
@@ -409,6 +657,8 @@ const computeStressDurations = (
 const buildActivityHighlight = (
   activityEvent: GarminWebhookEventRow | null,
   detailsEvent: GarminWebhookEventRow | null,
+  localeTag: string,
+  localeText: GarminLocaleText,
 ): GarminActivityHighlight | null => {
   const activityPayload = (activityEvent?.payload as Record<string, unknown> | undefined) ?? undefined;
   const detailsPayload = (detailsEvent?.payload as Record<string, unknown> | undefined) ?? undefined;
@@ -419,7 +669,7 @@ const buildActivityHighlight = (
 
   const activityTypeRaw =
     pickString([activityPayload, detailsPayload], ["activityType", "activityName", "sportType"]) ?? null;
-  const type = prettifyLabel(activityTypeRaw) ?? activityTypeRaw ?? "Activité";
+  const type = prettifyLabel(activityTypeRaw) ?? activityTypeRaw ?? localeText.fallbackActivity;
 
   const startSeconds = pickNumber(
     [activityPayload, detailsPayload],
@@ -431,13 +681,13 @@ const buildActivityHighlight = (
   );
   const fallbackStartGmt =
     typeof activityPayload?.startTimeGmt === "string"
-      ? new Date(activityPayload.startTimeGmt).toLocaleString("fr-FR", { hour12: false })
+      ? new Date(activityPayload.startTimeGmt).toLocaleString(localeTag, { hour12: localeTag.startsWith("en") })
       : null;
   const createdAtDisplay =
-    activityEvent?.createdAt?.toLocaleString("fr-FR", { hour12: false }) ??
-    detailsEvent?.createdAt?.toLocaleString("fr-FR", { hour12: false }) ??
+    activityEvent?.createdAt?.toLocaleString(localeTag, { hour12: localeTag.startsWith("en") }) ??
+    detailsEvent?.createdAt?.toLocaleString(localeTag, { hour12: localeTag.startsWith("en") }) ??
     null;
-  const startDisplay = formatDateTime(startSeconds, offsetSeconds) ?? fallbackStartGmt ?? createdAtDisplay;
+  const startDisplay = formatDateTime(startSeconds, offsetSeconds, localeTag) ?? fallbackStartGmt ?? createdAtDisplay;
   const rawStartTimeGmt =
     typeof activityPayload?.startTimeGmt === "string" || typeof activityPayload?.startTimeGmt === "number"
       ? activityPayload.startTimeGmt
@@ -468,19 +718,20 @@ const buildActivityHighlight = (
     [detailsPayload, activityPayload],
     ["averageCadenceInStepsPerMinute", "averageCadence"],
   );
-  const cadenceDisplay = cadence !== null ? `${Math.round(cadence)} cad.` : null;
+  const cadenceDisplay =
+    cadence !== null ? `${Math.round(cadence)} ${localeText.activityHighlight.cadenceUnit}` : null;
 
   const calories = pickNumber(
     [activityPayload, detailsPayload],
     ["activeKilocalories", "totalKilocalories", "caloriesBurned"],
   );
-  const caloriesDisplay = formatKcal(calories);
+  const caloriesDisplay = formatKcal(calories, localeTag);
 
   const intensityParts: string[] = [];
   if (durationDisplay) intensityParts.push(durationDisplay);
   if (avgHeartRate !== null) intensityParts.push(`${Math.round(avgHeartRate)} bpm`);
   if (power !== null) intensityParts.push(`${Math.round(power)} W`);
-  if (cadence !== null) intensityParts.push(`${Math.round(cadence)} cad.`);
+  if (cadence !== null) intensityParts.push(`${Math.round(cadence)} ${localeText.activityHighlight.cadenceUnit}`);
   const intensityDisplay = intensityParts.length > 0 ? intensityParts.join(" · ") : null;
 
   const idCandidate =
@@ -823,6 +1074,9 @@ export const fetchGarminData = async (
   const normalizedGender =
     typeof options.gender === "string" ? options.gender.trim().toLowerCase() : null;
   const includeWomenHealthSection = normalizedGender === "femme";
+  const locale: Locale = options.locale ?? DEFAULT_LOCALE;
+  const localeTag = locale === "fr" ? "fr-FR" : "en-US";
+  const localeText = GARMIN_LOCALE_TEXT[locale] ?? GARMIN_LOCALE_TEXT.fr;
 
   if (!Number.isFinite(numericUserId)) {
     return {
@@ -1172,7 +1426,7 @@ export const fetchGarminData = async (
     paradoxal: resolveStageDuration(stageNodes, "paradoxal"),
     leger: resolveStageDuration(stageNodes, "leger"),
   };
-  const sleepPhases =
+  const sleepPhaseSource =
     stageDurations.profond !== null || stageDurations.paradoxal !== null || stageDurations.leger !== null
       ? {
           profond: stageDurations.profond ?? 0,
@@ -1180,6 +1434,20 @@ export const fetchGarminData = async (
           leger: stageDurations.leger ?? 0,
         }
       : pickObject<Record<string, number>>(sleepNodes, "sleepPhasesDerived") ?? undefined;
+
+  const readSleepPhaseSeconds = (keys: string[]): number | null => {
+    if (!sleepPhaseSource) return null;
+    for (const key of keys) {
+      const candidate = toNumber((sleepPhaseSource as Record<string, unknown>)[key]);
+      if (candidate !== null) {
+        return candidate;
+      }
+    }
+    return null;
+  };
+  const deepSleepSeconds = stageDurations.profond ?? readSleepPhaseSeconds(["profond", "deep", "deepSleep"]);
+  const remSleepSeconds = stageDurations.paradoxal ?? readSleepPhaseSeconds(["paradoxal", "rem", "remSleep"]);
+  const lightSleepSeconds = stageDurations.leger ?? readSleepPhaseSeconds(["leger", "light", "lightSleep"]);
   const sleepStartNumericPaths = [
     "bedTimeInSeconds",
     "sleepStartTimeInSeconds",
@@ -1255,20 +1523,22 @@ export const fetchGarminData = async (
   let sleepWakeSeconds = resolveTimestampSeconds(timestampNodes, sleepEndNumericPaths, sleepEndIsoPaths);
   const sleepBedtimeOffset = resolveOffsetSeconds(timestampNodes, sleepStartOffsetPaths);
   let sleepWakeOffset = resolveOffsetSeconds(timestampNodes, sleepEndOffsetPaths);
-  const sleepBedtimeDisplay = formatDateTime(sleepBedtimeSeconds, sleepBedtimeOffset);
+  const sleepBedtimeDisplay = formatDateTime(sleepBedtimeSeconds, sleepBedtimeOffset, localeTag);
   if (sleepWakeSeconds === null && sleepBedtimeSeconds !== null && sleepDurationSeconds !== null) {
     sleepWakeSeconds = sleepBedtimeSeconds + sleepDurationSeconds;
   }
   if (sleepWakeOffset === null && sleepBedtimeOffset !== null) {
     sleepWakeOffset = sleepBedtimeOffset;
   }
-  const sleepWakeDisplay = formatDateTime(sleepWakeSeconds, sleepWakeOffset);
-  const sleepPhasesDisplay =
-    sleepPhases && Object.keys(sleepPhases).length > 0
-      ? Object.entries(sleepPhases)
-          .map(([phase, seconds]) => `${phase} ${formatHours(seconds, 1)}`)
-          .join(" · ")
-      : null;
+  const sleepWakeDisplay = formatDateTime(sleepWakeSeconds, sleepWakeOffset, localeTag);
+  const sleepPhasesDisplay = [
+    { label: localeText.sleepPhases.deep, value: deepSleepSeconds },
+    { label: localeText.sleepPhases.rem, value: remSleepSeconds },
+    { label: localeText.sleepPhases.light, value: lightSleepSeconds },
+  ]
+    .map((entry) => (entry.value !== null ? `${entry.label} ${formatHours(entry.value, 1)}` : null))
+    .filter((entry): entry is string => Boolean(entry))
+    .join(" · ") || null;
 
   const hrvPayloadRaw = (latestHrv?.payload as Record<string, unknown>) ?? undefined;
   const hrvSource = pickObject<Record<string, unknown>>([hrvPayloadRaw], "hrvSummary") ?? hrvPayloadRaw ?? {};
@@ -1413,12 +1683,14 @@ export const fetchGarminData = async (
         (activityEvent.entityId ? activityDetailsMap.get(activityEvent.entityId) : undefined) ??
         activityDetailHistory[index] ??
         null;
-      return buildActivityHighlight(activityEvent, matchedDetails ?? null);
+      return buildActivityHighlight(activityEvent, matchedDetails ?? null, localeTag, localeText);
     })
     .filter((highlight): highlight is GarminActivityHighlight => Boolean(highlight));
 
   const latestActivityHighlight =
-    activityHighlights[0] ?? buildActivityHighlight(latestActivity, latestActivityDetails) ?? null;
+    activityHighlights[0] ??
+    buildActivityHighlight(latestActivity, latestActivityDetails, localeTag, localeText) ??
+    null;
   const activityHighlightsForSnapshots =
     activityHighlights.length > 0
       ? activityHighlights
@@ -1489,7 +1761,8 @@ export const fetchGarminData = async (
     [womenHealthSummary],
     ["dayInCycle", "cycleSummary.dayInCycle", "cycleDay", "currentCycleDay", "cycleDayNumber", "dayOfCycle"],
   );
-  const dayInCycleDisplay = dayInCycleValue !== null ? `Jour ${Math.round(dayInCycleValue)}` : null;
+  const dayInCycleDisplay =
+    dayInCycleValue !== null ? `${localeText.cycle.dayLabel} ${Math.round(dayInCycleValue)}` : null;
 
   const cycleLengthValue = pickNumber(
     [womenHealthSummary],
@@ -1507,13 +1780,17 @@ export const fetchGarminData = async (
   );
   const cycleLengthSegments: string[] = [];
   if (cycleLengthValue !== null) {
-    cycleLengthSegments.push(`Observé ${Math.round(cycleLengthValue)} j`);
+    cycleLengthSegments.push(
+      `${localeText.cycle.observedLabel} ${Math.round(cycleLengthValue)} ${localeText.cycle.dayAbbr}`,
+    );
   }
   if (
     predictedCycleLengthValue !== null &&
     (cycleLengthValue === null || Math.round(predictedCycleLengthValue) !== Math.round(cycleLengthValue))
   ) {
-    cycleLengthSegments.push(`Prévu ${Math.round(predictedCycleLengthValue)} j`);
+    cycleLengthSegments.push(
+      `${localeText.cycle.predictedLabel} ${Math.round(predictedCycleLengthValue)} ${localeText.cycle.dayAbbr}`,
+    );
   }
   const cycleLengthDisplay = cycleLengthSegments.length > 0 ? cycleLengthSegments.join(" · ") : null;
 
@@ -1527,10 +1804,18 @@ export const fetchGarminData = async (
   );
   const lengthConfigurationParts: string[] = [];
   if (hasSpecifiedCycleLength !== null) {
-    lengthConfigurationParts.push(`Cycle personnalisé: ${hasSpecifiedCycleLength ? "Oui" : "Non"}`);
+    lengthConfigurationParts.push(
+      `${localeText.cycle.customLengthLabel}: ${
+        hasSpecifiedCycleLength ? localeText.cycle.yesLabel : localeText.cycle.noLabel
+      }`,
+    );
   }
   if (hasSpecifiedPeriodLength !== null) {
-    lengthConfigurationParts.push(`Règles personnalisées: ${hasSpecifiedPeriodLength ? "Oui" : "Non"}`);
+    lengthConfigurationParts.push(
+      `${localeText.cycle.customPeriodLabel}: ${
+        hasSpecifiedPeriodLength ? localeText.cycle.yesLabel : localeText.cycle.noLabel
+      }`,
+    );
   }
   const lengthConfigurationDisplay =
     lengthConfigurationParts.length > 0 ? lengthConfigurationParts.join(" · ") : null;
@@ -1539,10 +1824,6 @@ export const fetchGarminData = async (
     sleepDurationSeconds !== null && sleepDurationSeconds !== undefined
       ? sleepDurationSeconds / 3600
       : undefined;
-  const deepSleepSeconds = sleepPhases?.profond ?? stageDurations.profond ?? null;
-  const remSleepSeconds = sleepPhases?.paradoxal ?? stageDurations.paradoxal ?? null;
-  const lightSleepSeconds = sleepPhases?.leger ?? stageDurations.leger ?? null;
-
   const sleepSnapshot =
     sleepScore !== null ||
     sleepDurationHours !== undefined ||
@@ -1680,33 +1961,35 @@ export const fetchGarminData = async (
   );
   const trainingGaugeData = hasTrainingInputs ? trainingScoreData : mockGarminData();
 
+  const sectionCopy = localeText.sections;
+
   const sections: GarminSection[] = [
     {
-      title: "🧠 RÉCUPÉRATION & ÉNERGIE",
+      title: sectionCopy.recovery.title,
       description: undefined,
       items: [
         {
-          label: "Body Battery (actuel / chargé / dépensé)",
+          label: sectionCopy.recovery.items.bodyBattery,
           value: bodyBatteryDisplay,
           hint: "Daily summaries — Body Battery (docs/Garmin_Health_API_1.2.2.md §7.1).",
         },
         {
-          label: "Sommeil — durée totale",
+          label: sectionCopy.recovery.items.sleepDuration,
           value: formatHours(sleepDurationSeconds),
           hint: "Sleep summaries (docs/Garmin_Health_API_1.2.2.md §7.3).",
         },
         {
-          label: "Sommeil — score",
+          label: sectionCopy.recovery.items.sleepScore,
           value: sleepScore !== null ? `${Math.round(sleepScore)}/100` : null,
           hint: "Sleep summaries — champ overallSleepScore.",
         },
         {
-          label: "Sommeil — phases (profond, paradoxal, léger)",
+          label: sectionCopy.recovery.items.sleepPhases,
           value: sleepPhasesDisplay,
           hint: "Sleep summaries — deep/light/rem durations.",
         },
         {
-          label: "Sommeil — coucher / lever",
+          label: sectionCopy.recovery.items.sleepSchedule,
           value:
             sleepBedtimeDisplay && sleepWakeDisplay
               ? `${sleepBedtimeDisplay} → ${sleepWakeDisplay}`
@@ -1714,29 +1997,35 @@ export const fetchGarminData = async (
           hint: "Sleep summaries — startTimeInSeconds/endTimeInSeconds.",
         },
         {
-          label: "Fréquence cardiaque au repos (RHR)",
+          label: sectionCopy.recovery.items.restingHr,
           value: formatBpm(restingHeartRate),
           hint: "User Metrics summaries — champ restingHeartRate.",
         },
       ],
     },
     {
-      title: "⚡ STRESS & SYSTÈME NERVEUX",
+      title: sectionCopy.stress.title,
       description: undefined,
       items: [
         {
-          label: "Stress moyen de la journée",
+          label: sectionCopy.stress.items.stressAverage,
           value: stressAverage !== null ? `${Math.round(stressAverage)}/100` : null,
           hint: "Daily summaries — averageStressLevel.",
         },
         {
-          label: "Durée en stress faible / moyen / élevé",
+          label: sectionCopy.stress.items.stressDurations,
           value:
             stressDurations && (stressDurations.low || stressDurations.moderate || stressDurations.high)
               ? [
-                  stressDurations.low ? `Faible ${formatMinutes(stressDurations.low)}` : null,
-                  stressDurations.moderate ? `Moyen ${formatMinutes(stressDurations.moderate)}` : null,
-                  stressDurations.high ? `Élevé ${formatMinutes(stressDurations.high)}` : null,
+                  stressDurations.low !== null
+                    ? `${localeText.stressLevels.low} ${formatMinutes(stressDurations.low)}`
+                    : null,
+                  stressDurations.moderate !== null
+                    ? `${localeText.stressLevels.medium} ${formatMinutes(stressDurations.moderate)}`
+                    : null,
+                  stressDurations.high !== null
+                    ? `${localeText.stressLevels.high} ${formatMinutes(stressDurations.high)}`
+                    : null,
                 ]
                   .filter(Boolean)
                   .join(" · ")
@@ -1744,71 +2033,73 @@ export const fetchGarminData = async (
           hint: "Stress Details summaries — timeOffsetStressLevelValues.",
         },
         {
-          label: "HRV (corrélé au stress)",
+          label: sectionCopy.stress.items.hrv,
           value: hrvDisplay,
           hint: "HRV summaries.",
         },
       ],
     },
     {
-      title: "🚶‍♂️ ACTIVITÉ GÉNÉRALE",
+      title: sectionCopy.activity.title,
       description: undefined,
       items: [
         {
-          label: "Nombre total de pas",
+          label: sectionCopy.activity.items.steps,
           value:
             latestSummary?.steps !== null && latestSummary?.steps !== undefined
-              ? latestSummary.steps.toLocaleString("fr-FR")
+              ? latestSummary.steps.toLocaleString(localeTag)
               : null,
           hint: "Daily summaries — steps.",
         },
         {
-          label: "Minutes actives",
+          label: sectionCopy.activity.items.activeMinutes,
           value: formatMinutes(activeTimeSeconds),
           hint: "Daily summaries — activeTimeInSeconds.",
         },
         {
-          label: "Calories totales brûlées",
-          value: formatKcal(totalKilocalories),
+          label: sectionCopy.activity.items.totalCalories,
+          value: formatKcal(totalKilocalories, localeTag),
           hint: "Daily summaries — totalKilocalories.",
         },
         {
-          label: "Temps actif cumulé",
+          label: sectionCopy.activity.items.activeTime,
           value: formatMinutes(activeTimeSeconds),
           hint: "Daily summaries — activeTimeInSeconds.",
         },
       ],
     },
     {
-      title: "🩸 INDICATEURS PHYSIOLOGIQUES AVANCÉS",
+      title: sectionCopy.physio.title,
       description: undefined,
       items: [
         {
-          label: "SpO₂ moyen",
+          label: sectionCopy.physio.items.spo2,
           value: spo2Average !== null ? formatPercentage(spo2Average, 1) : null,
           hint: "Pulse Ox summaries (docs/Garmin_Health_API_1.2.2.md §7.8).",
           hasHistory: Boolean(latestPulseOx),
         },
         {
-          label: "Variation de température corporelle",
+          label: sectionCopy.physio.items.tempDeviation,
           value: skinTempDeviation !== null ? `Δ ${formatCelsius(skinTempDeviation)}` : null,
           hint: "Skin Temperature summaries (§7.12).",
           hasHistory: Boolean(latestSkinTemp),
         },
         {
-          label: "Poids corporel",
+          label: sectionCopy.physio.items.bodyWeight,
           value: formatKg(bodyWeight),
           hint: "Body Composition summaries (§7.4).",
           hasHistory: bodyWeight !== null || Boolean(latestBodyComposition),
         },
         {
-          label: "Composition corporelle (masse grasse, musculaire, hydratation)",
+          label: sectionCopy.physio.items.bodyComposition,
           value:
             bodyFat !== null || bodyMuscle !== null || bodyHydration !== null
               ? [
-                  bodyFat !== null ? `Graisse ${formatPercentage(bodyFat)}` : null,
-                  bodyMuscle !== null ? `Muscle ${formatKg(bodyMuscle)}` : null,
-                  bodyHydration !== null ? `Hydratation ${formatPercentage(bodyHydration)}` : null,
+                  bodyFat !== null ? `${localeText.bodyComposition.fat} ${formatPercentage(bodyFat)}` : null,
+                  bodyMuscle !== null ? `${localeText.bodyComposition.muscle} ${formatKg(bodyMuscle)}` : null,
+                  bodyHydration !== null
+                    ? `${localeText.bodyComposition.hydration} ${formatPercentage(bodyHydration)}`
+                    : null,
                 ]
                   .filter(Boolean)
                   .join(" · ")
@@ -1817,12 +2108,12 @@ export const fetchGarminData = async (
           hasHistory: Boolean(latestBodyComposition),
         },
         {
-          label: "Hydratation estimée",
+          label: sectionCopy.physio.items.hydration,
           value: bodyHydration !== null ? formatPercentage(bodyHydration) : null,
           hint: "Body Composition summaries (§7.4).",
         },
         {
-          label: "Respiration moyenne (brpm)",
+          label: sectionCopy.physio.items.respiration,
           value: formatBrpm(respirationAverage),
           hint: "Respiration summaries (§7.9).",
         },
@@ -1832,26 +2123,26 @@ export const fetchGarminData = async (
 
   if (includeWomenHealthSection) {
     sections.push({
-      title: "🌸 SANTÉ FÉMININE",
+      title: sectionCopy.womenHealth.title,
       description: undefined,
       items: [
         {
-          label: "Phase actuelle",
+          label: sectionCopy.womenHealth.items.currentPhase,
           value: currentPhaseTypeDisplay,
           hint: "Women's Health API — currentPhaseType (docs/Womens_API_1.0.4.md).",
         },
         {
-          label: "Jour dans le cycle",
+          label: sectionCopy.womenHealth.items.dayInCycle,
           value: dayInCycleDisplay,
           hint: "Women's Health API — dayInCycle.",
         },
         {
-          label: "Durée du cycle observée/prévue",
+          label: sectionCopy.womenHealth.items.cycleLength,
           value: cycleLengthDisplay,
           hint: "Women's Health API — cycleLength & predictedCycleLength.",
         },
         {
-          label: "Durées personnalisées fournies",
+          label: sectionCopy.womenHealth.items.customDurations,
           value: lengthConfigurationDisplay,
           hint: "Women's Health API — hasSpecifiedCycleLength / hasSpecifiedPeriodLength.",
         },
@@ -1860,26 +2151,24 @@ export const fetchGarminData = async (
   }
 
   sections.push({
-    title: "🕒 MÉTADONNÉES D’ACTIVITÉ",
+    title: sectionCopy.activityMeta.title,
     description:
-      activityHighlights.length > 1
-        ? "Balaye horizontalement (ou utilise les boutons sur desktop) pour parcourir les 5 dernières activités synchronisées."
-        : undefined,
+      activityHighlights.length > 1 ? sectionCopy.activityMeta.description : undefined,
     items:
       activityHighlights.length === 0
         ? [
             {
-              label: "Dernière activité — date & heure",
+              label: sectionCopy.activityMeta.items.lastActivityDate,
               value: activityStartDisplay,
               hint: "Activity summaries (§7.1 Activity API).",
             },
             {
-              label: "Type d’activité",
+              label: sectionCopy.activityMeta.items.activityType,
               value: activityType ?? null,
               hint: "Activity summaries — activityType.",
             },
             {
-              label: "Durée & intensité (HR, puissance, cadence)",
+              label: sectionCopy.activityMeta.items.durationIntensity,
               value:
                 activityIntensityDisplay && activityIntensityDisplay.length > 0
                   ? activityIntensityDisplay
@@ -1887,7 +2176,7 @@ export const fetchGarminData = async (
               hint: "Activity Details (docs/Activity_API-1.2.3_0.md).",
             },
             {
-              label: "Calories de la dernière activité",
+              label: sectionCopy.activityMeta.items.lastActivityCalories,
               value: activityCaloriesDisplay,
               hint: "Activity summaries — activeKilocalories.",
             },

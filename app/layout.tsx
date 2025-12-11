@@ -11,6 +11,9 @@ import { TopNav } from "@/components/TopNav";
 import { Footer } from "@/components/Footer";
 import { canAccessAdminArea } from "@/lib/accessControl";
 import { ClientStackProvider } from "@/components/stack/ClientStackProvider";
+import { getNavigationConfig } from "@/lib/i18n/navigation";
+import { getRequestLocale } from "@/lib/i18n/request";
+import { Locale } from "@/lib/i18n/locales";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -34,37 +37,9 @@ const orbitron = Orbitron({
 });
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://adapt2life.app";
-const organizationSchema = {
-  "@context": "https://schema.org",
-  "@type": "Organization",
-  name: "Adapt2Life",
-  url: siteUrl,
-  description: "Coach IA connecté à Garmin pour générer des entraînements personnalisés.",
-  logo: `${siteUrl}/brand/logo-main.png`,
-  sameAs: ["https://www.linkedin.com/company/adapt2life"],
-  founder: {
-    "@type": "Person",
-    name: "Benjamin Dour",
-  },
-  contactPoint: [
-    {
-      "@type": "ContactPoint",
-      contactType: "customer support",
-      email: "contact@adapt2life.app",
-      availableLanguage: ["fr", "en"],
-    },
-  ],
-  brand: {
-    "@type": "Brand",
-    name: "Adapt2Life",
-    logo: `${siteUrl}/brand/logo-main.png`,
-    slogan: "Ton coach IA connecté à Garmin.",
-  },
-};
+const ogImageUrl = `${siteUrl}/brand/og-image.jpg`;
 
-export const metadata: Metadata = {
-  title: "Adapt2Life",
-  description: "Smart Coach Adapt2Life — l’IA qui génère et envoie tes entraînements personnalisés vers Garmin.",
+const BASE_METADATA: Metadata = {
   metadataBase: new URL(siteUrl),
   icons: {
     icon: "/favicon.ico",
@@ -73,16 +48,13 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: "website",
-    url: siteUrl,
-    title: "Adapt2Life — Smart Coach connecté à Garmin",
-    description: "Génère des entraînements personnalisés, synchronisés avec ta montre et adaptés à ta réalité.",
     siteName: "Adapt2Life",
     images: [
       {
-        url: `${siteUrl}/brand/og-image.jpg`,
+        url: ogImageUrl,
         width: 1200,
         height: 630,
-        alt: "Adapt2Life - Coach IA",
+        alt: "Adapt2Life — Smart Coach",
       },
     ],
   },
@@ -90,24 +62,129 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     site: "@adapt2life",
     creator: "@adapt2life",
-    title: "Adapt2Life — Smart Coach connecté à Garmin",
-    description: "Des entraînements sur mesure, générés par IA et envoyés sur ta montre.",
-    images: [`${siteUrl}/brand/og-image.jpg`],
-  },
-  alternates: {
-    canonical: siteUrl,
+    images: [ogImageUrl],
   },
 };
+
+const LOCALE_METADATA = {
+  fr: {
+    title: "Adapt2Life",
+    description: "Smart Coach Adapt2Life — l’IA qui génère et envoie tes entraînements personnalisés vers Garmin.",
+    alternates: { canonical: siteUrl },
+    openGraph: {
+      title: "Adapt2Life — Smart Coach connecté à Garmin",
+      description: "Génère des entraînements personnalisés, synchronisés avec ta montre et adaptés à ta réalité.",
+      url: siteUrl,
+    },
+    twitter: {
+      title: "Adapt2Life — Smart Coach connecté à Garmin",
+      description: "Des entraînements sur mesure, générés par IA et envoyés sur ta montre.",
+    },
+  },
+  en: {
+    title: "Adapt2Life",
+    description: "Adapt2Life Smart Coach — AI workouts tailored to you and synced automatically to Garmin.",
+    alternates: { canonical: `${siteUrl}/en` },
+    openGraph: {
+      title: "Adapt2Life — Smart Coach connected to Garmin",
+      description: "Generate personalized workouts, synced to your watch and matching real life.",
+      url: `${siteUrl}/en`,
+    },
+    twitter: {
+      title: "Adapt2Life — Smart Coach connected to Garmin",
+      description: "AI-built sessions, delivered straight to your Garmin watch.",
+    },
+  },
+} satisfies Record<Locale, Partial<Metadata>>;
+
+const ORGANIZATION_SCHEMA_BY_LOCALE = {
+  fr: {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "Adapt2Life",
+    url: siteUrl,
+    description: "Coach IA connecté à Garmin pour générer des entraînements personnalisés.",
+    logo: `${siteUrl}/brand/logo-main.png`,
+    sameAs: ["https://www.linkedin.com/company/adapt2life"],
+    founder: {
+      "@type": "Person",
+      name: "Benjamin Dour",
+    },
+    contactPoint: [
+      {
+        "@type": "ContactPoint",
+        contactType: "customer support",
+        email: "contact@adapt2life.app",
+        availableLanguage: ["fr", "en"],
+      },
+    ],
+    brand: {
+      "@type": "Brand",
+      name: "Adapt2Life",
+      logo: `${siteUrl}/brand/logo-main.png`,
+      slogan: "Ton coach IA connecté à Garmin.",
+    },
+  },
+  en: {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "Adapt2Life",
+    url: siteUrl,
+    description: "AI coach connected to Garmin to generate and deliver personalized workouts.",
+    logo: `${siteUrl}/brand/logo-main.png`,
+    sameAs: ["https://www.linkedin.com/company/adapt2life"],
+    founder: {
+      "@type": "Person",
+      name: "Benjamin Dour",
+    },
+    contactPoint: [
+      {
+        "@type": "ContactPoint",
+        contactType: "customer support",
+        email: "contact@adapt2life.app",
+        availableLanguage: ["fr", "en"],
+      },
+    ],
+    brand: {
+      "@type": "Brand",
+      name: "Adapt2Life",
+      logo: `${siteUrl}/brand/logo-main.png`,
+      slogan: "Your AI coach connected to Garmin.",
+    },
+  },
+} satisfies Record<Locale, Record<string, unknown>>;
+
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getRequestLocale();
+  const localized = LOCALE_METADATA[locale] ?? LOCALE_METADATA.fr;
+  return {
+    ...BASE_METADATA,
+    ...localized,
+    openGraph: {
+      ...BASE_METADATA.openGraph,
+      ...localized.openGraph,
+    },
+    twitter: {
+      ...BASE_METADATA.twitter,
+      ...localized.twitter,
+    },
+  };
+}
 
 export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const user = await stackServerApp.getUser({ or: "return-null", tokenStore: "nextjs-cookie" });
+  const [user, locale] = await Promise.all([
+    stackServerApp.getUser({ or: "return-null", tokenStore: "nextjs-cookie" }),
+    getRequestLocale(),
+  ]);
+  const navigationConfig = getNavigationConfig(locale);
+  const organizationSchema = ORGANIZATION_SCHEMA_BY_LOCALE[locale] ?? ORGANIZATION_SCHEMA_BY_LOCALE.fr;
 
   return (
-    <html lang="fr">
+    <html lang={locale}>
       <head>
         <Script
           id="gtm-base"
@@ -132,9 +209,14 @@ export default async function RootLayout({
         <ClientStackProvider>
           <StackTheme>
             <div className="flex min-h-screen flex-col">
-              <TopNav isAuthenticated={Boolean(user)} showAdminLink={canAccessAdminArea(user?.id)} />
+              <TopNav
+                isAuthenticated={Boolean(user)}
+                showAdminLink={canAccessAdminArea(user?.id)}
+                navigation={navigationConfig}
+                locale={locale}
+              />
               <main className="flex-1">{children}</main>
-              <Footer />
+              <Footer navigation={navigationConfig} />
             </div>
             <UiToaster />
             <Analytics />

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
-import { TRAINING_LOADING_MESSAGES } from "@/constants/loadingMessages";
+import { getTrainingLoadingMessages } from "@/constants/loadingMessages";
 import { AppError, describeAppError, getErrorDescriptor } from "@/lib/errors";
 import type { GarminTrainerWorkout } from "@/schemas/garminTrainer.schema";
 import type { GeneratedPlanPayload } from "@/components/TrainingPlanGeneratorForm";
@@ -13,6 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Textarea } from "@/components/ui/textarea";
 import { downloadPlanPdf } from "@/lib/utils/pdf";
 import { isGarminSportSupported } from "@/lib/utils/garminCompatibility";
+import { DEFAULT_LOCALE, Locale } from "@/lib/i18n/locales";
 
 type GenerateTrainingResponse = {
   trainingJson?: GarminTrainerWorkout;
@@ -23,15 +24,17 @@ type GenerateTrainingResponse = {
 
 type GarminTrainerGeneratorProps = {
   sourcePlan: GeneratedPlanPayload | null;
+  locale?: Locale;
 };
 
-export function GarminTrainerGenerator({ sourcePlan }: GarminTrainerGeneratorProps) {
+export function GarminTrainerGenerator({ sourcePlan, locale = DEFAULT_LOCALE }: GarminTrainerGeneratorProps) {
+  const trainingMessages = useMemo(() => getTrainingLoadingMessages(locale), [locale]);
   const [rawResult, setRawResult] = useState<string | null>(null);
   const [trainingJson, setTrainingJson] = useState<GarminTrainerWorkout | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isPushing, setIsPushing] = useState(false);
   const [pushDetails, setPushDetails] = useState<string | null>(null);
-  const [loadingMessage, setLoadingMessage] = useState<string>(TRAINING_LOADING_MESSAGES[0]);
+  const [loadingMessage, setLoadingMessage] = useState<string>(trainingMessages[0]);
   const [conversionInput, setConversionInput] = useState<string>("");
   const workoutSupported = useMemo(() => {
     if (!trainingJson) {
@@ -48,17 +51,17 @@ export function GarminTrainerGenerator({ sourcePlan }: GarminTrainerGeneratorPro
 
   useEffect(() => {
     if (!isLoading) {
-      setLoadingMessage(TRAINING_LOADING_MESSAGES[0]);
+      setLoadingMessage(trainingMessages[0]);
       return;
     }
 
     const selectRandomMessage = (previous?: string | null) => {
-      if (TRAINING_LOADING_MESSAGES.length === 1) {
-        return TRAINING_LOADING_MESSAGES[0];
+      if (trainingMessages.length <= 1) {
+        return trainingMessages[0];
       }
-      const candidates = TRAINING_LOADING_MESSAGES.filter((message) => message !== previous);
+      const candidates = trainingMessages.filter((message) => message !== previous);
       const index = Math.floor(Math.random() * candidates.length);
-      return candidates[index] ?? TRAINING_LOADING_MESSAGES[0];
+      return candidates[index] ?? trainingMessages[0];
     };
 
     setLoadingMessage((prev) => selectRandomMessage(prev));
@@ -70,7 +73,7 @@ export function GarminTrainerGenerator({ sourcePlan }: GarminTrainerGeneratorPro
     return () => {
       window.clearInterval(intervalId);
     };
-  }, [isLoading]);
+  }, [isLoading, trainingMessages]);
 
   const combinedMarkdown = useMemo(() => {
     if (!sourcePlan) {
@@ -90,7 +93,7 @@ export function GarminTrainerGenerator({ sourcePlan }: GarminTrainerGeneratorPro
   const handleGenerateWorkout = async () => {
     const trimmedExample = conversionInput.trim();
     if (!trimmedExample) {
-      const descriptor = getErrorDescriptor("garmin-trainer/no-source-plan");
+      const descriptor = getErrorDescriptor("garmin-trainer/no-source-plan", undefined, locale);
       toast.error(descriptor.title, { description: descriptor.description });
       return;
     }
@@ -145,7 +148,7 @@ export function GarminTrainerGenerator({ sourcePlan }: GarminTrainerGeneratorPro
         description: "La version technique du plan est prête à être vérifiée avant envoi à Garmin.",
       });
     } catch (generationError) {
-      const descriptor = describeAppError(generationError, "garmin-trainer/request-failed");
+      const descriptor = describeAppError(generationError, "garmin-trainer/request-failed", locale);
       toast.error(descriptor.title, { description: descriptor.description });
     } finally {
       setIsLoading(false);
@@ -226,7 +229,7 @@ export function GarminTrainerGenerator({ sourcePlan }: GarminTrainerGeneratorPro
         setPushDetails(JSON.stringify(payload.garminResponse, null, 2));
       }
     } catch (pushErrorInstance) {
-      const descriptor = describeAppError(pushErrorInstance, "garmin-trainer/push-failed");
+      const descriptor = describeAppError(pushErrorInstance, "garmin-trainer/push-failed", locale);
       toast.error(descriptor.title, { description: descriptor.description });
     } finally {
       setIsPushing(false);

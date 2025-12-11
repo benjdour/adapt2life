@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { AiModelEntry } from "@/lib/constants/aiModels";
+import { Locale } from "@/lib/i18n/locales";
 
 type FeatureState = {
   id: string;
@@ -16,9 +17,48 @@ type FeatureState = {
 type AdminAiModelManagerProps = {
   availableModels: ReadonlyArray<AiModelEntry>;
   features: ReadonlyArray<FeatureState>;
+  locale: Locale;
 };
 
-export function AdminAiModelManager({ availableModels, features }: AdminAiModelManagerProps) {
+const FEATURE_LABELS: Record<Locale, Record<string, string>> = {
+  fr: {
+    "training-plan": "Générateur de plan",
+    "garmin-trainer": "Conversion Garmin JSON",
+  },
+  en: {
+    "training-plan": "Plan generator",
+    "garmin-trainer": "Garmin JSON conversion",
+  },
+};
+
+const COPY = {
+  fr: {
+    description: "Choisis le modèle utilisé pour cette fonctionnalité.",
+    placeholder: "Sélectionner un modèle",
+    applied: "Le changement est appliqué dès la sélection.",
+    success: "Modèle IA mis à jour",
+    errorTitle: "Modification refusée",
+    errorDefault: "Mise à jour impossible",
+  },
+  en: {
+    description: "Choose which model powers this feature.",
+    placeholder: "Select a model",
+    applied: "Changes apply immediately after selection.",
+    success: "AI model updated",
+    errorTitle: "Update rejected",
+    errorDefault: "Unable to update model",
+  },
+} satisfies Record<Locale, {
+  description: string;
+  placeholder: string;
+  applied: string;
+  success: string;
+  errorTitle: string;
+  errorDefault: string;
+}>;
+
+export function AdminAiModelManager({ availableModels, features, locale }: AdminAiModelManagerProps) {
+  const copy = COPY[locale] ?? COPY.fr;
   const [pending, setPending] = useState(false);
   const [state, setState] = useState<FeatureState[]>(() => features.map((feature) => ({ ...feature })));
 
@@ -32,13 +72,13 @@ export function AdminAiModelManager({ availableModels, features }: AdminAiModelM
       });
       if (!response.ok) {
         const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(payload?.error ?? "Mise à jour impossible");
+        throw new Error(payload?.error ?? copy.errorDefault);
       }
       const data = (await response.json()) as { features: FeatureState[] };
       setState(data.features);
-      toast.success("Modèle IA mis à jour");
+      toast.success(copy.success);
     } catch (error) {
-      toast.error("Modification refusée", {
+      toast.error(copy.errorTitle, {
         description: error instanceof Error ? error.message : String(error),
       });
     } finally {
@@ -48,11 +88,13 @@ export function AdminAiModelManager({ availableModels, features }: AdminAiModelM
 
   return (
     <div className="grid gap-6 md:grid-cols-2">
-      {state.map((feature) => (
+      {state.map((feature) => {
+        const label = FEATURE_LABELS[locale]?.[feature.id] ?? feature.label;
+        return (
         <Card key={feature.id}>
           <CardHeader>
-            <CardTitle className="text-base">{feature.label}</CardTitle>
-            <CardDescription>Choisis le modèle utilisé pour cette fonctionnalité.</CardDescription>
+            <CardTitle className="text-base">{label}</CardTitle>
+            <CardDescription>{copy.description}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <Select
@@ -61,7 +103,7 @@ export function AdminAiModelManager({ availableModels, features }: AdminAiModelM
               disabled={pending}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Sélectionner un modèle" />
+                <SelectValue placeholder={copy.placeholder} />
               </SelectTrigger>
               <SelectContent>
                 {availableModels.map((model) => (
@@ -71,10 +113,11 @@ export function AdminAiModelManager({ availableModels, features }: AdminAiModelM
                 ))}
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground">Le changement est appliqué dès la sélection.</p>
+            <p className="text-xs text-muted-foreground">{copy.applied}</p>
           </CardContent>
         </Card>
-      ))}
+      );
+      })}
     </div>
   );
 }

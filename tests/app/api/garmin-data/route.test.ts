@@ -46,7 +46,7 @@ describe("GET /api/garmin-data", () => {
   it("refuses unauthenticated requests", async () => {
     mockGetUser.mockResolvedValueOnce(null);
 
-    const response = await GET();
+    const response = await GET(new Request("https://example.com/api/garmin-data"));
     const payload = await response.json();
 
     expect(response.status).toBe(401);
@@ -57,7 +57,7 @@ describe("GET /api/garmin-data", () => {
     mockGetUser.mockResolvedValueOnce({ id: "stack-user-1" });
     selectBuilder.limit.mockResolvedValueOnce([]);
 
-    const response = await GET();
+    const response = await GET(new Request("https://example.com/api/garmin-data"));
     const payload = await response.json();
 
     expect(response.status).toBe(200);
@@ -83,11 +83,15 @@ describe("GET /api/garmin-data", () => {
     };
     mockFetchGarminData.mockResolvedValueOnce(garminData);
 
-    const response = await GET();
+    const response = await GET(
+      new Request("https://example.com/api/garmin-data?locale=en", {
+        headers: { "x-adapt2life-locale": "en" },
+      }),
+    );
     const payload = await response.json();
 
     expect(response.status).toBe(200);
-    expect(mockFetchGarminData).toHaveBeenCalledWith(99, { gender: "femme" });
+    expect(mockFetchGarminData).toHaveBeenCalledWith(99, { gender: "femme", locale: "en" });
     expect(payload).toEqual(garminData);
   });
 });

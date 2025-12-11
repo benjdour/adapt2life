@@ -2,64 +2,79 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { NavigationConfig, getNavigationConfig } from "@/lib/i18n/navigation";
+import { buildLocalePath, deriveLocaleFromPathname } from "@/lib/i18n/routing";
+import { DEFAULT_LOCALE, Locale, isLocale } from "@/lib/i18n/locales";
 import { cn } from "@/lib/utils";
+import { stackClientApp } from "@/stack/client";
 
 type TopNavProps = {
   isAuthenticated: boolean;
   showAdminLink?: boolean;
+  navigation: NavigationConfig;
+  locale: Locale;
 };
 
-const buildAuthenticatedLinks = (showAdminLink: boolean) => {
-  const links = [
-    { label: "Dashboard", href: "/" },
-    { label: "Générateur", href: "/generateur-entrainement" },
-    { label: "Données Garmin", href: "/secure/garmin-data" },
-    { label: "Profil", href: "/secure/user-information" },
-    { label: "Intégration Garmin", href: "/integrations/garmin" },
-  ];
-
+const buildAuthenticatedLinks = (navigation: NavigationConfig, locale: Locale, showAdminLink: boolean) => {
+  const links = [...navigation.authenticatedLinks];
   if (showAdminLink) {
-    links.push({ label: "Admin", href: "/admin" });
+    links.push({ label: "Admin", href: buildLocalePath(locale, "/admin") });
   }
-
   return links;
 };
 
-const guestLinks = [
-  { label: "Accueil", href: "/" },
-  { label: "Fonctionnalités", href: "/features" },
-  { label: "Smart Coach", href: "/features/smart-coach" },
-  { label: "Comment ça marche", href: "/how-it-works" },
-  { label: "FAQ", href: "/faq" },
-  { label: "Contact", href: "/contact" },
-];
-
-export const TopNav = ({ isAuthenticated, showAdminLink = false }: TopNavProps) => {
+export const TopNav = ({ isAuthenticated, showAdminLink = false, navigation, locale }: TopNavProps) => {
   const [isOpen, setIsOpen] = useState(false);
-  const links = isAuthenticated ? buildAuthenticatedLinks(showAdminLink) : guestLinks;
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const searchString = searchParams?.toString() ?? null;
+  const [currentLocale, setCurrentLocale] = useState<Locale>(locale);
+  const [currentNavigation, setCurrentNavigation] = useState<NavigationConfig>(navigation);
 
-  const handleSignOut = () => {
-    const form = document.createElement("form");
-    form.method = "post";
-    form.action = "/handler/sign-out";
+  useEffect(() => {
+    setCurrentLocale(locale);
+  }, [locale]);
 
-    const redirectInput = document.createElement("input");
-    redirectInput.type = "hidden";
-    redirectInput.name = "redirect";
-    redirectInput.value = "/";
-    form.appendChild(redirectInput);
+  useEffect(() => {
+    setCurrentNavigation(navigation);
+  }, [navigation]);
 
-    document.body.appendChild(form);
-    form.submit();
+  useEffect(() => {
+    const derivedFromPath = pathname ? deriveLocaleFromPathname(pathname) : null;
+    const params = searchString ? new URLSearchParams(searchString) : null;
+    const searchLocale = params ? params.get("locale") : null;
+    const nextLocale = (searchLocale && isLocale(searchLocale)
+      ? searchLocale
+      : derivedFromPath) ?? locale ?? DEFAULT_LOCALE;
+    if (nextLocale !== currentLocale) {
+      setCurrentLocale(nextLocale);
+      setCurrentNavigation(getNavigationConfig(nextLocale));
+    }
+  }, [pathname, currentLocale, locale, searchString]);
+
+  const links = useMemo(() => {
+    return isAuthenticated ? buildAuthenticatedLinks(currentNavigation, currentLocale, showAdminLink) : currentNavigation.guestLinks;
+  }, [isAuthenticated, currentNavigation, currentLocale, showAdminLink]);
+
+  const handleSignOut = async () => {
+    try {
+      await stackClientApp.signOut({
+        redirectUrl: currentNavigation.signOutRedirect,
+      });
+    } catch (error) {
+      console.error("Sign-out failed", error);
+      window.location.href = currentNavigation.signOutRedirect;
+    }
   };
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-background/80 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
-        <Link href="/" className="flex items-center gap-3 text-sm font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+        <Link href={currentNavigation.logoHref} className="flex items-center gap-3 text-sm font-semibold uppercase tracking-[0.2em] text-muted-foreground">
           <Image src="/brand/logo-main.png" alt="Adapt2Life" width={36} height={36} className="h-9 w-9 rounded-full" />
           <span>Adapt2Life</span>
         </Link>
@@ -78,12 +93,17 @@ export const TopNav = ({ isAuthenticated, showAdminLink = false }: TopNavProps) 
 
         <div className="hidden items-center gap-3 md:flex">
           {isAuthenticated ? (
-            <Button variant="ghost" onClick={handleSignOut}>
-              Se déconnecter
+            <Button
+              variant="ghost"
+              onClick={() => {
+                void handleSignOut();
+              }}
+            >
+              {currentNavigation.signOutLabel}
             </Button>
           ) : (
             <Button asChild variant="ghost">
-              <Link href="/handler/sign-in?redirect=/integrations/garmin">Se connecter</Link>
+              <Link href={currentNavigation.signInHref}>{currentNavigation.signInLabel}</Link>
             </Button>
           )}
         </div>
@@ -92,9 +112,9 @@ export const TopNav = ({ isAuthenticated, showAdminLink = false }: TopNavProps) 
           type="button"
           className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/5 text-foreground transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 md:hidden"
           onClick={() => setIsOpen((prev) => !prev)}
-          aria-label="Basculer la navigation"
+          aria-label={navigation.menuToggleAriaLabel}
         >
-          <span className="sr-only">Menu</span>
+          <span className="sr-only">{navigation.menuLabel}</span>
           <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
             <path
               d="M4 7h16M4 12h16M4 17h16"
@@ -107,7 +127,8 @@ export const TopNav = ({ isAuthenticated, showAdminLink = false }: TopNavProps) 
         </button>
       </div>
 
-      <div className={cn("border-t border-white/10 bg-background/95 md:hidden", isOpen ? "block" : "hidden")}>
+      <div className={cn("border-t border-white/10 bg-background/95 md:hidden", isOpen ? "block" : "hidden")}
+      >
         <div className="space-y-4 px-4 py-6 text-sm text-muted-foreground">
           <nav className="space-y-2">
             {links.map((link) => (
@@ -128,10 +149,10 @@ export const TopNav = ({ isAuthenticated, showAdminLink = false }: TopNavProps) 
                 className="w-full"
                 onClick={() => {
                   setIsOpen(false);
-                  handleSignOut();
+                  void handleSignOut();
                 }}
               >
-                Se déconnecter
+                {currentNavigation.signOutLabel}
               </Button>
             ) : (
               <Button
@@ -142,7 +163,7 @@ export const TopNav = ({ isAuthenticated, showAdminLink = false }: TopNavProps) 
                   setIsOpen(false);
                 }}
               >
-                <Link href="/handler/sign-in?redirect=/integrations/garmin">Se connecter</Link>
+                <Link href={currentNavigation.signInHref}>{currentNavigation.signInLabel}</Link>
               </Button>
             )}
           </div>

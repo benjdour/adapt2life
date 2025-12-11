@@ -1,31 +1,25 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const mockCookies = vi.fn();
 const mockGetUser = vi.fn();
-const selectBuilder = {
-  from: vi.fn().mockReturnThis(),
-  where: vi.fn().mockReturnThis(),
-  limit: vi.fn(),
-};
-const selectConnectionsBuilder = {
-  from: vi.fn().mockReturnThis(),
-  where: vi.fn().mockReturnThis(),
-  limit: vi.fn(),
-};
 const mockDbSelect = vi.fn();
-const mockDbDelete = vi.fn().mockReturnThis();
+const buildSelectBuilder = () => ({
+  from: vi.fn().mockReturnThis(),
+  where: vi.fn().mockReturnThis(),
+  limit: vi.fn(),
+});
+const sessionSelectBuilder = buildSelectBuilder();
+const userSelectBuilder = buildSelectBuilder();
+const connectionSelectBuilder = buildSelectBuilder();
 const insertBuilder = {
   values: vi.fn().mockReturnThis(),
   onConflictDoUpdate: vi.fn().mockReturnThis(),
 };
+const mockDeleteGarminConnections = vi.fn();
+const mockDeleteOauthSessions = vi.fn();
 const mockExchangeCode = vi.fn();
 const mockFetchGarminUserId = vi.fn();
 const mockEncryptSecret = vi.fn((value: string) => `enc-${value}`);
 class MockGarminOAuthError extends Error {}
-
-vi.mock("next/headers", () => ({
-  cookies: mockCookies,
-}));
 
 vi.mock("@/stack/server", () => ({
   stackServerApp: {
@@ -35,21 +29,40 @@ vi.mock("@/stack/server", () => ({
 
 let selectCall = 0;
 
+const mockUsersTable = {};
+const mockGarminConnectionsTable = {};
+const mockGarminOauthSessionsTable = {};
+
 vi.mock("@/db", () => ({
   db: {
     select: (...args: unknown[]) => {
       mockDbSelect(...args);
       selectCall += 1;
-      return selectCall === 1 ? selectBuilder : selectConnectionsBuilder;
+      if (selectCall === 1) {
+        return sessionSelectBuilder;
+      }
+      if (selectCall === 2) {
+        return userSelectBuilder;
+      }
+      return connectionSelectBuilder;
     },
     insert: () => insertBuilder,
-    delete: () => ({ where: mockDbDelete }),
+    delete: (table: unknown) => {
+      if (table === mockGarminConnectionsTable) {
+        return { where: mockDeleteGarminConnections };
+      }
+      if (table === mockGarminOauthSessionsTable) {
+        return { where: mockDeleteOauthSessions };
+      }
+      return { where: vi.fn() };
+    },
   },
 }));
 
 vi.mock("@/db/schema", () => ({
-  users: {},
-  garminConnections: { userId: Symbol("userId") },
+  users: mockUsersTable,
+  garminConnections: mockGarminConnectionsTable,
+  garminOauthSessions: mockGarminOauthSessionsTable,
 }));
 
 vi.mock("@/lib/adapters/garmin", () => ({
@@ -73,23 +86,21 @@ vi.mock("server-only", () => ({}));
 
 const { GET } = await import("@/app/api/garmin/callback/route");
 
-const buildCookieValue = (payload: Record<string, unknown>) =>
-  Buffer.from(JSON.stringify(payload)).toString("base64url");
-
 describe("GET /api/garmin/callback", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     selectCall = 0;
-    selectBuilder.limit.mockReset();
-    selectConnectionsBuilder.limit.mockReset();
+    sessionSelectBuilder.limit.mockReset();
+    userSelectBuilder.limit.mockReset();
+    connectionSelectBuilder.limit.mockReset();
     insertBuilder.values = vi.fn().mockReturnThis();
     insertBuilder.onConflictDoUpdate = vi.fn().mockReturnThis();
-    mockCookies.mockResolvedValue({ get: vi.fn().mockReturnValue(null) });
+    mockDeleteGarminConnections.mockReset().mockResolvedValue(undefined);
+    mockDeleteOauthSessions.mockReset().mockResolvedValue(undefined);
   });
 
-  it("rejects callbacks without the oauth state cookie", async () => {
-    mockCookies.mockResolvedValue({ get: vi.fn().mockReturnValue(null) });
-
+  it("rejects callbacks without the oauth session", async () => {
+    sessionSelectBuilder.limit.mockResolvedValueOnce([]);
     const response = await GET(new Request("https://app.example.com/api/garmin/callback?code=abc&state=state-1"));
 
     expect(response.status).toBe(307);
@@ -98,19 +109,12 @@ describe("GET /api/garmin/callback", () => {
   });
 
   it("links the Garmin account and redirects to the integrations page on success", async () => {
-    const cookiePayload = {
-      state: "state-123",
-      codeVerifier: "verifier",
-      userId: 42,
-      stackUserId: "stack-user",
-    };
-
-    mockCookies.mockResolvedValue({
-      get: vi.fn().mockReturnValue({ value: buildCookieValue(cookiePayload) }),
-    });
+    sessionSelectBuilder.limit.mockResolvedValueOnce([
+      { id: 1, codeVerifier: "verifier", userId: 42, stackUserId: "stack-user", expiresAt: new Date(Date.now() + 1000) },
+    ]);
     mockGetUser.mockResolvedValue({ id: "stack-user" });
-    selectBuilder.limit.mockResolvedValueOnce([{ id: 42, stackId: "stack-user" }]);
-    selectConnectionsBuilder.limit.mockResolvedValueOnce([]);
+    userSelectBuilder.limit.mockResolvedValueOnce([{ id: 42, stackId: "stack-user" }]);
+    connectionSelectBuilder.limit.mockResolvedValueOnce([]);
     mockExchangeCode.mockResolvedValue({
       accessToken: "token",
       refreshToken: "refresh",
@@ -130,58 +134,29 @@ describe("GET /api/garmin/callback", () => {
     const cookieHeader = response.headers.get("set-cookie") ?? "";
     expect(cookieHeader).toContain("garmin_oauth_state=");
     expect(cookieHeader).toContain("Max-Age=0");
-  });
-
-  it("rejects callbacks when the state does not match the stored cookie", async () => {
-    const cookiePayload = {
-      state: "expected",
-      codeVerifier: "code",
-      userId: 1,
-      stackUserId: "stack-user",
-    };
-    mockCookies.mockResolvedValue({
-      get: vi.fn().mockReturnValue({ value: buildCookieValue(cookiePayload) }),
-    });
-
-    const response = await GET(new Request("https://app.example.com/api/garmin/callback?code=abc&state=other"));
-
-    expect(response.status).toBe(307);
-    expect(response.headers.get("location")).toContain("invalid_state");
+    expect(mockDeleteOauthSessions).toHaveBeenCalled();
   });
 
   it("rejects callbacks when the Stack session does not match the stored user", async () => {
-    const cookiePayload = {
-      state: "state-123",
-      codeVerifier: "code",
-      userId: 1,
-      stackUserId: "expected-stack",
-    };
-    mockCookies.mockResolvedValue({
-      get: vi.fn().mockReturnValue({ value: buildCookieValue(cookiePayload) }),
-    });
+    sessionSelectBuilder.limit.mockResolvedValueOnce([
+      { id: 1, codeVerifier: "code", userId: 1, stackUserId: "expected-stack", expiresAt: new Date(Date.now() + 1000) },
+    ]);
     mockGetUser.mockResolvedValue({ id: "other-stack" });
 
     const response = await GET(new Request("https://app.example.com/api/garmin/callback?code=abc&state=state-123"));
 
     expect(response.status).toBe(307);
     expect(response.headers.get("location")).toContain("unauthorized");
-    expect(selectBuilder.limit).not.toHaveBeenCalled();
+    expect(userSelectBuilder.limit).not.toHaveBeenCalled();
   });
 
   it("reassigns Garmin accounts already linked to another user", async () => {
-    const cookiePayload = {
-      state: "state-123",
-      codeVerifier: "verifier",
-      userId: 42,
-      stackUserId: "stack-user",
-    };
-
-    mockCookies.mockResolvedValue({
-      get: vi.fn().mockReturnValue({ value: buildCookieValue(cookiePayload) }),
-    });
+    sessionSelectBuilder.limit.mockResolvedValueOnce([
+      { id: 1, codeVerifier: "verifier", userId: 42, stackUserId: "stack-user", expiresAt: new Date(Date.now() + 1000) },
+    ]);
     mockGetUser.mockResolvedValue({ id: "stack-user" });
-    selectBuilder.limit.mockResolvedValueOnce([{ id: 42, stackId: "stack-user" }]);
-    selectConnectionsBuilder.limit.mockResolvedValueOnce([{ userId: 99 }]);
+    userSelectBuilder.limit.mockResolvedValueOnce([{ id: 42, stackId: "stack-user" }]);
+    connectionSelectBuilder.limit.mockResolvedValueOnce([{ userId: 99 }]);
     mockExchangeCode.mockResolvedValue({
       accessToken: "token",
       refreshToken: "refresh",
@@ -197,22 +172,15 @@ describe("GET /api/garmin/callback", () => {
 
     expect(response.status).toBe(307);
     expect(response.headers.get("location")).toContain("reason=reassigned");
-    expect(mockDbDelete).toHaveBeenCalled();
+    expect(mockDeleteGarminConnections).toHaveBeenCalled();
   });
 
   it("surfaces Garmin OAuth failures with an error redirect", async () => {
-    const cookiePayload = {
-      state: "state-123",
-      codeVerifier: "verifier",
-      userId: 42,
-      stackUserId: "stack-user",
-    };
-
-    mockCookies.mockResolvedValue({
-      get: vi.fn().mockReturnValue({ value: buildCookieValue(cookiePayload) }),
-    });
+    sessionSelectBuilder.limit.mockResolvedValueOnce([
+      { id: 1, codeVerifier: "verifier", userId: 42, stackUserId: "stack-user", expiresAt: new Date(Date.now() + 1000) },
+    ]);
     mockGetUser.mockResolvedValue({ id: "stack-user" });
-    selectBuilder.limit.mockResolvedValueOnce([{ id: 42, stackId: "stack-user" }]);
+    userSelectBuilder.limit.mockResolvedValueOnce([{ id: 42, stackId: "stack-user" }]);
     mockExchangeCode.mockRejectedValueOnce(new MockGarminOAuthError("bad oauth"));
 
     const response = await GET(

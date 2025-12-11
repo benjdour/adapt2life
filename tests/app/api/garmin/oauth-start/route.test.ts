@@ -11,9 +11,14 @@ const insertBuilder = {
   values: vi.fn().mockReturnThis(),
   onConflictDoNothing: vi.fn().mockReturnThis(),
 };
+const deleteBuilder = {
+  where: vi.fn().mockResolvedValue(undefined),
+};
 const mockBuildAuthorizationUrl = vi.fn();
 const mockGeneratePkcePair = vi.fn();
 const mockGenerateState = vi.fn();
+const mockUsersTable = {};
+const mockGarminOauthSessionsTable = {};
 
 vi.mock("@/stack/server", () => ({
   stackServerApp: {
@@ -28,12 +33,14 @@ vi.mock("@/db", () => ({
       return selectBuilder;
     },
     insert: () => insertBuilder,
+    delete: () => deleteBuilder,
   },
 }));
 
 vi.mock("@/db/schema", () => ({
-  users: {},
+  users: mockUsersTable,
   garminConnections: {},
+  garminOauthSessions: mockGarminOauthSessionsTable,
 }));
 
 vi.mock("@/lib/adapters/garmin", () => ({
@@ -53,6 +60,7 @@ describe("GET /api/garmin/oauth/start", () => {
     selectBuilder.limit.mockReset();
     insertBuilder.values = vi.fn().mockReturnThis();
     insertBuilder.onConflictDoNothing = vi.fn().mockReturnThis();
+    deleteBuilder.where.mockReset().mockResolvedValue(undefined);
     mockGeneratePkcePair.mockReturnValue({ codeVerifier: "verifier", codeChallenge: "challenge" });
     mockGenerateState.mockReturnValue("state-123");
     mockBuildAuthorizationUrl.mockReturnValue(new URL("https://connect.garmin.com/oauth?state=state-123"));
@@ -68,7 +76,7 @@ describe("GET /api/garmin/oauth/start", () => {
     expect(payload).toEqual({ error: "Unauthorized" });
   });
 
-  it("redirects to Garmin when the user has no existing connection and sets the OAuth cookie", async () => {
+  it("redirects to Garmin when the user has no existing connection and stores an OAuth session", async () => {
     mockGetUser.mockResolvedValueOnce({ id: "stack-user-1", displayName: "Ben" });
     selectBuilder.limit
       .mockResolvedValueOnce([{ id: 42 }]) // local user lookup
@@ -78,9 +86,16 @@ describe("GET /api/garmin/oauth/start", () => {
 
     expect(response.status).toBe(307);
     expect(response.headers.get("location")).toContain("connect.garmin.com");
-    const cookieHeader = response.headers.get("set-cookie") ?? "";
-    expect(cookieHeader).toContain("garmin_oauth_state=");
-    expect(cookieHeader).toContain("HttpOnly");
+    expect(response.headers.get("set-cookie")).toBeNull();
+    expect(insertBuilder.values).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        state: "state-123",
+        codeVerifier: "verifier",
+        userId: 42,
+        stackUserId: "stack-user-1",
+      }),
+    );
+    expect(deleteBuilder.where).toHaveBeenCalled();
   });
 
   it("redirects back to the integrations page when the account is already connected", async () => {
@@ -116,7 +131,7 @@ describe("GET /api/garmin/oauth/start", () => {
       garminConversionsRemaining: defaultPlan.conversionQuota ?? 0,
     });
     expect(insertBuilder.onConflictDoNothing).toHaveBeenCalled();
-    expect(response.headers.get("set-cookie")).toContain("garmin_oauth_state=");
+    expect(response.headers.get("set-cookie")).toBeNull();
   });
 
   it("returns 500 when the user profile cannot be created", async () => {

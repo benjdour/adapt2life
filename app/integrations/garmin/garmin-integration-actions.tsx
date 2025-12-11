@@ -5,6 +5,27 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { Locale } from "@/lib/i18n/locales";
+
+type ActionStatusMessage = {
+  title: string;
+  description?: string;
+};
+
+type GarminIntegrationActionsCopy = {
+  connectLabel: string;
+  reconnectLabel: string;
+  disconnectLabel: string;
+  alreadyConnectedToast: string;
+  reassignToast: string;
+  successToast: string;
+  disconnectSuccess: string;
+  disconnectError: string;
+  genericError: string;
+  maskedUserLabel: string;
+  tokenValidUntilLabel: string;
+  statusMessages: Record<string, ActionStatusMessage>;
+};
 
 type Props = {
   isConnected: boolean;
@@ -12,44 +33,9 @@ type Props = {
   status?: "success" | "error";
   reason?: string;
   accessTokenExpiresAt?: string;
-};
-
-const statusMessages: Record<string, { title: string; description?: string }> = {
-  authorization_declined: {
-    title: "Connexion annulée.",
-    description: "Vous avez refusé l'accès dans Garmin Connect.",
-  },
-  missing_parameters: {
-    title: "Réponse invalide.",
-    description: "Certains paramètres de retour sont manquants.",
-  },
-  invalid_session: {
-    title: "Session expirée.",
-    description: "Relancez la connexion depuis Adapt2Life.",
-  },
-  invalid_state: {
-    title: "Protection anti-CSRF invalide.",
-    description: "Relancez la connexion pour générer un nouvel état sécurisé.",
-  },
-  unauthorized: {
-    title: "Session utilisateur absente.",
-    description: "Reconnectez-vous à Adapt2Life avant d'autoriser Garmin.",
-  },
-  user_not_found: {
-    title: "Profil Adapt2Life introuvable.",
-  },
-  already_linked: {
-    title: "Compte Garmin déjà lié.",
-    description: "Ce compte Garmin est déjà associé à un autre utilisateur.",
-  },
-  oauth_failed: {
-    title: "Erreur OAuth Garmin.",
-    description: "Impossible d'échanger le code contre des tokens.",
-  },
-  unexpected_error: {
-    title: "Erreur inattendue.",
-    description: "Merci de réessayer ou de contacter le support.",
-  },
+  copy: GarminIntegrationActionsCopy;
+  locale: Locale;
+  redirectPath: string;
 };
 
 const obfuscateGarminUserId = (value?: string | null): string | undefined => {
@@ -72,55 +58,69 @@ export function GarminIntegrationActions({
   status,
   reason,
   accessTokenExpiresAt,
+  copy,
+  locale,
+  redirectPath,
 }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [isDisconnecting, startDisconnect] = useTransition();
   const maskedGarminUserId = useMemo(() => obfuscateGarminUserId(garminUserId), [garminUserId]);
+  const dateFormatter = useMemo(
+    () =>
+      new Intl.DateTimeFormat(locale === "fr" ? "fr-FR" : "en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    [locale],
+  );
 
   useEffect(() => {
     if (!status) return;
 
     if (status === "success") {
       if (reason === "already_connected") {
-        toast.info("Garmin déjà connecté.", {
-          description: maskedGarminUserId ? `userId: ${maskedGarminUserId}` : undefined,
+        toast.info(copy.alreadyConnectedToast, {
+          description: maskedGarminUserId ? `${copy.maskedUserLabel} ${maskedGarminUserId}` : undefined,
         });
       } else if (reason === "reassigned") {
-        toast.success("Garmin relié à ce compte.", {
-          description: maskedGarminUserId ? `userId: ${maskedGarminUserId}` : undefined,
+        toast.success(copy.reassignToast, {
+          description: maskedGarminUserId ? `${copy.maskedUserLabel} ${maskedGarminUserId}` : undefined,
         });
       } else {
-        toast.success("Garmin connecté !", {
-          description: maskedGarminUserId ? `userId: ${maskedGarminUserId}` : undefined,
+        toast.success(copy.successToast, {
+          description: maskedGarminUserId ? `${copy.maskedUserLabel} ${maskedGarminUserId}` : undefined,
         });
       }
     } else {
-      const message = reason ? statusMessages[reason] : undefined;
-      toast.error(message?.title ?? "Connexion Garmin échouée.", {
+      const message = reason ? copy.statusMessages[reason] : undefined;
+      toast.error(message?.title ?? copy.genericError, {
         description: message?.description,
       });
     }
 
     const timeout = setTimeout(() => {
-      router.replace("/integrations/garmin");
+      router.replace(redirectPath);
     }, 1500);
 
     return () => clearTimeout(timeout);
-  }, [maskedGarminUserId, reason, router, status]);
+  }, [copy, maskedGarminUserId, reason, redirectPath, router, status]);
 
   const nextActionLabel = useMemo(() => {
     if (isConnected) {
-      return "Reconnecter Garmin";
+      return copy.reconnectLabel;
     }
-    return "Connecter Garmin";
-  }, [isConnected]);
+    return copy.connectLabel;
+  }, [copy.connectLabel, copy.reconnectLabel, isConnected]);
 
   const nextExpiryLabel = useMemo(() => {
     if (!accessTokenExpiresAt) return null;
     const date = new Date(accessTokenExpiresAt);
-    return date.toLocaleString();
-  }, [accessTokenExpiresAt]);
+    return `${copy.tokenValidUntilLabel} ${dateFormatter.format(date)}`;
+  }, [accessTokenExpiresAt, copy, dateFormatter]);
 
   return (
     <div className="mt-6 space-y-4">
@@ -153,33 +153,34 @@ export function GarminIntegrationActions({
 
                   if (!response.ok) {
                     const payload = await response.json().catch(() => ({}));
-                    throw new Error(payload.error ?? "Impossible de se déconnecter de Garmin");
+                    throw new Error(payload.error ?? copy.disconnectError);
                   }
 
-                  toast.success("Garmin déconnecté.");
+                  toast.success(copy.disconnectSuccess);
                   router.refresh();
                 } catch (error) {
-                  const message = error instanceof Error ? error.message : "Impossible de se déconnecter";
-                  toast.error(message);
+                  const message = error instanceof Error ? error.message : copy.disconnectError;
+                  toast.error(copy.disconnectError, { description: message !== copy.disconnectError ? message : undefined });
                 }
               })
             }
-            className="w-full sm:w-auto"
+            className="w-full whitespace-normal leading-tight sm:w-auto text-center"
             disabled={isPending || isDisconnecting}
             isLoading={isDisconnecting}
           >
-            Déconnecter Garmin
+            <span className="block whitespace-pre-line text-center">{copy.disconnectLabel}</span>
           </Button>
           {maskedGarminUserId ? (
-            <span className="inline-flex flex-1 items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-mono text-muted-foreground">
-              userId&nbsp;: {maskedGarminUserId}
+            <span className="inline-flex flex-1 flex-col items-start rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-mono text-muted-foreground">
+              <span className="text-muted-foreground/70">{copy.maskedUserLabel}</span>
+              <span className="break-all text-foreground">{maskedGarminUserId}</span>
             </span>
           ) : null}
         </div>
       ) : null}
 
       {isConnected && nextExpiryLabel ? (
-        <p className="text-xs text-muted-foreground">Token valide jusqu&apos;au : {nextExpiryLabel}</p>
+        <p className="text-xs text-muted-foreground">{nextExpiryLabel}</p>
       ) : null}
     </div>
   );

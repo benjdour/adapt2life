@@ -127,44 +127,6 @@ const extractCapacityScore = (input: string): number | null => {
   return null;
 };
 
-const LANGUAGE_LABELS: Record<string, string> = {
-  fr: "français",
-  en: "anglais",
-  es: "espagnol",
-  de: "allemand",
-  it: "italien",
-  pt: "portugais",
-};
-
-const resolvePreferredLanguage = (
-  header: string | null,
-): {
-  tag: string | null;
-  label: string | null;
-} => {
-  if (!header) {
-    return { tag: null, label: null };
-  }
-
-  const [rawFirst] = header
-    .split(",")
-    .map((segment) => segment.trim())
-    .filter(Boolean);
-
-  if (!rawFirst) {
-    return { tag: null, label: null };
-  }
-
-  const [tag] = rawFirst.split(";").map((segment) => segment.trim());
-  if (!tag) {
-    return { tag: null, label: null };
-  }
-
-  const normalized = tag.toLowerCase();
-  const base = normalized.split("-")[0] ?? normalized;
-  return { tag, label: LANGUAGE_LABELS[base] ?? null };
-};
-
 async function ensureLocalUser(stackUser: NonNullable<Awaited<ReturnType<typeof stackServerApp.getUser>>>) {
   const [existingUser] = await db
     .select({
@@ -346,10 +308,6 @@ export async function POST(request: NextRequest) {
 
     const profileLines = profileParts.filter(Boolean).join("\n");
 
-    const { tag: preferredLanguageTag, label: preferredLanguageLabel } = resolvePreferredLanguage(
-      request.headers.get("accept-language"),
-    );
-
     const capacityScore = extractCapacityScore(goal);
     const formattedCapacityScore =
       capacityScore !== null ? (Number.isInteger(capacityScore) ? `${capacityScore}` : capacityScore.toFixed(1)) : null;
@@ -364,9 +322,8 @@ export async function POST(request: NextRequest) {
         ? trainingGoal
         : "Non précisé (identifie un objectif cohérent avec le contexte fourni).";
 
-    const languageInstruction = preferredLanguageLabel
-      ? `${preferredLanguageLabel} (${preferredLanguageTag ?? ""})`
-      : "Analyse la langue utilisée par l’utilisateur et réponds dans cette langue.";
+    const languageInstruction =
+      "Langue de réponse attendue : détecte la langue utilisée par l’utilisateur dans la section ci-dessous et rédige la séance entièrement dans cette même langue (ex. utilisateur en anglais → réponse en anglais, utilisateur en allemand → réponse en allemand). Ne traduis jamais vers une autre langue. / Response language: detect the language used by the user in the prompt below and write the entire session strictly in that language. Do not translate to another language.";
 
     const normalizedConstraints = constraints?.trim().length ? constraints : "Aucune précisée.";
     const normalizedAvailability = availability?.trim().length ? availability : "Non précisées.";

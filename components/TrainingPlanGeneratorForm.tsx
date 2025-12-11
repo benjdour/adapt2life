@@ -1,10 +1,10 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { MarkdownPlan } from "@/components/MarkdownPlan";
-import { TRAINING_LOADING_MESSAGES, GARMIN_TRANSFER_LOADING_MESSAGES } from "@/constants/loadingMessages";
+import { GARMIN_TRANSFER_LOADING_MESSAGES, TRAINING_LOADING_MESSAGES } from "@/constants/loadingMessages";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { AppError, describeAppError, getErrorDescriptor } from "@/lib/errors";
 import { downloadPlanPdf } from "@/lib/utils/pdf";
 import { detectPlanSport, evaluatePlanCompatibility, isGarminSportSupported } from "@/lib/utils/garminCompatibility";
+import { DEFAULT_LOCALE, Locale } from "@/lib/i18n/locales";
 
 export type GeneratedPlanPayload = {
   plan: string;
@@ -26,9 +27,125 @@ type TrainingPlanResponse = {
 type TrainingPlanGeneratorFormProps = {
   onPlanGenerated?: (plan: GeneratedPlanPayload | null) => void;
   enableInlineSend?: boolean;
+  locale?: Locale;
 };
 
-export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = false }: TrainingPlanGeneratorFormProps) {
+type TrainingPlanCopy = {
+  briefingTitle: string;
+  briefingDescription: string;
+  promptLabel: string;
+  promptPlaceholder: string;
+  generateButton: string;
+  planCardTitle: string;
+  sendButtonLabel: string;
+  sendButtonSentLabel: string;
+  sendButtonFallbackLabel: string;
+  downloadButtonLabel: string;
+  compatibilityWarning: (context: string) => string;
+  compatibilityFallbackContext: string;
+  planGenerated: { title: string; description: string };
+  noPlanToSend: { title: string; description: string };
+  noPlanAvailable: { title: string; description: string };
+  pdfExported: { title: string; description: string };
+  pdfExportFailed: { title: string; description: string };
+  pendingTransferMessage: string;
+  garminJobSuccess: string;
+  garminJobFailed: string;
+  garminJobFailedDescription: string;
+};
+
+const trainingPlanCopyByLocale: Record<Locale, TrainingPlanCopy> = {
+  fr: {
+    briefingTitle: "Briefing d’entraînement",
+    briefingDescription: "Décris ton objectif, tes contraintes et ton ressenti du jour pour générer une séance adaptée.",
+    promptLabel: "Que veux-tu faire aujourd’hui et quelles sont tes contraintes ?",
+    promptPlaceholder: "Ex. je veux faire une séance cardio de 45 min, genou fragile, pas d’équipement, dispo ce soir.",
+    generateButton: "Générer le plan",
+    planCardTitle: "Plan d’entraînement personnalisé",
+    sendButtonLabel: "Envoyer à Garmin Connect",
+    sendButtonSentLabel: "Entraînement envoyé",
+    sendButtonFallbackLabel: "Télécharger le plan PDF",
+    downloadButtonLabel: "Télécharger le plan PDF",
+    compatibilityWarning: (context) =>
+      `Cet entraînement (${context}) n’est pas compatible avec Garmin Training. Télécharge le PDF pour le suivre manuellement.`,
+    compatibilityFallbackContext: "sport non pris en charge",
+    planGenerated: {
+      title: "Plan généré avec succès",
+      description: "Tu peux le consulter et l’envoyer juste en dessous.",
+    },
+    noPlanToSend: {
+      title: "Aucun plan à envoyer",
+      description: "Génère d’abord une séance avant de l’envoyer vers Garmin.",
+    },
+    noPlanAvailable: {
+      title: "Plan introuvable",
+      description: "Génère d’abord un entraînement.",
+    },
+    pdfExported: {
+      title: "Plan exporté",
+      description: "Le PDF est prêt dans tes téléchargements.",
+    },
+    pdfExportFailed: {
+      title: "Export impossible",
+      description: "La génération du PDF a échoué. Réessaie ou contacte le support.",
+    },
+    pendingTransferMessage: "Ton entraînement sera disponible dans Garmin Connect d’ici 5 minutes.",
+    garminJobSuccess: "Entraînement envoyé à Garmin",
+    garminJobFailed: "L’envoi Garmin a échoué",
+    garminJobFailedDescription: "Garmin n’a pas accepté cette séance.",
+  },
+  en: {
+    briefingTitle: "Workout briefing",
+    briefingDescription: "Describe your goal, constraints and how you feel today to generate a tailored session.",
+    promptLabel: "What do you want to do today and what are your constraints?",
+    promptPlaceholder: "e.g. 45-min cardio session, sensitive knee, no gear, available tonight.",
+    generateButton: "Generate the plan",
+    planCardTitle: "Personalized workout plan",
+    sendButtonLabel: "Send to Garmin Connect",
+    sendButtonSentLabel: "Workout sent",
+    sendButtonFallbackLabel: "Download the workout PDF",
+    downloadButtonLabel: "Download the workout PDF",
+    compatibilityWarning: (context) =>
+      `This workout (${context}) isn’t supported by Garmin Training. Download the PDF to follow it manually.`,
+    compatibilityFallbackContext: "unsupported sport",
+    planGenerated: {
+      title: "Plan generated successfully",
+      description: "Review it below and send it when you’re ready.",
+    },
+    noPlanToSend: {
+      title: "No workout to send",
+      description: "Generate a session before sending it to Garmin.",
+    },
+    noPlanAvailable: {
+      title: "Workout not found",
+      description: "Generate a session first.",
+    },
+    pdfExported: {
+      title: "Workout exported",
+      description: "The PDF is waiting in your downloads.",
+    },
+    pdfExportFailed: {
+      title: "Export failed",
+      description: "We couldn’t create the PDF. Try again or contact support.",
+    },
+    pendingTransferMessage: "Your workout should appear in Garmin Connect within five minutes.",
+    garminJobSuccess: "Workout sent to Garmin",
+    garminJobFailed: "Garmin delivery failed",
+    garminJobFailedDescription: "Garmin couldn’t ingest this workout.",
+  },
+};
+
+export function TrainingPlanGeneratorForm({
+  onPlanGenerated,
+  enableInlineSend = false,
+  locale = DEFAULT_LOCALE,
+}: TrainingPlanGeneratorFormProps) {
+  const copy = trainingPlanCopyByLocale[locale] ?? trainingPlanCopyByLocale[DEFAULT_LOCALE];
+  const trainingMessages = useMemo(() => TRAINING_LOADING_MESSAGES[locale] ?? TRAINING_LOADING_MESSAGES[DEFAULT_LOCALE], [locale]);
+  const transferMessages = useMemo(
+    () => GARMIN_TRANSFER_LOADING_MESSAGES[locale] ?? GARMIN_TRANSFER_LOADING_MESSAGES[DEFAULT_LOCALE],
+    [locale],
+  );
   const [prompt, setPrompt] = useState("");
   const [plan, setPlan] = useState<string | null>(null);
   const [conversionSource, setConversionSource] = useState<string | null>(null);
@@ -36,9 +153,9 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = 
   const [pendingToastId, setPendingToastId] = useState<string | number | null>(null);
   const [hasSentSuccessfully, setHasSentSuccessfully] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [loadingMessage, setLoadingMessage] = useState<string>(TRAINING_LOADING_MESSAGES[0]);
+  const [loadingMessage, setLoadingMessage] = useState<string>(trainingMessages[0]);
   const [isSending, setIsSending] = useState(false);
-  const [sendLoadingMessage, setSendLoadingMessage] = useState<string>(TRAINING_LOADING_MESSAGES[0]);
+  const [sendLoadingMessage, setSendLoadingMessage] = useState<string>(transferMessages[0]);
   const [planCompatibility, setPlanCompatibility] = useState<{
     isGarminCompatible: boolean;
     blocker: string | null;
@@ -53,17 +170,17 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = 
 
   useEffect(() => {
     if (!isLoading) {
-      setLoadingMessage(TRAINING_LOADING_MESSAGES[0]);
+      setLoadingMessage(trainingMessages[0]);
       return;
     }
 
     const selectRandomMessage = (previous?: string | null) => {
-      if (TRAINING_LOADING_MESSAGES.length === 1) {
-        return TRAINING_LOADING_MESSAGES[0];
+      if (trainingMessages.length <= 1) {
+        return trainingMessages[0];
       }
-      const candidates = TRAINING_LOADING_MESSAGES.filter((message) => message !== previous);
+      const candidates = trainingMessages.filter((message) => message !== previous);
       const index = Math.floor(Math.random() * candidates.length);
-      return candidates[index] ?? TRAINING_LOADING_MESSAGES[0];
+      return candidates[index] ?? trainingMessages[0];
     };
 
     setLoadingMessage((prev) => selectRandomMessage(prev));
@@ -73,21 +190,21 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = 
     }, 5000);
 
     return () => window.clearInterval(intervalId);
-  }, [isLoading]);
+  }, [isLoading, trainingMessages]);
 
   useEffect(() => {
     if (!isSending) {
-      setSendLoadingMessage(GARMIN_TRANSFER_LOADING_MESSAGES[0]);
+      setSendLoadingMessage(transferMessages[0]);
       return;
     }
 
     const selectRandomMessage = (previous?: string | null) => {
-      if (GARMIN_TRANSFER_LOADING_MESSAGES.length === 1) {
-        return GARMIN_TRANSFER_LOADING_MESSAGES[0];
+      if (transferMessages.length <= 1) {
+        return transferMessages[0];
       }
-      const candidates = GARMIN_TRANSFER_LOADING_MESSAGES.filter((message) => message !== previous);
+      const candidates = transferMessages.filter((message) => message !== previous);
       const index = Math.floor(Math.random() * candidates.length);
-      return candidates[index] ?? GARMIN_TRANSFER_LOADING_MESSAGES[0];
+      return candidates[index] ?? transferMessages[0];
     };
 
     setSendLoadingMessage((prev) => selectRandomMessage(prev));
@@ -97,7 +214,7 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = 
     }, 5000);
 
     return () => window.clearInterval(intervalId);
-  }, [isSending]);
+  }, [isSending, transferMessages]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -110,7 +227,7 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = 
 
     const trimmedPrompt = prompt.trim();
     if (!trimmedPrompt) {
-      const descriptor = getErrorDescriptor("training-plan/empty-brief");
+      const descriptor = getErrorDescriptor("training-plan/empty-brief", undefined, locale);
       toast.error(descriptor.title, { description: descriptor.description });
       return;
     }
@@ -165,11 +282,11 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = 
         plan: humanPlan,
         rawPlan: fallbackRaw,
       });
-      toast.success("Plan généré avec succès", {
-        description: "Tu peux le consulter et l'envoyer juste en dessous.",
+      toast.success(copy.planGenerated.title, {
+        description: copy.planGenerated.description,
       });
     } catch (submissionError) {
-      const descriptor = describeAppError(submissionError, "training-plan/request-failed");
+      const descriptor = describeAppError(submissionError, "training-plan/request-failed", locale);
       toast.error(descriptor.title, { description: descriptor.description });
       onPlanGenerated?.(null);
       setPlanCompatibility({ isGarminCompatible: true, blocker: null, sportLabel: null, sportId: null });
@@ -184,8 +301,8 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = 
       return;
     }
     if (!conversionSource) {
-      toast.error("Aucun plan à envoyer", {
-        description: "Génère d’abord une séance avant de l’envoyer vers Garmin.",
+      toast.error(copy.noPlanToSend.title, {
+        description: copy.noPlanToSend.description,
       });
       return;
     }
@@ -218,15 +335,12 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = 
       }
 
       setActiveJobId(payload.jobId);
-      const toastId = toast.success(
-        payload.message ?? "Ton entraînement sera disponible dans Garmin Connect d’ici 5 minutes.",
-        {
-          duration: 8000,
-        },
-      );
+      const toastId = toast.success(payload.message ?? copy.pendingTransferMessage, {
+        duration: 8000,
+      });
       setPendingToastId(toastId);
     } catch (error) {
-      const descriptor = describeAppError(error, "garmin-trainer/push-failed");
+      const descriptor = describeAppError(error, "garmin-trainer/push-failed", locale);
       toast.error(descriptor.title, { description: descriptor.description });
       setIsSending(false);
     } finally {
@@ -236,15 +350,15 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = 
 
   const handleDownloadPdf = async () => {
     if (!plan) {
-      toast.error("Plan introuvable", { description: "Génère d’abord un entraînement." });
+      toast.error(copy.noPlanAvailable.title, { description: copy.noPlanAvailable.description });
       return;
     }
     try {
       await downloadPlanPdf(plan, "plan-adapt2life.pdf");
-      toast.success("Plan exporté", { description: "Le PDF est prêt dans tes téléchargements." });
+      toast.success(copy.pdfExported.title, { description: copy.pdfExported.description });
     } catch (error) {
       console.error("plan pdf export failed", error);
-      toast.error("Export impossible", { description: "La génération du PDF a échoué. Réessaie ou contacte le support." });
+      toast.error(copy.pdfExportFailed.title, { description: copy.pdfExportFailed.description });
     }
   };
 
@@ -272,7 +386,7 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = 
           }
           setIsSending(false);
           setHasSentSuccessfully(true);
-          toast.success("Entraînement envoyé à Garmin");
+          toast.success(copy.garminJobSuccess);
         } else if (job.status === "failed") {
           setActiveJobId(null);
           if (pendingToastId) {
@@ -281,7 +395,7 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = 
           }
           setIsSending(false);
           setHasSentSuccessfully(false);
-          toast.error("L’envoi Garmin a échoué", { description: job.error ?? undefined });
+          toast.error(copy.garminJobFailed, { description: job.error ?? copy.garminJobFailedDescription });
         }
       } catch (error) {
         if (!cancelled) {
@@ -297,25 +411,25 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = 
       cancelled = true;
       window.clearInterval(intervalId);
     };
-  }, [activeJobId, pendingToastId]);
+  }, [activeJobId, pendingToastId, copy.garminJobFailed, copy.garminJobFailedDescription, copy.garminJobSuccess]);
 
   const isSwimmingPlan = (planCompatibility.sportId ?? "").toUpperCase() === "LAP_SWIMMING";
   const showSwimmingDualActions = planCompatibility.isGarminCompatible && isSwimmingPlan;
+  const incompatibleContext =
+    planCompatibility.sportLabel ?? planCompatibility.blocker ?? copy.compatibilityFallbackContext;
 
   return (
     <div className="space-y-6">
       <Card className="backdrop-blur">
         <CardHeader>
-          <CardTitle>Briefing d’entraînement</CardTitle>
-          <CardDescription>
-            Décris ton objectif, tes contraintes et ton ressenti du jour pour générer une séance adaptée.
-          </CardDescription>
+          <CardTitle>{copy.briefingTitle}</CardTitle>
+          <CardDescription>{copy.briefingDescription}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="prompt" requiredIndicator>
-                Que veux-tu faire aujourd’hui et quelles sont tes contraintes ?
+                {copy.promptLabel}
               </Label>
               <Textarea
                 id="prompt"
@@ -323,13 +437,13 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = 
                 value={prompt}
                 onChange={(event) => setPrompt(event.target.value)}
                 rows={6}
-                placeholder="Ex. je veux faire une séance cardio de 45 min, genou fragile, pas d’équipement, dispo ce soir."
+                placeholder={copy.promptPlaceholder}
                 required
               />
             </div>
 
             <Button type="submit" className="w-full" disabled={isLoading} isLoading={isLoading} data-gtm="generate-workout">
-              {isLoading ? loadingMessage : "Générer le plan"}
+              {isLoading ? loadingMessage : copy.generateButton}
             </Button>
           </form>
         </CardContent>
@@ -338,7 +452,7 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = 
       {plan ? (
         <Card className="text-sm leading-relaxed text-white">
           <CardHeader>
-            <CardTitle>Plan d’entraînement personnalisé</CardTitle>
+            <CardTitle>{copy.planCardTitle}</CardTitle>
           </CardHeader>
           <CardContent className={enableInlineSend ? "space-y-6" : undefined}>
             <MarkdownPlan content={plan} className="text-sm leading-relaxed" />
@@ -355,11 +469,11 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = 
                   >
                     {planCompatibility.isGarminCompatible
                       ? hasSentSuccessfully
-                        ? "Entraînement envoyé"
+                        ? copy.sendButtonSentLabel
                         : isSending
                         ? sendLoadingMessage
-                        : "Envoyer à Garmin Connect"
-                      : "Télécharger le plan PDF"}
+                        : copy.sendButtonLabel
+                      : copy.sendButtonFallbackLabel}
                   </Button>
                   {showSwimmingDualActions ? (
                     <Button
@@ -369,15 +483,12 @@ export function TrainingPlanGeneratorForm({ onPlanGenerated, enableInlineSend = 
                       onClick={handleDownloadPdf}
                       data-gtm="download-plan"
                     >
-                      Télécharger le plan PDF
+                      {copy.downloadButtonLabel}
                     </Button>
                   ) : null}
                 </div>
                 {!planCompatibility.isGarminCompatible ? (
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    Cet entraînement ({planCompatibility.sportLabel ?? planCompatibility.blocker ?? "sport non pris en charge"}) n’est
-                    pas compatible avec Garmin Training. Télécharge le PDF pour le suivre manuellement.
-                  </p>
+                  <p className="mt-2 text-xs text-muted-foreground">{copy.compatibilityWarning(incompatibleContext)}</p>
                 ) : null}
               </div>
             ) : null}
