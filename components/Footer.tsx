@@ -112,7 +112,7 @@ export const Footer = ({ navigation }: FooterProps) => {
                 );
               }}
             >
-              <SelectTrigger className="w-full border-white/15 bg-card/40 text-foreground">
+              <SelectTrigger className="w-auto border-white/15 bg-card/40 text-foreground">
                 <SelectValue
                   aria-label={currentNavigation.languageToggle.title}
                   placeholder={selectedLanguage.label}
