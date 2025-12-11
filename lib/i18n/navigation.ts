@@ -1,3 +1,5 @@
+import { LEGAL_PAGES } from "@/lib/legal/content";
+
 import { DEFAULT_LOCALE, Locale } from "./locales";
 import { buildLocalePath, buildSignInUrl } from "./routing";
 
@@ -64,20 +66,43 @@ const socials: FooterLink[] = [
   { label: "Instagram", href: "https://www.instagram.com/adapt2life.app" },
 ];
 
-const legalLinks = (locale: Locale): FooterLink[] => [
+const LEGAL_LINKS_DEFINITION: Array<{
+  id: string;
+  labels: Record<Locale, string>;
+}> = [
   {
-    label: locale === "en" ? "Legal notice" : "Mentions légales",
-    href: buildLocalePath(locale, "/legal/mentions-legales"),
+    id: "legal-notice",
+    labels: {
+      fr: "Mentions légales",
+      en: "Legal notice",
+    },
   },
   {
-    label: locale === "en" ? "Terms of use" : "Conditions d’utilisation",
-    href: buildLocalePath(locale, "/legal/conditions"),
+    id: "terms",
+    labels: {
+      fr: "Conditions d’utilisation",
+      en: "Terms of use",
+    },
   },
   {
-    label: locale === "en" ? "Privacy policy" : "Politique de confidentialité",
-    href: buildLocalePath(locale, "/legal/confidentialite"),
+    id: "privacy",
+    labels: {
+      fr: "Politique de confidentialité",
+      en: "Privacy policy",
+    },
   },
-];
+] as const;
+
+const getLegalSlug = (id: string, locale: Locale) => {
+  const page = LEGAL_PAGES.find((entry) => entry.id === id);
+  return page?.slugs[locale] ?? id;
+};
+
+const legalLinks = (locale: Locale): FooterLink[] =>
+  LEGAL_LINKS_DEFINITION.map((definition) => ({
+    label: definition.labels[locale],
+    href: buildLocalePath(locale, `/legal/${getLegalSlug(definition.id, locale)}`),
+  }));
 
 const buildLocaleAwareRedirect = (locale: Locale, targetPath: string) => buildSignInUrl(locale, targetPath);
 
