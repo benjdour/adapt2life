@@ -64,6 +64,7 @@ const copyByLocale: Record<Locale, AdminCopy> = {
       form: {
         helperText: "Le fichier doit contenir les champs title, slug, excerpt, publishedAt dans le front matter.",
         fileLabel: "Fichier Markdown (.md)",
+        filenameHint: "Nomme le fichier avec le suffixe .fr.md ou .en.md (ex : mon-article.fr.md, my-article.en.md) pour indiquer la langue.",
         imageLabel: "Image hero à uploader (optionnelle)",
         heroImageUrlLabel: "URL d’image hero déjà hébergée (optionnelle)",
         submitLabel: "Importer l’article",
@@ -96,6 +97,7 @@ const copyByLocale: Record<Locale, AdminCopy> = {
       form: {
         helperText: "Front matter must include title, slug, excerpt, and publishedAt fields.",
         fileLabel: "Markdown file (.md)",
+        filenameHint: "Name your file with .fr.md or .en.md (e.g., article.fr.md, article.en.md) to set the language.",
         imageLabel: "Hero image to upload (optional)",
         heroImageUrlLabel: "Existing hero image URL (optional)",
         submitLabel: "Import article",

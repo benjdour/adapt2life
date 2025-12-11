@@ -40,6 +40,7 @@ const adminCopyByLocale = (locale: Locale) =>
           form: {
             helperText: "Le front matter doit inclure title, slug, excerpt et publishedAt.",
             fileLabel: "Fichier Markdown (.md)",
+            filenameHint: "Utilise un suffixe .fr.md ou .en.md (ex : mon-article.fr.md, my-article.en.md) pour indiquer la langue.",
             imageLabel: "Image hero à uploader (optionnelle)",
             heroImageUrlLabel: "URL d’image hero déjà hébergée (optionnelle)",
             submitLabel: "Importer l’article",
@@ -71,6 +72,7 @@ const adminCopyByLocale = (locale: Locale) =>
           form: {
             helperText: "Front matter must include title, slug, excerpt, and publishedAt fields.",
             fileLabel: "Markdown file (.md)",
+            filenameHint: "Use .fr.md or .en.md suffixes (e.g., article.fr.md, article.en.md) to set the language.",
             imageLabel: "Hero image to upload (optional)",
             heroImageUrlLabel: "Existing hero image URL (optional)",
             submitLabel: "Import article",

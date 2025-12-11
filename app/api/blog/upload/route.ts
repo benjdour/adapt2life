@@ -17,6 +17,7 @@ type BlogFrontMatter = {
 };
 
 const REQUIRED_FIELDS: Array<keyof BlogFrontMatter> = ["title", "slug", "excerpt", "publishedAt"];
+type LangResolutionResult = { value: string; error?: undefined } | { error: string; value?: undefined };
 
 export async function POST(request: Request) {
   try {
@@ -27,9 +28,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Markdown file is required." }, { status: 400 });
     }
 
+    const langFromFilename = inferLangFromFilename(markdownFile.name);
     const markdownContent = await markdownFile.text();
     const { data, content } = matter(markdownContent);
     const frontMatter = data as BlogFrontMatter;
+    const frontMatterLang =
+      typeof frontMatter.lang === "string" && frontMatter.lang.trim() ? frontMatter.lang.trim().toLowerCase() : null;
+    const langFinal = resolvePostLanguage({ frontMatterLang, langFromFilename });
+    if (langFinal.error) {
+      return NextResponse.json({ error: langFinal.error }, { status: 400 });
+    }
 
     for (const field of REQUIRED_FIELDS) {
       if (typeof frontMatter[field] !== "string" || !String(frontMatter[field]).trim()) {
@@ -55,7 +63,7 @@ export async function POST(request: Request) {
       slug,
       title,
       excerpt,
-      lang: typeof frontMatter.lang === "string" && frontMatter.lang.trim() ? frontMatter.lang.trim() : "fr",
+      lang: langFinal.value,
       heroImage: heroImageUrlFinal,
       publishedAt,
       content,
@@ -91,4 +99,48 @@ async function resolveHeroImageUrl(formData: FormData, frontMatter: BlogFrontMat
   }
 
   return null;
+}
+
+function inferLangFromFilename(fileName: string): "fr" | "en" | null {
+  const normalized = fileName.toLowerCase();
+  const match = normalized.match(/\.([a-z]{2})\.(md|markdown)$/);
+  if (!match) {
+    return null;
+  }
+
+  const code = match[1];
+  if (code === "fr" || code === "en") {
+    return code;
+  }
+
+  return null;
+}
+
+function resolvePostLanguage({
+  frontMatterLang,
+  langFromFilename,
+}: {
+  frontMatterLang: string | null;
+  langFromFilename: "fr" | "en" | null;
+}): LangResolutionResult {
+  if (langFromFilename && frontMatterLang) {
+    if (frontMatterLang !== langFromFilename) {
+      return {
+        error:
+          "La langue indiquée dans le front matter ne correspond pas à la langue déduite du nom de fichier (ex: *.fr.md / *.en.md).",
+      };
+    }
+    return { value: langFromFilename };
+  }
+
+  if (langFromFilename) {
+    return { value: langFromFilename };
+  }
+
+  if (frontMatterLang) {
+    return { value: frontMatterLang };
+  }
+
+  // On conserve "fr" par défaut afin de rester aligné avec le comportement historique.
+  return { value: "fr" as const };
 }

@@ -11,6 +11,7 @@ type Status = "idle" | "success" | "error";
 export type BlogPostImportFormCopy = {
   helperText: string;
   fileLabel: string;
+  filenameHint: string;
   imageLabel: string;
   heroImageUrlLabel: string;
   submitLabel: string;
@@ -67,6 +68,7 @@ export function BlogPostImportForm({ copy }: BlogPostImportFormProps) {
           {copy.fileLabel}
         </Label>
         <Input id="blog-markdown" name="file" type="file" accept=".md,.markdown" required />
+        <p className="text-xs text-muted-foreground">{copy.filenameHint}</p>
       </div>
 
       <div className="space-y-2">
