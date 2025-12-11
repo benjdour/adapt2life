@@ -15,6 +15,7 @@ import { AdminGarminJobsTable } from "@/components/AdminGarminJobsTable";
 import { getRequestLocale } from "@/lib/i18n/request";
 import { buildLocalePath } from "@/lib/i18n/routing";
 import { Locale } from "@/lib/i18n/locales";
+import { BlogPostImportForm, BlogPostImportFormCopy } from "@/components/BlogPostImportForm";
 
 type AdminCopy = {
   metadataTitle: string;
@@ -31,6 +32,11 @@ type AdminCopy = {
     description: string;
   };
   fallbackUserName: string;
+  blogImportCard: {
+    title: string;
+    description: string;
+    form: BlogPostImportFormCopy;
+  };
 };
 
 const copyByLocale: Record<Locale, AdminCopy> = {
@@ -52,6 +58,19 @@ const copyByLocale: Record<Locale, AdminCopy> = {
       description: "Statut des 20 derniers jobs (phase, modèle IA, mise à jour).",
     },
     fallbackUserName: "Utilisateur",
+    blogImportCard: {
+      title: "Importer un article de blog (Markdown)",
+      description: "Ajoute un nouvel article en fournissant un fichier .md avec front matter YAML.",
+      form: {
+        helperText: "Le fichier doit contenir les champs title, slug, excerpt, publishedAt dans le front matter.",
+        fileLabel: "Fichier Markdown (.md)",
+        imageLabel: "Image hero à uploader (optionnelle)",
+        heroImageUrlLabel: "URL d’image hero déjà hébergée (optionnelle)",
+        submitLabel: "Importer l’article",
+        successMessage: "Article importé avec succès 🎉",
+        errorMessage: "Impossible d’importer l’article. Vérifie les champs obligatoires.",
+      },
+    },
   },
   en: {
     metadataTitle: "Admin Area — Adapt2Life",
@@ -71,6 +90,19 @@ const copyByLocale: Record<Locale, AdminCopy> = {
       description: "Status of the 20 latest jobs (phase, AI model, updated at).",
     },
     fallbackUserName: "User",
+    blogImportCard: {
+      title: "Import a blog post (Markdown)",
+      description: "Upload a .md file with YAML front matter to create a new blog article.",
+      form: {
+        helperText: "Front matter must include title, slug, excerpt, and publishedAt fields.",
+        fileLabel: "Markdown file (.md)",
+        imageLabel: "Hero image to upload (optional)",
+        heroImageUrlLabel: "Existing hero image URL (optional)",
+        submitLabel: "Import article",
+        successMessage: "Blog post imported successfully 🎉",
+        errorMessage: "Unable to import the article. Please check the required fields.",
+      },
+    },
   },
 };
 
@@ -171,6 +203,16 @@ export default async function AdminPage() {
         </CardHeader>
         <CardContent>
           <AdminGarminJobsTable jobs={recentJobs} locale={locale} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{copy.blogImportCard.title}</CardTitle>
+          <CardDescription>{copy.blogImportCard.description}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <BlogPostImportForm copy={copy.blogImportCard.form} />
         </CardContent>
       </Card>
     </div>
