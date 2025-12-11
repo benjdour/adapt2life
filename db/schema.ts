@@ -10,6 +10,7 @@ import {
   text,
   timestamp,
   uniqueIndex,
+  varchar,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
@@ -207,4 +208,15 @@ export const aiModelConfigs = pgTable("ai_model_configs", {
   modelId: text("model_id").notNull(),
   updatedBy: text("updated_by"),
   updatedAt: timestamp("updated_at").defaultNow().$onUpdate(() => new Date()),
+});
+
+export const posts = pgTable("posts", {
+  id: text("id").primaryKey(),
+  slug: varchar("slug", { length: 255 }).notNull().unique(),
+  title: varchar("title", { length: 255 }).notNull(),
+  excerpt: text("excerpt").notNull(),
+  lang: varchar("lang", { length: 5 }).notNull(),
+  heroImage: varchar("hero_image", { length: 512 }),
+  publishedAt: timestamp("published_at", { withTimezone: true }).notNull(),
+  content: text("content").notNull(),
 });
