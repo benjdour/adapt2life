@@ -86,6 +86,21 @@ const decodeRedirectLocale = (raw: string | null): Locale | null => {
   }
 };
 
+const inferLocaleFromHeader = (raw: string | null): Locale | null => {
+  if (!raw) return null;
+  const entries = raw.split(",").map((entry) => entry.trim()).filter(Boolean);
+  for (const entry of entries) {
+    const [languagePart] = entry.split(";");
+    const normalized = languagePart?.toLowerCase();
+    if (!normalized || normalized === "*") continue;
+    if (normalized.startsWith("fr")) {
+      return "fr";
+    }
+    return "en";
+  }
+  return null;
+};
+
 const resolveRequestLocale = (request: NextRequest, pathname: string): Locale => {
   const localeFromPath = deriveLocaleFromPathname(pathname);
   if (localeFromPath !== DEFAULT_LOCALE) {
@@ -98,6 +113,10 @@ const resolveRequestLocale = (request: NextRequest, pathname: string): Locale =>
   const redirectLocale = decodeRedirectLocale(request.nextUrl.searchParams.get("redirect"));
   if (redirectLocale) {
     return redirectLocale;
+  }
+  const headerLocale = inferLocaleFromHeader(request.headers.get("accept-language"));
+  if (headerLocale) {
+    return headerLocale;
   }
   return DEFAULT_LOCALE;
 };
