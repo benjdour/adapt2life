@@ -12,7 +12,6 @@ import { saveTrainingPlanForUser } from "@/lib/services/userGeneratedArtifacts";
 import { reserveTrainingGenerationCredit, refundTrainingGenerationCredit } from "@/lib/services/userCredits";
 import { getAiModelCandidates } from "@/lib/services/aiModelConfig";
 import { DEFAULT_USER_PLAN, getUserPlanConfig } from "@/lib/constants/userPlans";
-import { LOCALE_HEADER_NAME } from "@/lib/i18n/constants";
 
 const MAX_TEXT_LENGTH = 2000;
 
@@ -126,46 +125,6 @@ const extractCapacityScore = (input: string): number | null => {
   }
 
   return null;
-};
-
-const LANGUAGE_LABELS: Record<string, string> = {
-  fr: "français",
-  en: "anglais",
-  es: "espagnol",
-  de: "allemand",
-  it: "italien",
-  pt: "portugais",
-};
-
-type LanguagePreference = { tag: string | null; label: string | null };
-
-const mapLocaleToLanguage = (locale: string | null): LanguagePreference | null => {
-  if (!locale) return null;
-  const normalized = locale.toLowerCase();
-  const base = normalized.split("-")[0] ?? normalized;
-  const label = LANGUAGE_LABELS[base];
-  if (!label) return null;
-  return { tag: base, label };
-};
-
-const mapAcceptLanguageHeader = (header: string | null): LanguagePreference | null => {
-  if (!header) return null;
-  const candidates = header
-    .split(",")
-    .map((segment) => segment.trim())
-    .filter(Boolean);
-  for (const candidate of candidates) {
-    const [tag] = candidate.split(";").map((segment) => segment.trim());
-    const mapped = mapLocaleToLanguage(tag);
-    if (mapped) {
-      return mapped;
-    }
-  }
-  return null;
-};
-
-const resolvePreferredLanguage = (localeOverride: string | null, fallbackHeader: string | null): LanguagePreference => {
-  return mapLocaleToLanguage(localeOverride) ?? mapAcceptLanguageHeader(fallbackHeader) ?? { tag: null, label: null };
 };
 
 async function ensureLocalUser(stackUser: NonNullable<Awaited<ReturnType<typeof stackServerApp.getUser>>>) {
@@ -349,11 +308,6 @@ export async function POST(request: NextRequest) {
 
     const profileLines = profileParts.filter(Boolean).join("\n");
 
-    const { tag: preferredLanguageTag, label: preferredLanguageLabel } = resolvePreferredLanguage(
-      request.headers.get(LOCALE_HEADER_NAME),
-      request.headers.get("accept-language"),
-    );
-
     const capacityScore = extractCapacityScore(goal);
     const formattedCapacityScore =
       capacityScore !== null ? (Number.isInteger(capacityScore) ? `${capacityScore}` : capacityScore.toFixed(1)) : null;
@@ -368,9 +322,7 @@ export async function POST(request: NextRequest) {
         ? trainingGoal
         : "Non précisé (identifie un objectif cohérent avec le contexte fourni).";
 
-    const languageInstruction = preferredLanguageLabel
-      ? `${preferredLanguageLabel} (${preferredLanguageTag ?? ""})`
-      : "Analyse la langue utilisée par l’utilisateur et réponds dans cette langue.";
+    const languageInstruction = "Analyse la langue utilisée par l’utilisateur et réponds dans cette langue.";
 
     const normalizedConstraints = constraints?.trim().length ? constraints : "Aucune précisée.";
     const normalizedAvailability = availability?.trim().length ? availability : "Non précisées.";
