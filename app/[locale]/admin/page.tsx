@@ -124,7 +124,7 @@ export default async function AdminPage({ params }: { params: Promise<{ locale: 
         </CardContent>
       </Card>
 
-      <AdminAiModelManager availableModels={snapshot.availableModels} features={snapshot.features} />
+      <AdminAiModelManager availableModels={snapshot.availableModels} features={snapshot.features} locale={locale} />
 
       <Card>
         <CardHeader>
