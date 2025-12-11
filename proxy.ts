@@ -126,7 +126,7 @@ const attachLocale = (response: NextResponse, locale: Locale) => {
   return response;
 };
 
-export async function proxy(request: NextRequest) {
+export default async function proxy(request: NextRequest) {
   const originalPathname = request.nextUrl.pathname;
   const locale = resolveRequestLocale(request, originalPathname);
   const pathname = stripLocaleFromPath(originalPathname);
