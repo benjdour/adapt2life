@@ -30,6 +30,29 @@ const copyByLocale: Record<Locale, GarminDataPageCopy> = {
     headerTitle: "Données synchronisées",
     headerDescription: "Visualise les métriques clés envoyées par Garmin Connect.",
     client: {
+      energyCard: {
+        tag: "Vue globale",
+        title: "Energy Score",
+        description: "Calculée à partir des métriques de récupération, sommeil, stress et activités.",
+        graphLabel: "Energy Score",
+        statusLabel: "Statut",
+        trendLabel: "Tendance",
+        summaryIntro: "Basé sur :",
+        summaryItems: ["Sommeil profond", "Variabilité cardiaque", "Charge d’entraînement", "Niveau de stress"],
+        insights: {
+          high: "Niveau optimal, prêt à performer ⚡",
+          medium: "Énergie stable, adapte l’intensité 🔁",
+          low: "Fatigue détectée, privilégie la récupération 🧘",
+        },
+        trends: {
+          up: { label: "En hausse", tip: "Profite de ta récupération optimale pour monter en charge." },
+          stable: { label: "Stable", tip: "Maintiens l’équilibre en surveillant ton sommeil et ton stress." },
+          down: {
+            label: "En baisse",
+            tip: "Allège l’intensité et concentre-toi sur la mobilité ou la récupération active.",
+          },
+        },
+      },
       waitingSyncLabel: "En attente de synchro",
       activityCarousel: {
         counterLabel: "Activité {current} / {total}",
@@ -68,6 +91,26 @@ const copyByLocale: Record<Locale, GarminDataPageCopy> = {
     headerTitle: "Synced data",
     headerDescription: "Review the key metrics sent by Garmin Connect.",
     client: {
+      energyCard: {
+        tag: "Overview",
+        title: "Energy Score",
+        description: "Calculated from recovery, sleep, stress, and activity metrics.",
+        graphLabel: "Energy Score",
+        statusLabel: "Status",
+        trendLabel: "Trend",
+        summaryIntro: "Based on:",
+        summaryItems: ["Deep sleep", "Heart rate variability", "Training load", "Stress level"],
+        insights: {
+          high: "Optimal level, ready to perform ⚡",
+          medium: "Stable energy, adjust intensity 🔁",
+          low: "Fatigue detected, prioritize recovery 🧘",
+        },
+        trends: {
+          up: { label: "Trending up", tip: "Recovery improving—use it to push a bit more." },
+          stable: { label: "Stable", tip: "Maintain balance and keep an eye on your sensations." },
+          down: { label: "Trending down", tip: "Dial back intensity and focus on rest or mobility work." },
+        },
+      },
       waitingSyncLabel: "Waiting for sync",
       activityCarousel: {
         counterLabel: "Activity {current} / {total}",

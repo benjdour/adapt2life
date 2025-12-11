@@ -4,13 +4,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { TouchEvent } from "react";
 
-import TrainingScoreGauge from "@/components/TrainingScoreGauge";
+import TrainingScoreGauge, { type TrainingScoreGaugeCopy } from "@/components/TrainingScoreGauge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { GarminActivityHighlight, GarminDataBundle, GarminSection } from "@/lib/garminData";
 import type { Locale } from "@/lib/i18n/locales";
 import { LOCALE_HEADER_NAME } from "@/lib/i18n/constants";
 
 export type GarminDataClientCopy = {
+  energyCard: TrainingScoreGaugeCopy;
   waitingSyncLabel: string;
   activityCarousel: {
     counterLabel: string;
@@ -229,7 +230,7 @@ const GarminDataClient = ({ initialData, copy, locale }: GarminDataClientProps) 
 
   return (
     <div className="space-y-6">
-      <TrainingScoreGauge data={data.trainingGaugeData} />
+      <TrainingScoreGauge data={data.trainingGaugeData} copy={copy.energyCard} />
 
       {!hasConnection ? (
         <Card className="border-dashed">
