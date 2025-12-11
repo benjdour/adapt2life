@@ -7,6 +7,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { NavigationConfig, getNavigationConfig } from "@/lib/i18n/navigation";
 import { deriveLocaleFromPathname } from "@/lib/i18n/routing";
 import { DEFAULT_LOCALE, Locale, isLocale } from "@/lib/i18n/locales";
+import { buildLanguageToggleHref } from "@/lib/i18n/languageToggle";
 
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
   <div>
@@ -22,6 +23,7 @@ type FooterProps = {
 export const Footer = ({ navigation }: FooterProps) => {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const searchString = searchParams?.toString() ?? null;
   const [currentLocale, setCurrentLocale] = useState<Locale>(() =>
     pathname ? deriveLocaleFromPathname(pathname) : DEFAULT_LOCALE,
   );
@@ -40,6 +42,13 @@ export const Footer = ({ navigation }: FooterProps) => {
       setCurrentNavigation(getNavigationConfig(nextLocale));
     }
   }, [pathname, currentLocale, navigation, searchParams]);
+
+  const languageToggleHref = buildLanguageToggleHref(
+    currentNavigation.languageToggle.targetLocale,
+    currentNavigation.languageToggle.fallbackHref,
+    pathname,
+    searchString,
+  );
 
   const footer = currentNavigation.footer;
   return (
@@ -79,6 +88,16 @@ export const Footer = ({ navigation }: FooterProps) => {
               </li>
             ))}
           </ul>
+          <div className="pt-4">
+            <Link
+              href={languageToggleHref}
+              title={currentNavigation.languageToggle.title}
+              aria-label={currentNavigation.languageToggle.title}
+              className="inline-flex items-center rounded-full border border-white/15 px-4 py-2 text-sm font-medium text-foreground transition hover:bg-white/10"
+            >
+              {currentNavigation.languageToggle.label}
+            </Link>
+          </div>
         </Section>
       </div>
 
