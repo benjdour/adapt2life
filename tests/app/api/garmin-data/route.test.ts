@@ -9,7 +9,6 @@ const selectBuilder = {
 const mockDbSelect = vi.fn(() => selectBuilder);
 const mockFetchGarminData = vi.fn();
 const mockTrainingGauge = { mock: "gauge" };
-const mockGetRequestLocale = vi.fn(async () => "fr");
 
 vi.mock("@/stack/server", () => ({
   stackServerApp: {
@@ -35,10 +34,6 @@ vi.mock("@/lib/trainingScore", () => ({
   mockGarminData: () => mockTrainingGauge,
 }));
 
-vi.mock("@/lib/i18n/request", () => ({
-  getRequestLocale: mockGetRequestLocale,
-}));
-
 vi.mock("server-only", () => ({}));
 
 const { GET } = await import("@/app/api/garmin-data/route");
@@ -51,7 +46,7 @@ describe("GET /api/garmin-data", () => {
   it("refuses unauthenticated requests", async () => {
     mockGetUser.mockResolvedValueOnce(null);
 
-    const response = await GET();
+    const response = await GET(new Request("https://example.com/api/garmin-data"));
     const payload = await response.json();
 
     expect(response.status).toBe(401);
@@ -62,7 +57,7 @@ describe("GET /api/garmin-data", () => {
     mockGetUser.mockResolvedValueOnce({ id: "stack-user-1" });
     selectBuilder.limit.mockResolvedValueOnce([]);
 
-    const response = await GET();
+    const response = await GET(new Request("https://example.com/api/garmin-data"));
     const payload = await response.json();
 
     expect(response.status).toBe(200);
@@ -79,7 +74,6 @@ describe("GET /api/garmin-data", () => {
   it("returns synced Garmin data for authenticated users with a local profile", async () => {
     mockGetUser.mockResolvedValueOnce({ id: "stack-user-42" });
     selectBuilder.limit.mockResolvedValueOnce([{ id: 99, gender: "femme" }]);
-    mockGetRequestLocale.mockResolvedValueOnce("en");
     const garminData = {
       connection: { garminUserId: "abc" },
       sections: [],
@@ -89,7 +83,11 @@ describe("GET /api/garmin-data", () => {
     };
     mockFetchGarminData.mockResolvedValueOnce(garminData);
 
-    const response = await GET();
+    const response = await GET(
+      new Request("https://example.com/api/garmin-data?locale=en", {
+        headers: { "x-adapt2life-locale": "en" },
+      }),
+    );
     const payload = await response.json();
 
     expect(response.status).toBe(200);

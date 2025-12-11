@@ -168,7 +168,7 @@ const GarminDataClient = ({ initialData, copy, locale }: GarminDataClientProps) 
 
     const fetchLatest = async () => {
       try {
-        const response = await fetch("/api/garmin-data", {
+        const response = await fetch(`/api/garmin-data?locale=${locale}`, {
           method: "GET",
           cache: "no-store",
           credentials: "include",

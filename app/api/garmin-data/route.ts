@@ -6,10 +6,24 @@ import { fetchGarminData } from "@/lib/garminData";
 import { mockGarminData } from "@/lib/trainingScore";
 import { eq } from "drizzle-orm";
 import { stackServerApp } from "@/stack/server";
-import { getRequestLocale } from "@/lib/i18n/request";
+import { LOCALE_HEADER_NAME } from "@/lib/i18n/constants";
+import { DEFAULT_LOCALE, type Locale, isLocale } from "@/lib/i18n/locales";
 
-export async function GET() {
-  const locale = await getRequestLocale();
+const resolveLocale = (request: Request): Locale => {
+  const url = new URL(request.url);
+  const searchLocale = url.searchParams.get("locale");
+  if (searchLocale && isLocale(searchLocale)) {
+    return searchLocale;
+  }
+  const headerLocale = request.headers.get(LOCALE_HEADER_NAME);
+  if (headerLocale && isLocale(headerLocale)) {
+    return headerLocale;
+  }
+  return DEFAULT_LOCALE;
+};
+
+export async function GET(request: Request) {
+  const locale = resolveLocale(request);
   const stackUser = await stackServerApp.getUser({ or: "return-null", tokenStore: "nextjs-cookie" });
 
   if (!stackUser) {
