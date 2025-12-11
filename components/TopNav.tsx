@@ -10,6 +10,7 @@ import { NavigationConfig, getNavigationConfig } from "@/lib/i18n/navigation";
 import { buildLocalePath, deriveLocaleFromPathname, stripLocaleFromPath } from "@/lib/i18n/routing";
 import { DEFAULT_LOCALE, Locale, isLocale } from "@/lib/i18n/locales";
 import { cn } from "@/lib/utils";
+import { stackClientApp } from "@/stack/client";
 
 type TopNavProps = {
   isAuthenticated: boolean;
@@ -89,17 +90,11 @@ export const TopNav = ({ isAuthenticated, showAdminLink = false, navigation, loc
 
   const handleSignOut = async () => {
     try {
-      await fetch("/handler/sign-out", {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "content-type": "application/x-www-form-urlencoded",
-        },
-        body: new URLSearchParams(),
+      await stackClientApp.signOut({
+        redirectUrl: currentNavigation.signOutRedirect,
       });
     } catch (error) {
       console.error("Sign-out failed", error);
-    } finally {
       window.location.href = currentNavigation.signOutRedirect;
     }
   };
