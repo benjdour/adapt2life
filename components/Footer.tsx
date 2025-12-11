@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 
 import { NavigationConfig, getNavigationConfig } from "@/lib/i18n/navigation";
 import { deriveLocaleFromPathname } from "@/lib/i18n/routing";
 import { DEFAULT_LOCALE, Locale, isLocale } from "@/lib/i18n/locales";
 import { buildLanguageToggleHref } from "@/lib/i18n/languageToggle";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
   <div>
@@ -51,6 +52,15 @@ export const Footer = ({ navigation }: FooterProps) => {
   );
 
   const footer = currentNavigation.footer;
+  const languageOptions = useMemo(
+    () =>
+      [
+        { locale: "fr" as Locale, label: "Français", flag: "🇫🇷" },
+        { locale: "en" as Locale, label: "English", flag: "🇺🇸" },
+      ] satisfies Array<{ locale: Locale; label: string; flag: string }>,
+    [],
+  );
+  const selectedLanguage = languageOptions.find((option) => option.locale === currentLocale) ?? languageOptions[0];
   return (
     <footer className="border-t border-white/10 bg-background/70 py-12 text-sm text-muted-foreground">
       <div className="mx-auto grid w-full max-w-6xl gap-8 px-6 md:grid-cols-3">
@@ -89,14 +99,38 @@ export const Footer = ({ navigation }: FooterProps) => {
             ))}
           </ul>
           <div className="pt-4">
-            <Link
-              href={languageToggleHref}
-              title={currentNavigation.languageToggle.title}
-              aria-label={currentNavigation.languageToggle.title}
-              className="inline-flex items-center rounded-full border border-white/15 px-4 py-2 text-sm font-medium text-foreground transition hover:bg-white/10"
+            <Select
+              value={selectedLanguage.locale}
+              onValueChange={(value) => {
+                const target = languageOptions.find((option) => option.locale === value);
+                if (!target) return;
+                window.location.href = buildLanguageToggleHref(
+                  target.locale,
+                  currentNavigation.languageToggle.fallbackHref,
+                  pathname,
+                  searchString,
+                );
+              }}
             >
-              {currentNavigation.languageToggle.label}
-            </Link>
+              <SelectTrigger className="w-full border-white/15 bg-card/40 text-foreground">
+                <SelectValue
+                  aria-label={currentNavigation.languageToggle.title}
+                  placeholder={selectedLanguage.label}
+                  className="flex items-center gap-2"
+                >
+                  <span className="mr-2 text-lg">{selectedLanguage.flag}</span>
+                  {selectedLanguage.label}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {languageOptions.map((option) => (
+                  <SelectItem key={option.locale} value={option.locale}>
+                    <span className="mr-2 text-lg">{option.flag}</span>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </Section>
       </div>
