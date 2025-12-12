@@ -64,7 +64,7 @@ export async function POST(request: Request) {
       title,
       excerpt,
       lang: langFinal.value,
-      heroImage: heroImageUrlFinal,
+      heroImage: heroImageUrlFinal ?? undefined,
       publishedAt,
       content,
     });
