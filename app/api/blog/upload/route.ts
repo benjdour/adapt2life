@@ -58,7 +58,7 @@ export async function POST(request: Request) {
     const excerpt = String(frontMatter.excerpt).trim();
     const heroImageUrlFinal = await resolveHeroImageUrl(formData, frontMatter);
 
-    await db.insert(posts).values({
+    const record = {
       id: nanoid(),
       slug,
       title,
@@ -67,7 +67,9 @@ export async function POST(request: Request) {
       heroImage: heroImageUrlFinal ?? null,
       publishedAt,
       content,
-    });
+    };
+
+    await db.insert(posts).values(record);
 
     return NextResponse.json({ ok: true });
   } catch (error) {
