@@ -80,15 +80,6 @@ export async function POST(request: Request) {
 }
 
 async function resolveHeroImageUrl(formData: FormData, frontMatter: BlogFrontMatter): Promise<string | null> {
-  const heroImageUrlFromForm = formData.get("heroImageUrl");
-  if (typeof heroImageUrlFromForm === "string" && heroImageUrlFromForm.trim()) {
-    return heroImageUrlFromForm.trim();
-  }
-
-  if (typeof frontMatter.heroImage === "string" && frontMatter.heroImage.trim()) {
-    return frontMatter.heroImage.trim();
-  }
-
   const imageFile = formData.get("image");
   if (imageFile instanceof File && imageFile.size > 0) {
     const safeFileName = imageFile.name.replace(/\s+/g, "-").toLowerCase();
@@ -99,6 +90,15 @@ async function resolveHeroImageUrl(formData: FormData, frontMatter: BlogFrontMat
       contentType: imageFile.type || "application/octet-stream",
     });
     return blob.url;
+  }
+
+  const heroImageUrlFromForm = formData.get("heroImageUrl");
+  if (typeof heroImageUrlFromForm === "string" && heroImageUrlFromForm.trim()) {
+    return heroImageUrlFromForm.trim();
+  }
+
+  if (typeof frontMatter.heroImage === "string" && frontMatter.heroImage.trim()) {
+    return frontMatter.heroImage.trim();
   }
 
   return null;
