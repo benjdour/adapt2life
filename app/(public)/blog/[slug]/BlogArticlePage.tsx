@@ -49,12 +49,7 @@ const markdownComponents: Components = {
   a: ({ node: _node, ...props }) => (
     <a className="font-semibold text-primary underline decoration-primary/60 hover:decoration-primary" {...props} />
   ),
-  code: ({ node: _node, inline, ...props }) =>
-    inline ? (
-      <code className="rounded-md bg-muted px-2 py-0.5 font-mono text-sm text-foreground" {...props} />
-    ) : (
-      <code className="block w-full rounded-xl bg-black/40 p-4 text-sm leading-relaxed text-foreground" {...props} />
-    ),
+  code: ({ node: _node, ...props }) => <code className="rounded-md bg-black/40 px-2 py-0.5 font-mono text-sm" {...props} />,
 };
 
 const resolveLangFromLocale = (locale: Locale): Locale => (locale === "fr" ? "fr" : "en");
