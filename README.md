@@ -68,6 +68,11 @@ GARMIN_WEBHOOK_SECRET=super-secret
 # Cron interne
 CRON_SECRET=cron-secret-value
 
+# Blog (Vercel Blob)
+BLOB_READ_WRITE_TOKEN=vercel_blob_rw_...
+# optionnel mais pratique pour la consultation
+BLOB_READ_TOKEN=vercel_blob_r_...
+
 # Garmin Trainer / OpenRouter
 OPENROUTER_API_KEY=sk-or-...
 OPENROUTER_BASE_URL=https://openrouter.ai/api/v1   # optionnel
@@ -111,6 +116,18 @@ ADMIN_MENU_USER_IDS=user-id-1,user-id-2
 - `npx drizzle-kit migrate` : appliquer les migrations
 
 Les migrations sont stockées dans `drizzle/` et le schéma dans `db/schema.ts`.
+
+## Blog multilingue (Markdown + Vercel Blob)
+
+- Les articles sont importés depuis l’admin (`/admin` > “Importer un article de blog”) via un fichier `.md` contenant un front matter YAML (title, slug, excerpt, publishedAt, etc.).
+- Le nom du fichier doit respecter la convention `mon-article.fr.md` / `mon-article.en.md`. La partie commune est enregistrée comme `article_key` et permet de relier automatiquement les traductions (sélecteur FR/EN pointe vers le bon slug).
+- Si tu joins un fichier image dans le champ “Image hero à uploader”, il est chargé sur Vercel Blob (`blog/<timestamp>-file.ext`) et l’URL est stockée dans `posts.hero_image`. La version anglaise peut réutiliser automatiquement cette image (il suffit de ne pas en re-uploader).
+- Tu peux aussi saisir une URL manuelle (`heroImageUrl`) pour pointer vers une image existante.
+- Script utilitaire : `npx tsx scripts/listBlobs.ts` liste les blobs `blog/…` (nécessite `BLOB_READ_WRITE_TOKEN`).
+- En cas de réimport, tu peux vider la table via :
+  ```bash
+  npx dotenv-cli -e .env.local -- psql "$DATABASE_URL" -c "DELETE FROM posts;"
+  ```
 
 ## Tests
 
