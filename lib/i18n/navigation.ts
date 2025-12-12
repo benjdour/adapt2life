@@ -60,7 +60,6 @@ const buildAuthenticatedLinks = (locale: Locale): NavLink[] => [
   { label: locale === "en" ? "Garmin data" : "Données Garmin", href: buildLocalePath(locale, "/secure/garmin-data") },
   { label: locale === "en" ? "Profile" : "Profil", href: buildLocalePath(locale, "/secure/user-information") },
   { label: locale === "en" ? "Garmin integration" : "Intégration Garmin", href: buildLocalePath(locale, "/integrations/garmin") },
-  { label: "Blog", href: buildLocalePath(locale, "/blog") },
 ];
 
 const socials: FooterLink[] = [
