@@ -110,6 +110,7 @@ export async function BlogArticlePage({ locale, slug }: BlogArticlePageProps) {
   const entry = await db
     .select({
       slug: posts.slug,
+      articleKey: posts.articleKey,
       title: posts.title,
       excerpt: posts.excerpt,
       content: posts.content,
@@ -124,6 +125,18 @@ export async function BlogArticlePage({ locale, slug }: BlogArticlePageProps) {
   if (!article) {
     notFound();
   }
+
+  const siblingSlugs = await db
+    .select({ lang: posts.lang, slug: posts.slug })
+    .from(posts)
+    .where(eq(posts.articleKey, article.articleKey));
+  const slugByLocale = siblingSlugs.reduce<Record<string, string>>((acc, current) => {
+    if (current.lang && current.slug) {
+      acc[current.lang] = current.slug;
+    }
+    return acc;
+  }, {});
+  const translationPayload = JSON.stringify({ articleKey: article.articleKey, slugs: slugByLocale }).replace(/</g, "\\u003c");
 
   const publishedDate = formatPublishedDate(article.publishedAt ?? null, locale);
   const readingMinutes = estimateReadingTime(article.content);
@@ -164,6 +177,12 @@ export async function BlogArticlePage({ locale, slug }: BlogArticlePageProps) {
       <section className="space-y-6">
         <ReactMarkdown components={markdownComponents}>{article.content}</ReactMarkdown>
       </section>
+
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `window.__A2L_BLOG_TRANSLATIONS=${translationPayload};`,
+        }}
+      />
     </article>
   );
 }
