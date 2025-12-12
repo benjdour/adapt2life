@@ -3,12 +3,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import type { Components } from "react-markdown";
+import type { Metadata } from "next";
 
 import { and, eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import { posts } from "@/db/schema";
-import { buildLocalePath, resolveLocale } from "@/lib/i18n/routing";
+import { buildLocalePath } from "@/lib/i18n/routing";
 import { Locale } from "@/lib/i18n/locales";
 
 const copyByLocale: Record<
@@ -34,6 +35,28 @@ const copyByLocale: Record<
   },
 };
 
+const markdownComponents: Components = {
+  h1: ({ node: _node, ...props }) => <h1 className="text-3xl font-bold text-foreground" {...props} />,
+  h2: ({ node: _node, ...props }) => <h2 className="mt-10 text-2xl font-semibold text-foreground" {...props} />,
+  h3: ({ node: _node, ...props }) => <h3 className="mt-8 text-xl font-semibold text-foreground" {...props} />,
+  p: ({ node: _node, ...props }) => <p className="text-base leading-relaxed text-muted-foreground" {...props} />,
+  ul: ({ node: _node, ...props }) => <ul className="list-disc space-y-2 pl-6 text-muted-foreground" {...props} />,
+  ol: ({ node: _node, ...props }) => <ol className="list-decimal space-y-2 pl-6 text-muted-foreground" {...props} />,
+  li: ({ node: _node, ...props }) => <li {...props} />,
+  blockquote: ({ node: _node, ...props }) => (
+    <blockquote className="border-l-4 border-primary/60 pl-4 italic text-foreground" {...props} />
+  ),
+  a: ({ node: _node, ...props }) => (
+    <a className="font-semibold text-primary underline decoration-primary/60 hover:decoration-primary" {...props} />
+  ),
+  code: ({ node: _node, inline, ...props }) =>
+    inline ? (
+      <code className="rounded-md bg-muted px-2 py-0.5 font-mono text-sm text-foreground" {...props} />
+    ) : (
+      <code className="block w-full rounded-xl bg-black/40 p-4 text-sm leading-relaxed text-foreground" {...props} />
+    ),
+};
+
 const resolveLangFromLocale = (locale: Locale): Locale => (locale === "fr" ? "fr" : "en");
 
 const formatPublishedDate = (value: Date | null, locale: Locale): string | null => {
@@ -50,49 +73,44 @@ const estimateReadingTime = (markdown: string): number => {
   return Math.max(1, Math.round(words / 220));
 };
 
-const markdownComponents: Components = {
-  h1: ({ node: _node, ...props }) => (
-    <h1 className="text-3xl font-bold text-foreground" {...props} />
-  ),
-  h2: ({ node: _node, ...props }) => (
-    <h2 className="mt-10 text-2xl font-semibold text-foreground" {...props} />
-  ),
-  h3: ({ node: _node, ...props }) => (
-    <h3 className="mt-8 text-xl font-semibold text-foreground" {...props} />
-  ),
-  p: ({ node: _node, ...props }) => (
-    <p className="text-base leading-relaxed text-muted-foreground" {...props} />
-  ),
-  ul: ({ node: _node, ...props }) => (
-    <ul className="list-disc space-y-2 pl-6 text-muted-foreground" {...props} />
-  ),
-  ol: ({ node: _node, ...props }) => (
-    <ol className="list-decimal space-y-2 pl-6 text-muted-foreground" {...props} />
-  ),
-  li: ({ node: _node, ...props }) => <li {...props} />,
-  blockquote: ({ node: _node, ...props }) => (
-    <blockquote className="border-l-4 border-primary/60 pl-4 italic text-foreground" {...props} />
-  ),
-  a: ({ node: _node, ...props }) => (
-    <a className="font-semibold text-primary underline decoration-primary/60 hover:decoration-primary" {...props} />
-  ),
-  code: ({ node: _node, inline, ...props }) =>
-    inline ? (
-      <code className="rounded-md bg-muted px-2 py-0.5 font-mono text-sm text-foreground" {...props} />
-    ) : (
-      <code
-        className="block w-full rounded-xl bg-black/40 p-4 text-sm leading-relaxed text-foreground"
-        {...props}
-      />
-    ),
+export async function getBlogArticleMetadata(locale: Locale, slug: string): Promise<Metadata> {
+  const lang = resolveLangFromLocale(locale);
+  const article = await db
+    .select({ title: posts.title, excerpt: posts.excerpt })
+    .from(posts)
+    .where(and(eq(posts.slug, slug), eq(posts.lang, lang)))
+    .limit(1);
+
+  if (!article[0]) {
+    return {};
+  }
+
+  const base = siteUrlForLocale(locale);
+  return {
+    title: `${article[0].title} — Adapt2Life`,
+    description: article[0].excerpt,
+    alternates: {
+      canonical: `${base}/blog/${slug}`,
+    },
+  };
+}
+
+const siteUrlForLocale = (locale: Locale) => {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://adapt2life.app";
+  if (locale === "fr") {
+    return siteUrl;
+  }
+  return `${siteUrl}/${locale}`;
 };
 
-export default async function BlogArticlePage({ params }: { params: Promise<{ locale: string; slug: string }> }) {
-  const resolved = await params;
-  const locale = resolveLocale(resolved.locale);
-  const slug = resolved.slug;
+type BlogArticlePageProps = {
+  locale: Locale;
+  slug: string;
+};
+
+export async function BlogArticlePage({ locale, slug }: BlogArticlePageProps) {
   const lang = resolveLangFromLocale(locale);
-  const copy = copyByLocale[locale];
+  const copy = copyByLocale[locale] ?? copyByLocale.fr;
 
   const entry = await db
     .select({
