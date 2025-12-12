@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ReactMarkdown from "react-markdown";
-import type { CodeComponent, Components } from "react-markdown";
+import type { Components } from "react-markdown";
 import type { Metadata } from "next";
 
 import { and, eq } from "drizzle-orm";
@@ -35,13 +35,6 @@ const copyByLocale: Record<
   },
 };
 
-const CodeRenderer: CodeComponent = ({ inline, ...props }) =>
-  inline ? (
-    <code className="rounded-md bg-muted px-2 py-0.5 font-mono text-sm text-foreground" {...props} />
-  ) : (
-    <code className="block w-full rounded-xl bg-black/40 p-4 text-sm leading-relaxed text-foreground" {...props} />
-  );
-
 const markdownComponents: Components = {
   h1: ({ node: _node, ...props }) => <h1 className="text-3xl font-bold text-foreground" {...props} />,
   h2: ({ node: _node, ...props }) => <h2 className="mt-10 text-2xl font-semibold text-foreground" {...props} />,
@@ -56,7 +49,12 @@ const markdownComponents: Components = {
   a: ({ node: _node, ...props }) => (
     <a className="font-semibold text-primary underline decoration-primary/60 hover:decoration-primary" {...props} />
   ),
-  code: CodeRenderer,
+  code: ({ node: _node, inline, ...props }) =>
+    inline ? (
+      <code className="rounded-md bg-muted px-2 py-0.5 font-mono text-sm text-foreground" {...props} />
+    ) : (
+      <code className="block w-full rounded-xl bg-black/40 p-4 text-sm leading-relaxed text-foreground" {...props} />
+    ),
 };
 
 const resolveLangFromLocale = (locale: Locale): Locale => (locale === "fr" ? "fr" : "en");
