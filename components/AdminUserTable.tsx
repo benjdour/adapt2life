@@ -90,16 +90,36 @@ export function AdminUserTable({ users, locale }: AdminUserTableProps) {
     }
   };
 
+  const MONTH_LABELS: Record<Locale, string[]> = {
+    fr: ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."],
+    en: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+  };
+
   const formatDate = (isoDate: string | null) => {
     if (!isoDate) {
       return "—";
     }
-    try {
-      const localeFormatter = locale === "fr" ? "fr-FR" : "en-US";
-      return new Intl.DateTimeFormat(localeFormatter, { dateStyle: "medium", timeStyle: "short" }).format(new Date(isoDate));
-    } catch {
-      return isoDate;
+
+    const date = new Date(isoDate);
+    if (Number.isNaN(date.getTime())) {
+      return "—";
     }
+
+    const monthLabels = MONTH_LABELS[locale] ?? MONTH_LABELS.fr;
+    const day = date.getDate().toString().padStart(2, "0");
+    const month = monthLabels[date.getMonth()];
+    const year = date.getFullYear();
+    const minutes = date.getMinutes().toString().padStart(2, "0");
+
+    if (locale === "fr") {
+      const hours = date.getHours().toString().padStart(2, "0");
+      return `${day} ${month} ${year} à ${hours}:${minutes}`;
+    }
+
+    const hours24 = date.getHours();
+    const hours12 = ((hours24 + 11) % 12) + 1;
+    const suffix = hours24 >= 12 ? "PM" : "AM";
+    return `${month} ${day}, ${year} at ${hours12}:${minutes} ${suffix}`;
   };
 
   const handlePlanChange = async (userId: number, planType: string) => {

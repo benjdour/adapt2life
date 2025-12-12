@@ -124,6 +124,18 @@ const nextConfig: NextConfig = {
     },
     ...buildCorsHeaders(),
   ],
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "adapt2life.app",
+      },
+      {
+        protocol: "https",
+        hostname: "www.adapt2life.app",
+      },
+    ],
+  },
 };
 
 export default nextConfig;
