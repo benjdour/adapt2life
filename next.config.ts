@@ -134,6 +134,14 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "www.adapt2life.app",
       },
+      {
+        protocol: "https",
+        hostname: "*.blob.vercel-storage.com",
+      },
+      {
+        protocol: "https",
+        hostname: "nzwaz4dwagkfzea9.public.blob.vercel-storage.com",
+      },
     ],
   },
 };
