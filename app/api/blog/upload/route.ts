@@ -38,6 +38,7 @@ export async function POST(request: Request) {
     if (langFinal.error) {
       return NextResponse.json({ error: langFinal.error }, { status: 400 });
     }
+    const resolvedLang = langFinal.value ?? "fr";
 
     for (const field of REQUIRED_FIELDS) {
       if (typeof frontMatter[field] !== "string" || !String(frontMatter[field]).trim()) {
@@ -63,7 +64,7 @@ export async function POST(request: Request) {
       slug,
       title,
       excerpt,
-      lang: langFinal.value,
+      lang: resolvedLang,
       heroImage: heroImageUrlFinal ?? null,
       publishedAt,
       content,
