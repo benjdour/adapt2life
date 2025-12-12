@@ -3,6 +3,7 @@ import matter from "gray-matter";
 import { nanoid } from "nanoid";
 import { put } from "@vercel/blob";
 import { Buffer } from "node:buffer";
+import { eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import { posts } from "@/db/schema";
@@ -57,11 +58,16 @@ export async function POST(request: Request) {
     const slug = String(frontMatter.slug).trim();
     const title = String(frontMatter.title).trim();
     const excerpt = String(frontMatter.excerpt).trim();
-    const heroImageUrlFinal = await resolveHeroImageUrl(formData, frontMatter);
+    const articleKey = deriveArticleKey(markdownFile.name, slug);
+    let heroImageUrlFinal = await resolveHeroImageUrl(formData, frontMatter);
+    if (!heroImageUrlFinal) {
+      heroImageUrlFinal = await findExistingHeroImage(articleKey);
+    }
 
     const record = {
       id: nanoid(),
       slug,
+      articleKey,
       title,
       excerpt,
       lang: resolvedLang,
@@ -146,4 +152,23 @@ function resolvePostLanguage({
 
   // On conserve "fr" par défaut afin de rester aligné avec le comportement historique.
   return { value: "fr" as const };
+}
+
+function deriveArticleKey(fileName: string, fallbackSlug: string): string {
+  const normalized = fileName.trim().toLowerCase();
+  const match = normalized.match(/^(.*)\.(fr|en)\.(md|markdown)$/);
+  if (match?.[1]) {
+    return match[1];
+  }
+  const withoutExtension = normalized.replace(/\.(md|markdown)$/, "");
+  return withoutExtension || fallbackSlug.toLowerCase();
+}
+
+async function findExistingHeroImage(articleKey: string): Promise<string | null> {
+  const existing = await db
+    .select({ heroImage: posts.heroImage })
+    .from(posts)
+    .where(eq(posts.articleKey, articleKey))
+    .limit(1);
+  return existing[0]?.heroImage ?? null;
 }

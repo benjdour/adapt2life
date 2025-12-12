@@ -162,6 +162,13 @@
       "when": 1765486621781,
       "tag": "0022_small_trish_tilby",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1765544639030,
+      "tag": "0023_supreme_scream",
+      "breakpoints": true
     }
   ]
 }

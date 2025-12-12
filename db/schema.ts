@@ -210,13 +210,20 @@ export const aiModelConfigs = pgTable("ai_model_configs", {
   updatedAt: timestamp("updated_at").defaultNow().$onUpdate(() => new Date()),
 });
 
-export const posts = pgTable("posts", {
-  id: text("id").primaryKey(),
-  slug: varchar("slug", { length: 255 }).notNull().unique(),
-  title: varchar("title", { length: 255 }).notNull(),
-  excerpt: text("excerpt").notNull(),
-  lang: varchar("lang", { length: 5 }).notNull(),
-  heroImage: varchar("hero_image", { length: 512 }),
-  publishedAt: timestamp("published_at", { withTimezone: true }).notNull(),
-  content: text("content").notNull(),
-});
+export const posts = pgTable(
+  "posts",
+  {
+    id: text("id").primaryKey(),
+    slug: varchar("slug", { length: 255 }).notNull().unique(),
+    articleKey: varchar("article_key", { length: 255 }).notNull(),
+    title: varchar("title", { length: 255 }).notNull(),
+    excerpt: text("excerpt").notNull(),
+    lang: varchar("lang", { length: 5 }).notNull(),
+    heroImage: varchar("hero_image", { length: 512 }),
+    publishedAt: timestamp("published_at", { withTimezone: true }).notNull(),
+    content: text("content").notNull(),
+  },
+  (table) => ({
+    articleKeyLangIdx: uniqueIndex("posts_article_key_lang_idx").on(table.articleKey, table.lang),
+  }),
+);
